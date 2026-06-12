@@ -1,105 +1,116 @@
-[English](https://github.com/enderneko/Cell/blob/master/README.md) | [简体中文](https://github.com/enderneko/Cell/blob/master/README_zhCN.md)
+# CellD — 魔兽世界团队框架插件
 
-# Cell
+[![version](https://img.shields.io/github/v/release/davidchangok/CellD)](https://github.com/davidchangok/CellD/releases)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/davidchangok/CellD/blob/main/LICENSE)
 
-[![version](https://img.shields.io/github/v/release/enderneko/Cell)](https://github.com/enderneko/Cell/releases)
-[![GitHub commit activity](https://img.shields.io/github/commit-activity/m/enderneko/Cell)](https://github.com/enderneko/Cell/commits/master)
-[![last commit](https://img.shields.io/github/last-commit/enderneko/Cell)](https://github.com/enderneko/Cell/commits/master)
-![wakatime](https://wakatime.com/badge/user/b2ffce60-8269-440f-81a0-7316f36a6085/project/82ff5b42-1fec-416d-9d8d-50b586ceea0c.svg)
+**CellD** 是一款优秀的魔兽世界团队框架插件，继承自 [enderneko 的 Cell](https://github.com/enderneko/Cell)。原作者因工作繁忙停止更新后，由 **David W Zhang** 继续维护，专注于正式服最新版本。
 
-[![Discord](https://img.shields.io/discord/1122747237546610760?label=Discord&color=5865F2)](https://discord.gg/9PSe3fKQGJ)
-[![KOOK](https://img.shields.io/badge/KOOK-87eb00)](https://kook.top/q4T7yp)
-[![Curseforge](https://img.shields.io/curseforge/dt/409666?label=CurseForge&color=F16436)](https://www.curseforge.com/wow/addons/cell)
-[![Wago](https://img.shields.io/badge/Wago-Cell-ad1319)](https://addons.wago.io/addons/cell)
+---
 
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/enderneko)
+## 设计理念
 
-Cell is a nice raid frame addon inspired by several great addons, such as __CompactRaid__, __Grid2__, __Aptechka__ and __VuhDo__.  
-With a more human-friendly interface, Cell can provide a better user experience, better than ever.  
-Hope you enjoy.
+CellD 并非追求极限轻量，也不试图面面俱到。它的目标是提供**比以往更好的用户体验**。
 
-&nbsp;
+灵感来源于：**CompactRaid**、**Grid2**、**Aptechka**、**VuhDo**
 
-## Features
+---
 
-- __Layouts:__ auto switch layout by spec/role, supports party, raid, arena, and battleground.
-- __Customizable Appearance:__ textures, colors and alphas.
-- __Built-in Click-Castings:__ supports keyboard and multi-button mouse.
-- __Indicators:__ dozens of built-in indicators and unlimited custom indicators (icon, bar, rect, text, icons).
-- __Raid Debuffs:__ debuffs priority and glow.
-- __Useful Raid Tools:__ ready check, countdown, rebuff, death report, marks, battleres.
-- __Nice Options UI:__ I mean yes it's pretty darn good!
-- __Spotlight Frame:__ extra 15 unit buttons, can be set to Target, Focus, Unit, Tank, etc.
-- __Quick Assist:__ for Augmentation Evokers!
-- __Compatibility:__ [BigDebuffs](https://www.curseforge.com/wow/addons/bigdebuffs), [Class Colors](https://www.curseforge.com/wow/addons/classcolors), [OmniCD](https://www.curseforge.com/wow/addons/omnicd) and of course, [WAs](https://wago.io/weakauras).
+## 支持版本
 
-&nbsp;
+- **魔兽世界正式服 12.0.5+（Midnight）**
+- 不再支持怀旧服
 
-## Code Snippets
+---
 
-__Try disabling all snippets if there are any issues.__
+## 主要功能
 
-Check <https://github.com/enderneko/Cell/tree/master/.snippets> for more snippets.
+- **布局系统** — 按队伍类型 / 职责 / 专精自动切换布局，覆盖单人、小队、团队、战场、竞技场
+- **自定义外观** — 材质、颜色、透明度、字体、边框全面可调
+- **内置点击施法** — 支持键盘快捷键与多键鼠标，无需第三方插件
+- **智能复活** — 对死亡单位自动替换为复活法术（支持普通复活 + 战复）
+- **丰富的指示器** — 内置数十种指示器（图标、进度条、矩形、文字、发光等），支持无限自定义
+- **副本减益** — 带优先级排序的减益列表，内置多种发光效果（像素、闪耀、触发）
+- **团队工具** — 就位确认、职责确认、开怪倒计时、补增益检查、死亡通报、世界/目标标记、战复计时
+- **特别关注框体** — 额外 15 个单位按钮，可设为目标、焦点、坦克、指定单位等
+- **快速协助** — 一键辅助功能（增辉唤魔师适配）
+- **黑箱自检** — 内置 Secret Value 安全性检测（`/celld blackbox`）
+- **精致的选项界面** — 简洁直观的配置面板，操作体验极佳
+- **兼容性** — [BigDebuffs](https://www.curseforge.com/wow/addons/bigdebuffs)、[OmniCD](https://www.curseforge.com/wow/addons/omnicd)、[WeakAuras](https://wago.io/weakauras)
 
-### Usage
+---
 
-1. Cell Options -> About -> Code Snippets
-2. New -> Paste -> Save -> Tick the AutoRun box
-3. Reload
+## 安装方法
 
-&nbsp;
+1. 下载最新版本：[Releases](https://github.com/davidchangok/CellD/releases)
+2. 解压到 `World of Warcraft\_retail_\Interface\AddOns\` 目录
+3. 确保文件夹名为 `CellD`
+4. 重启游戏或 `/reload`
 
-## Not supported and probably won't be included in the future
+---
 
-- Custom border
-- Changing layout based on group size
-- Other click-casting addons
+## 斜杠命令
 
-&nbsp;
+| 命令 | 功能 |
+| ---- | ---- |
+| `/celld` 或 `/cell` | 显示所有可用命令 |
+| `/celld options` | 打开设置窗口 |
+| `/celld healers` | 创建"治疗者"指示器 |
+| `/celld rescale` | 应用推荐缩放比例 |
+| `/celld blackbox` | Secret Value 黑箱自检 |
+| `/celld reset position` | 重置 CellD 位置 |
+| `/celld reset layouts` | 重置全部布局和指示器 |
+| `/celld reset clickcastings` | 重置全部点击施法 |
+| `/celld reset raiddebuffs` | 重置全部副本减益 |
+| `/celld reset snippets` | 重置全部代码片段 |
+| `/celld reset quickassist` | 重置当前专精的快速协助 |
+| `/celld reset all` | 重置全部设置（慎用） |
+| `/celld report <数字>` | 设置团队战中死亡通报数量（0–40） |
 
-## Slash Commands
+---
 
-Use __/cell__ for more information.
+## 代码片段
 
-&nbsp;
+**遇到问题请先禁用所有代码片段再测试。**
 
-## Guides & Sharing
+### 用法
 
-- [ULTIMATE Cell Raid Frames AddOn Setup GUIDE for HEALERS (Reat TV)](https://www.youtube.com/watch?v=ntXko7htO2I)
-- [Healer UI & Addon Guide for Dragonflight Season 4 (yumytv)](https://www.youtube.com/watch?v=XcXvXxFipOE)
-- [Addon Spotlight: How to set up Cell + OmniCD for Augmentation Evoker (JFunkGaming)](https://www.youtube.com/watch?v=PMvtgJv-808)
-- [团队框架插件 Cell 配置流程分享 (钛锬)](https://bbs.nga.cn/read.php?tid=32921170)
+1. CellD 选项 → 关于 → 代码片段
+2. 新建 → 粘贴 → 保存 → 勾选自动运行
+3. 重载界面
 
-&nbsp;
+---
 
-## Want to help improve Raid Debuffs?
+## Secret Value 黑箱自检
 
-Use [Instance Spell Collector](https://www.curseforge.com/wow/addons/instance-spell-collector) to collect debuffs. Then create a PR or submit a ticket on GitHub.
+暴雪在 12.0 版本引入了 Secret Value（opaque type）机制，战斗中的生命值、能量、吸收量等敏感数据会被包装为不可运算的类型。CellD 内置了完整的安全保护措施。
 
-&nbsp;
+使用 `/celld blackbox` 可随时运行黑箱自检，对所有涉及敏感数据的代码路径进行安全性验证。
 
-## Localization
+> 开发提示：可在非战斗时通过 CVar 强制开启所有限制进行测试：
+> ```
+> /run SetCVar("secretCombatRestrictionsForced", 1)
+> /run SetCVar("secretEncounterRestrictionsForced", 1)
+> /run SetCVar("secretChallengeModeRestrictionsForced", 1)
+> /run SetCVar("secretPvPMatchRestrictionsForced", 1)
+> ```
+> 关闭：`/run SetCVar("secretCombatRestrictionsForced", 0)`
 
-If you want to help with the localization, please visit <https://legacy.curseforge.com/wow/addons/cell/localization>, instead of creating a PR.
+---
 
-&nbsp;
+## 帮助改进副本减益数据
 
-## About Pull Requests
+使用 [Instance Spell Collector](https://www.curseforge.com/wow/addons/instance-spell-collector) 收集副本减益数据，然后在 GitHub 上提交 PR 或 Issue。
 
-- Before submitting any PRs related to new features or feature optimizations/changes, it's best to ask me first. Otherwise, there's a high chance they won't be accepted.
-- Features that are listed as "not supported" above will be rejected.
+---
 
-If a PR is not accepted, it might not be because it's not good enough, it just doesn't align with my design philosophy.
-For rejected PRs, I suggest you implement them through code snippets.
-What I want to express is that I don't oppose any code snippets making changes to Cell, even if it's not what I envisioned.
-Regardless, I appreciate all the contributions you've made!
+## 相关链接
 
-&nbsp;
+- **GitHub 仓库**：https://github.com/davidchangok/CellD
+- **问题反馈**：https://github.com/davidchangok/CellD/issues
+- **原项目 Cell**：https://github.com/enderneko/Cell
 
-## Misc
+---
 
-Discord: <https://discord.gg/9PSe3fKQGJ>
+## 致谢
 
-简体中文介绍在这里: <https://github.com/enderneko/Cell/blob/master/README_zhCN.md>
-
-NGA上的发布贴: <https://bbs.nga.cn/read.php?tid=23488341>
+CellD 基于 [enderneko 的 Cell](https://github.com/enderneko/Cell) 继续开发。感谢原作者和所有代码贡献者的卓越工作。
