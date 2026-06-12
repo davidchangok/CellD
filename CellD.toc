@@ -1,0 +1,51 @@
+## Interface: 120005
+## Title: CellD
+## Version: 1.0.0
+## Author: David W Zhang
+## X-Flavor: Mainline
+## SavedVariables: CellDB, CellDBBackup
+## AddonCompartmentFunc: CellD_OnAddonCompartmentClick
+## IconTexture: Interface\AddOns\CellD\Media\icon.tga
+
+## X-Website: https://github.com/davidchangok/CellD
+
+Locales\LoadLocales.xml
+
+Libs\LoadLibs.xml
+
+Core.lua
+Utils.lua
+BlackBox.lua
+Revise.lua
+Comm\LoadComm.xml
+Widgets\LoadWidgets.xml
+Defaults\LoadDefaults.xml
+
+HideBlizzard.lua
+
+Indicators\Base.lua
+Indicators\Built-in.lua
+Indicators\StatusIcon.lua
+Indicators\AoEHealing.lua
+Indicators\TargetCounter.lua
+Indicators\TargetedSpells.lua
+Indicators\Actions.lua
+Indicators\Custom.lua
+Indicators\Supporter.lua
+
+RaidFrames\MainFrame.lua
+
+Modules\LoadModules.xml
+Utilities\LoadUtilities.xml
+RaidDebuffs\LoadRaidDebuffs.xml
+
+RaidFrames\UnitButton.lua
+RaidFrames\UnitButton.xml
+RaidFrames\Groups\SoloFrame.lua
+RaidFrames\Groups\PartyFrame.lua
+RaidFrames\Groups\RaidFrame.lua
+RaidFrames\Groups\PetFrame.lua
+RaidFrames\Groups\NPCFrame.lua
+RaidFrames\Groups\SpotlightFrame.lua
+
+Supporters.lua
