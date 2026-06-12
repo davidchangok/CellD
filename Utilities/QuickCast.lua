@@ -357,7 +357,7 @@ end
 -- ----------------------------------------------------------------------- --
 local function CreateSpellButton(parent, func)
     local b = Cell.CreateButton(parent, " ", "accent-hover", {195, 20})
-    b:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\create", {16, 16}, {"LEFT", 2, 0})
+    b:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\create", {16, 16}, {"LEFT", 2, 0})
     b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     b:GetFontString():SetJustifyH("LEFT")
 
@@ -385,7 +385,7 @@ local function CreateSpellButton(parent, func)
             b.id = nil
             b.icon = nil
             b:SetText("")
-            b.tex:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\create")
+            b.tex:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\create")
             b.tex:SetTexCoord(0, 1, 0, 1)
             func(0)
             Cell.Fire("UpdateQuickCast")
@@ -418,7 +418,7 @@ local function CreateOuterPane()
     local tip = qcOuterPane:CreateTexture(nil, "ARTWORK")
     tip:SetPoint("BOTTOMRIGHT", qcOuterPane.line, "TOPRIGHT", 0, P.Scale(2))
     tip:SetSize(16, 16)
-    tip:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\left-click")
+    tip:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\left-click")
 
     qcOuterCP = Cell.CreateColorPicker(qcOuterPane, L["Color"], false, nil, function(r, g, b)
         quickCastTable["outerColor"][1] = r
@@ -446,7 +446,7 @@ local function CreateInnerPane()
     local tip = qcInnerPane:CreateTexture(nil, "ARTWORK")
     tip:SetPoint("BOTTOMRIGHT", qcInnerPane.line, "TOPRIGHT", 0, P.Scale(2))
     tip:SetSize(16, 16)
-    tip:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\right-click")
+    tip:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\right-click")
 
     qcInnerCP = Cell.CreateColorPicker(qcInnerPane, L["Color"], false, nil, function(r, g, b)
         quickCastTable["innerColor"][1] = r
@@ -579,7 +579,7 @@ local function CreateGlowBuffsPane()
     -- buffs ------------------------------------------------------------------------
     qcGlowBuffsAddBtn = Cell.CreateButton(qcGlowBuffsPane, nil, "accent-hover", {20, 20})
     qcGlowBuffsAddBtn:SetPoint("TOPLEFT", qcGlowBuffsCP, "BOTTOMLEFT", 0, -10)
-    qcGlowBuffsAddBtn:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\create", {16, 16}, {"CENTER", 0, 0})
+    qcGlowBuffsAddBtn:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\create", {16, 16}, {"CENTER", 0, 0})
     qcGlowBuffsAddBtn:SetScript("OnClick", function()
         local popup = Cell.CreatePopupEditBox(qcPane, function(text)
             local spellId = tonumber(text)
@@ -646,7 +646,7 @@ local function CreateGlowCastsPane()
     -- casts ------------------------------------------------------------------------
     qcGlowCastsAddBtn = Cell.CreateButton(qcGlowCastsPane, nil, "accent-hover", {20, 20})
     qcGlowCastsAddBtn:SetPoint("TOPLEFT", qcGlowCastsCP, "BOTTOMLEFT", 0, -10)
-    qcGlowCastsAddBtn:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\create", {16, 16}, {"CENTER", 0, 0})
+    qcGlowCastsAddBtn:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\create", {16, 16}, {"CENTER", 0, 0})
     qcGlowCastsAddBtn:SetScript("OnClick", function()
         local popup = Cell.CreateDualPopupEditBox(qcGlowCastsPane, "ID", L["Duration"], true, function(spellId, duration)
             local spellName = F.GetSpellInfo(spellId)
@@ -674,7 +674,7 @@ local function LoadSpellButton(b, value)
     b.icon = nil
     if value == 0 then
         b:SetText("")
-        b.tex:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\create")
+        b.tex:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\create")
         b.tex:SetTexCoord(0, 1, 0, 1)
     else
         local name, icon = F.GetSpellInfo(value)
@@ -897,10 +897,10 @@ local function QuickCast_UpdateAuras(self)
     local glowBuffFound, outerBuffFound, innerBuffFound
 
     AuraUtil.ForEachAura(self.unit, "HELPFUL", nil, function(name, icon, count, debuffType, duration, expirationTime, source, isStealable, nameplateShowPersonal, spellId)
-        -- Midnight 12.0.0+: 跳过 spellId 为 secret 的光环
+        -- Midnight 12.0.0+: 璺宠繃 spellId 涓?secret 鐨勫厜鐜?
         if Cell.isMidnight and issecretvalue and issecretvalue(spellId) then return end
-        -- Midnight 12.0.0+: 即使 spellId 可读, temporal 字段仍可能为 secret
-        -- 对 secret 字段进行算术运算会抛出 Lua 错误, 需要 pcall 保护
+        -- Midnight 12.0.0+: 鍗充娇 spellId 鍙, temporal 瀛楁浠嶅彲鑳戒负 secret
+        -- 瀵?secret 瀛楁杩涜绠楁湳杩愮畻浼氭姏鍑?Lua 閿欒, 闇€瑕?pcall 淇濇姢
         local start, dur = 0, 0
         if Cell.isMidnight then
             if not issecretvalue or (not issecretvalue(expirationTime) and not issecretvalue(duration)) then
@@ -1083,7 +1083,7 @@ CreateQuickCastButton = function(parent, name, isPreview)
     local invalidTex = b:CreateTexture(nil, "ARTWORK")
     b.invalidTex = invalidTex
     invalidTex:Hide()
-    invalidTex:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\close")
+    invalidTex:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\close")
     invalidTex:SetVertexColor(0.7, 0.7, 0.7, 1)
 
     -- glow buff --------------------------------------------------------------------
@@ -1310,7 +1310,7 @@ CreateQuickCastButton = function(parent, name, isPreview)
             b:RegisterEvent("UNIT_NAME_UPDATE")
             QuickCast_UpdateName(b)
 
-            --! check range now (Midnight: UnitInRange second返回值可能为secret)
+            --! check range now (Midnight: UnitInRange second杩斿洖鍊煎彲鑳戒负secret)
             b:RegisterUnitEvent("UNIT_IN_RANGE_UPDATE", unit)
             local inRange = F.IsInRange(unit)
             if inRange == nil then inRange = true end

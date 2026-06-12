@@ -1,42 +1,35 @@
 --[[
-    CellD 单位按钮模块 (UnitButton.lua)
-    这是 CellD 最核心的模块之一，负责每个团队框架单位按钮的完整生命周期。
+    CellD 鍗曚綅鎸夐挳妯″潡 (UnitButton.lua)
+    杩欐槸 CellD 鏈€鏍稿績鐨勬ā鍧椾箣涓€锛岃礋璐ｆ瘡涓洟闃熸鏋跺崟浣嶆寜閽殑瀹屾暣鐢熷懡鍛ㄦ湡銆?
+    涓昏鍔熻兘:
+    1. 鐢熷懡鍊兼洿鏂?(UnitButton_UpdateHealth):
+       - Midnight (12.0.0+) 瀹夊叏璺緞: 浣跨敤 CreateUnitHealPredictionCalculator
+         杩斿洖鐨?healthCalculator 瀵硅薄鏉ュ畨鍏ㄨ鍙栫敓鍛藉€?       - 缁忓吀璺緞 (鍚戝悗鍏煎): 鐩存帴浣跨敤 UnitHealth/UnitHealthMax API
 
-    主要功能:
-    1. 生命值更新 (UnitButton_UpdateHealth):
-       - Midnight (12.0.0+) 安全路径: 使用 CreateUnitHealPredictionCalculator
-         返回的 healthCalculator 对象来安全读取生命值
-       - 经典路径 (向后兼容): 直接使用 UnitHealth/UnitHealthMax API
+    2. 鍏夌幆鏇存柊 (UnitButton_UpdateAuras):
+       - 浣跨敤 C_UnitAuras.GetAuraSlots + GetAuraDataBySlot (Midnight 鎺ㄨ崘)
+       - 鍦ㄥ彈闄愪笂涓嬫枃涓? 姣忎釜鍏夌幆鐨勫瓧娈甸€愰」妫€鏌?issecretvalue()
+       - 闈?secret 瀛楁姝ｅ父澶勭悊; secret 瀛楁瀹夊叏鍥為€€鍒伴粯璁ゅ€?
+    3. 鑳介噺鍊兼洿鏂?(UnitButton_UpdatePowerStates):
+       - UnitPower/UnitPowerMax 鍙兘杩斿洖 secret value
+       - 浣跨敤 F.IsSecretValue() 妫€鏌ュ悗鍐嶅畨鍏ㄥ鐞?
+    4. 鍑忕泭绯荤粺 (UnitButton_UpdateDebuffs):
+       - 妫€鏌?debuffType/dispelName 鏄惁涓?secret
+       - 妫€鏌?duration/expirationTime/applications 鏄惁涓?secret
+       - 瀵?raid debuffs, 浣跨敤 GetDebuffOrder/GetDebuffGlow 瀹夊叏鏌ヨ
 
-    2. 光环更新 (UnitButton_UpdateAuras):
-       - 使用 C_UnitAuras.GetAuraSlots + GetAuraDataBySlot (Midnight 推荐)
-       - 在受限上下文中, 每个光环的字段逐项检查 issecretvalue()
-       - 非 secret 字段正常处理; secret 字段安全回退到默认值
+    5. 澧炵泭绯荤粺 (UnitButton_UpdateBuffs):
+       - 澶勭悊闃插尽鍐峰嵈/澶栭儴鍐峰嵈/鍧﹀厠涓诲姩鍑忎激
+       - 澶勭悊楗按鐘舵€?鎴樺満鏃楀笢
+       - 妫€鏌ラ暅鍍?缇や綋灞忛殰 (閫氳繃 CLEU, Midnight 涓嚜鍔ㄧ鐢?
 
-    3. 能量值更新 (UnitButton_UpdatePowerStates):
-       - UnitPower/UnitPowerMax 可能返回 secret value
-       - 使用 F.IsSecretValue() 检查后再安全处理
-
-    4. 减益系统 (UnitButton_UpdateDebuffs):
-       - 检查 debuffType/dispelName 是否为 secret
-       - 检查 duration/expirationTime/applications 是否为 secret
-       - 对 raid debuffs, 使用 GetDebuffOrder/GetDebuffGlow 安全查询
-
-    5. 增益系统 (UnitButton_UpdateBuffs):
-       - 处理防御冷却/外部冷却/坦克主动减伤
-       - 处理饮水状态/战场旗帜
-       - 检查镜像/群体屏障 (通过 CLEU, Midnight 中自动禁用)
-
-    6. 指示器管理 (HandleIndicators):
-       - 按布局配置创建/更新/移除所有指示器
-       - 支持内置指示器 (生命条, 能量条, 减益等) 和自定义指示器
-
-    Midnight 安全措施:
-    - 所有光环数据访问都通过 pcall + issecretvalue 保护
-    - 生命值使用 CreateUnitHealPredictionCalculator 安全计算器
-    - CLEU (COMBAT_LOG_EVENT_UNFILTERED) 在 Midnight 中完全禁用
-    - 渐隐曲线使用 C_CurveUtil.CreateCurve() 避免算术运算
-    - 能量值比较操作前检查值是否为 secret
+    6. 鎸囩ず鍣ㄧ鐞?(HandleIndicators):
+       - 鎸夊竷灞€閰嶇疆鍒涘缓/鏇存柊/绉婚櫎鎵€鏈夋寚绀哄櫒
+       - 鏀寔鍐呯疆鎸囩ず鍣?(鐢熷懡鏉? 鑳介噺鏉? 鍑忕泭绛? 鍜岃嚜瀹氫箟鎸囩ず鍣?
+    Midnight 瀹夊叏鎺柦:
+    - 鎵€鏈夊厜鐜暟鎹闂兘閫氳繃 pcall + issecretvalue 淇濇姢
+    - 鐢熷懡鍊间娇鐢?CreateUnitHealPredictionCalculator 瀹夊叏璁＄畻鍣?    - CLEU (COMBAT_LOG_EVENT_UNFILTERED) 鍦?Midnight 涓畬鍏ㄧ鐢?    - 娓愰殣鏇茬嚎浣跨敤 C_CurveUtil.CreateCurve() 閬垮厤绠楁湳杩愮畻
+    - 鑳介噺鍊兼瘮杈冩搷浣滃墠妫€鏌ュ€兼槸鍚︿负 secret
 --]]
 local _, Cell = ...
 local L = Cell.L
@@ -117,14 +110,14 @@ local shieldEnabled, overshieldEnabled, overshieldReverseFillEnabled
 local absorbEnabled, absorbInvertColor
 
 -- Midnight: Curve for CELL_FADE_OUT_HEALTH_PERCENT feature
--- Maps health percent 鑺掗垾鐘偓?alpha so we can evaluate secret health% without comparisons
+-- Maps health percent 閼烘帡鍨鹃悩顐熷亾?alpha so we can evaluate secret health% without comparisons
 local fadeOutHealthCurve
 local fadeOutHealthCurve_threshold -- track last threshold to know when to rebuild
 local fadeOutHealthCurve_alpha -- track last outOfRangeAlpha to know when to rebuild
 
 -- Builds/rebuilds the fade-out health curve when threshold or alpha changes.
--- health% < threshold 鑺掗垾鐘偓?alpha 1.0 (fully visible, needs healing)
--- health% >= threshold 鑺掗垾鐘偓?outOfRangeAlpha (faded out, healthy enough)
+-- health% < threshold 閼烘帡鍨鹃悩顐熷亾?alpha 1.0 (fully visible, needs healing)
+-- health% >= threshold 閼烘帡鍨鹃悩顐熷亾?outOfRangeAlpha (faded out, healthy enough)
 local function RebuildFadeOutHealthCurve()
     if not Cell.isMidnight or not C_CurveUtil then return end
     local threshold = CELL_FADE_OUT_HEALTH_PERCENT
@@ -1303,7 +1296,7 @@ local function HandleDebuff(self, auraInfo)
 
         -- Per-aura check: only compare spellId if non-secret
         if F.IsAuraNonSecret(auraInfo) then
-            -- resurrections: 姘撻垾閮濅箙銊⑩偓尾涔呫儌銇㈠禍褉鈧緹?姘撻檱鑱ц幗閳ユ緹?
+            -- resurrections: 濮樻捇鍨鹃柈婵呯畽閵娾懇鍋撳熬娑斿懌鍎岄妵銏犵瑜夐埀顒佺饭?濮樻捇妾遍懕褑骞楅柍銉︾饭?
             if spellId == 255234 or spellId == 225080 then
                 -- NOTE: this rez lasts longer than the debuff
                 self._debuffs.resurrectionFound = true
@@ -1729,9 +1722,9 @@ local function UpdateMirrorImage(b, event)
 end
 
 local SelfBarriers = {
-    [11426] = true, -- 姘撶倝閳ユ銉⑩偓鐘呮噴蔚鐘呫仯銇㈣В鈧?(self)
-    [235313] = true, -- 鑾借尃钘涜幗閳ョ伜鎳娢电妳銇ｃ仮瑙ｂ偓?(self)
-    [235450] = true, -- 蹇欐嫝鍗ゆ皳閳ワ腹鈧噴蔚鐘呫仯銇㈣В鈧?(self)
+    [11426] = true, -- 濮樻挾鍊濋柍銉︻仾閵夆懇鍋撻悩鍛櫞钄氶悩鍛化閵囥垼袙閳?(self)
+    [235313] = true, -- 閼惧€熷皟閽樻稖骞楅柍銉т紲閹冲á鐢靛Τ閵囷絻浠憴锝傚亾?(self)
+    [235450] = true, -- 韫囨瑦瀚濋崡銈嗙毘闁炽儻鑵归埀顒佸櫞钄氶悩鍛化閵囥垼袙閳?(self)
 }
 
 local function UpdateMassBarrier(b, event)
@@ -1876,7 +1869,7 @@ UnitButton_UpdateAuras = function(self, updateInfo)
                         self._debuffs_cache[aura.auraInstanceID] = aura
                     end
                 end
-                -- Secret missing auras are silently dropped 鑺掗埀顑解偓?they'll be
+                -- Secret missing auras are silently dropped 閼烘帡鍩€椤戣В鍋?they'll be
                 -- picked up on the next full update if needed
             end
         end
@@ -1901,10 +1894,10 @@ local function UnitButton_UpdateHealthStates(self, diff)
     local unit = self.states.displayedUnit
 
     if Cell.isMidnight and self.widgets.healthCalculator then
-        -- MIDNIGHT PATH: use calculator 鑺掗埀? no arithmetic on secrets
+        -- MIDNIGHT PATH: use calculator 閼烘帡鍩€? no arithmetic on secrets
         UnitButton_UpdateCalculator(self)
         -- Store healthPercent for color logic.
-        -- GetCurrentHealthPercent() returns a secret value inside PvP instances 閳?
+        -- GetCurrentHealthPercent() returns a secret value inside PvP instances 闁?
         -- Lua comparisons on secrets throw errors. Use it only when non-secret.
         local hpPct = self.widgets.healthCalculator:GetCurrentHealthPercent()
         if F.IsValueNonSecret(hpPct) then
@@ -2385,7 +2378,7 @@ local function UnitButton_UpdateHealthMax(self)
 
     if Cell.isMidnight and self.widgets.healthCalculator then
         -- MIDNIGHT PATH: pass secret maxHealth directly
-        -- SetMinMaxSmoothedValue is a Lua mixin that does arithmetic (Clamp) 鑺掗埀顑解偓?fails on secrets.
+        -- SetMinMaxSmoothedValue is a Lua mixin that does arithmetic (Clamp) 閼烘帡鍩€椤戣В鍋?fails on secrets.
         -- Always use native SetMinMaxValues on Midnight since maxHealth may be secret.
         local maxHealth = self.widgets.healthCalculator:GetMaximumHealth()
         self.widgets.healthBar:SetMinMaxValues(0, maxHealth)
@@ -2428,7 +2421,7 @@ local function UnitButton_UpdateHealth(self, diff, skipStateUpdates)
         -- MIDNIGHT PATH: pass secret values directly to status bar
         local calc = self.widgets.healthCalculator
         local health = calc:GetCurrentHealth()
-        -- Always use native SetValue on Midnight 閳?SetSmoothedValue (SetBarValue in Smooth mode)
+        -- Always use native SetValue on Midnight 闁?SetSmoothedValue (SetBarValue in Smooth mode)
         -- is a Lua mixin that does Clamp() arithmetic, which fails on secret values.
         self.widgets.healthBar:SetValue(health)
         if barAnimationType == "Flash" then
@@ -2455,7 +2448,7 @@ local function UnitButton_UpdateHealth(self, diff, skipStateUpdates)
                 -- EvaluateCurrentHealthPercent feeds secret health% into the curve
                 -- Curve output: 1.0 if below threshold (needs healing), outOfRangeAlpha if above
                 local targetAlpha = self.widgets.healthCalculator:EvaluateCurrentHealthPercent(fadeOutHealthCurve)
-                -- targetAlpha is a secret value 鑺掗埀顑解偓?SetAlpha accepts secrets on Midnight
+                -- targetAlpha is a secret value 閼烘帡鍩€椤戣В鍋?SetAlpha accepts secrets on Midnight
                 self:SetAlpha(targetAlpha)
             end
         end
@@ -2574,7 +2567,7 @@ UnitButton_UpdateShieldAbsorbs = function(self, skipStateUpdates)
         self.widgets.shieldBar:Show()
 
         -- Overshield glow and reverse-fill bar
-        -- NOTE: absorbs is a secret value on Midnight 鑺掗埀顑解偓?we can't compare it to health to detect overshield.
+        -- NOTE: absorbs is a secret value on Midnight 閼烘帡鍩€椤戣В鍋?we can't compare it to health to detect overshield.
         -- Show the glow whenever shields are present and overshieldEnabled is on.
         -- TODO: Use a Curve to map (absorbs + health - maxHealth) to glow visibility for precise overshield detection.
         if overshieldReverseFillEnabled then
@@ -2828,7 +2821,7 @@ UnitButton_UpdateStatusText = function(self)
         statusText:Show()
         statusText:SetStatus("OFFLINE")
         statusText:ShowTimer()
-    -- Midnight 12.0.0+: UnitIsAFK may return a secret boolean 鑺掗埀顑解偓?skip on Midnight
+    -- Midnight 12.0.0+: UnitIsAFK may return a secret boolean 閼烘帡鍩€椤戣В鍋?skip on Midnight
     elseif not Cell.isMidnight and UnitIsAFK(unit) then
         statusText:Show()
         statusText:SetStatus("AFK")
@@ -3120,7 +3113,7 @@ local function UnitButton_RegisterEvents(self)
     -- self:RegisterEvent("UNIT_PET")
     self:RegisterEvent("UNIT_PORTRAIT_UPDATE") -- pet summoned far away
 
-    --! OnShow蹇欓垾鏂呯澒顬狀偀鈧銉傚禋瓒侊腹鈧ゥ顬☆煀鈭ㄦ崡顕峰瘋鎹椼仮瑙ｂ偓鐕痯dateIndicators姘撹伀鐐夌尗鑼犻檰姘撻箍闇插繖鑹欓檵蹇欓垾濂ヮ灐顭娾埁鎹椼儌顔滄崡尾顖椻偓鈷氼嚪瀵傛崡銉傤嚪娴庛劉鈧风柕銉呮拃鈮setCustomIndicators鐚┐閳モ埗顬犮劉鈧銇㈠槑顒嘉垫巻鈧埗顬犮仮濂姐儮鍔夌瘬姘撹伀閳ユ◤褉鈧緹璇ャ儌寰︽簫銉呮巻鈧拋顕峰瘋鎹楊煀搴撯偓濂姐劉鍋撹墬蹇欒墿妤艰寘閳ユ績鍔?
+    --! OnShow韫囨瑩鍨鹃弬鍛緬椤媭鍋€閳ь剙顫栭妷鍌氱鐡掍緤鑵归埀顒€銈ラ‖鈽嗙厐閳劍宕￠宄扮構閹规ぜ浠憴锝傚亾閻曠棷dateIndicators濮樻捁浼€閻愬灏楅懠鐘绘濮樻捇绠嶉棁鎻掔箹閼规瑩妾佃箛娆撳灳婵傘儺鐏愰…濞惧焷閹规ぜ鍎岄婊勫础灏鹃妞诲亾閳锋凹鍤€靛倹宕￠妷鍌ゅ毆濞村簺鍔夐埀顑為鏌曢妷鍛媰閳湯setCustomIndicators閻氼偊鈹愰柍銉㈠煑椤姰鍔夐埀顒€顫栭妵銏犳椤掑槈鍨坊閳ь兘鍩楅‖鐘划婵傚鍎崝澶岀槵濮樻捁浼€闁炽儲鈼よ閳ь剚绶圭拠銉ｅ剬瀵帮附绨妷鍛坊閳ь剚鎷嬮宄扮構閹规鐓€鎼存挴鍋撴總濮愬妷閸嬫捁澧箛娆掑⒖濡よ壈瀵橀柍銉︾妇閸?
     local success, result = pcall(UnitButton_UpdateAll, self)
     if not success then
         F.Debug("UnitButton_UpdateAll |cffff0000FAILED:|r", self:GetName(), result)
@@ -3431,7 +3424,7 @@ local function UnitButton_OnTick(self)
                 -- update Cell.vars.guids
                 self.__unitGuid = guid
                 -- On Midnight 12.0.0+, GUIDs for non-player units in instances are secret
-                -- Can't use a secret as a table key 鑺掗埀顑解偓?only store non-secret GUIDs
+                -- Can't use a secret as a table key 閼烘帡鍩€椤戣В鍋?only store non-secret GUIDs
                 if not self.isSpotlight then
                     if not (Cell.isMidnight and F.IsSecretValue and F.IsSecretValue(guid)) then
                         Cell.vars.guids[guid] = self.states.unit
@@ -3448,7 +3441,7 @@ local function UnitButton_OnTick(self)
                         self.__nameRetries = nil
                     else
                         -- NOTE: update on next tick
-                        -- 姘撻垾閮濈煫蔚鎾€宓溿儌寰涱嚫銇㈠銉冾煀寰疯銉傛兊宓溿仮鍢庡ソ鈶╁亾鑹欏繖鑹欓檵鑾介弗妤艰幗閳ラ儩顔毼茬姭鈧埗鈶╁亾鑱鸿寕褰曡墬姘撻箍铏忚寕褰曡仜姘撴幊鍗ゆ皳鑱檵姘撻檱鎷ц寘閳ッ峰禍顭婎垪鈧?蹇欏崲闅嗘皳妤奸檰鐩叉綖閳?
+                        -- 濮樻捇鍨鹃柈婵堢叓钄氶幘鈧畵婧垮剬瀵版侗鍤妵銏狀吔閵夊喚鐓€瀵扮柉顔栭妷鍌涘厞瀹撴嚎浠崲搴°偨閳垛晛浜鹃懝娆忕箹閼规瑩妾甸懢浠嬪紬濡よ壈骞楅柍銉╁劑椤旀鑼Л閳ь兘鍩楅埗鈺佷壕閼遍缚瀵曡ぐ鏇″濮樻捇绠嶉搹蹇氬瘯瑜版洝浠滃鎾村箠閸椼倖鐨抽懕顐︽濮樻捇妾遍幏褑瀵橀柍銉冨嘲绂嶉…濠庡灙閳?韫囨瑥宕查梾鍡樼毘濡ゅジ妾伴惄鍙夌稏闁?
                         self.__nameRetries = (self.__nameRetries or 0) + 1
                         self.__unitGuid = nil
                     end
@@ -4336,7 +4329,7 @@ function CellUnitButton_OnLoad(button)
     if Cell.isMidnight then
         -- Midnight: StatusBar so native SetMinMaxValues/SetValue work with secret values
         shieldBar = CreateFrame("StatusBar", name.."ShieldBar", midLevelFrame)
-        shieldBar:SetStatusBarTexture("Interface\\AddOns\\Cell\\Media\\shield")
+        shieldBar:SetStatusBarTexture("Interface\\AddOns\\CellD\\Media\\shield")
         shieldBar:GetStatusBarTexture():SetDrawLayer("ARTWORK", -5)
         shieldBar:SetFrameLevel(midLevelFrame:GetFrameLevel()+1)
         shieldBar:SetAllPoints(healthBar)
@@ -4346,7 +4339,7 @@ function CellUnitButton_OnLoad(button)
     else
         -- Pre-Midnight: Texture with manual width/height positioning
         shieldBar = midLevelFrame:CreateTexture(name.."ShieldBar", "ARTWORK", nil, -5)
-        shieldBar:SetTexture("Interface\\AddOns\\Cell\\Media\\shield", "REPEAT", "REPEAT")
+        shieldBar:SetTexture("Interface\\AddOns\\CellD\\Media\\shield", "REPEAT", "REPEAT")
         shieldBar:SetHorizTile(true)
         shieldBar:SetVertTile(true)
         shieldBar.SetValue = DumbFunc
@@ -4358,7 +4351,7 @@ function CellUnitButton_OnLoad(button)
     if Cell.isMidnight then
         -- Midnight: StatusBar for reverse-fill shield display with secret values
         shieldBarR = CreateFrame("StatusBar", name.."ShieldBarR", midLevelFrame)
-        shieldBarR:SetStatusBarTexture("Interface\\AddOns\\Cell\\Media\\shield")
+        shieldBarR:SetStatusBarTexture("Interface\\AddOns\\CellD\\Media\\shield")
         shieldBarR:GetStatusBarTexture():SetDrawLayer("ARTWORK", -5)
         shieldBarR:SetFrameLevel(midLevelFrame:GetFrameLevel()+1)
         shieldBarR:SetAllPoints(healthBar)
@@ -4369,7 +4362,7 @@ function CellUnitButton_OnLoad(button)
     else
         -- Pre-Midnight: Texture with manual width/height positioning
         shieldBarR = midLevelFrame:CreateTexture(name.."ShieldBarR", "ARTWORK", nil, -5)
-        shieldBarR:SetTexture("Interface\\AddOns\\Cell\\Media\\shield", "REPEAT", "REPEAT")
+        shieldBarR:SetTexture("Interface\\AddOns\\CellD\\Media\\shield", "REPEAT", "REPEAT")
         shieldBarR:SetHorizTile(true)
         shieldBarR:SetVertTile(true)
     end
@@ -4380,7 +4373,7 @@ function CellUnitButton_OnLoad(button)
     -- over-shield glow
     local overShieldGlow = midLevelFrame:CreateTexture(name.."OverShieldGlow", "ARTWORK", nil, -4)
     button.widgets.overShieldGlow = overShieldGlow
-    overShieldGlow:SetTexture("Interface\\AddOns\\Cell\\Media\\overshield")
+    overShieldGlow:SetTexture("Interface\\AddOns\\CellD\\Media\\overshield")
     -- overShieldGlow:SetBlendMode("ADD")
     overShieldGlow:Hide()
     shieldBar.overShieldGlow = overShieldGlow
@@ -4388,7 +4381,7 @@ function CellUnitButton_OnLoad(button)
     -- over-shield glow reversed
     local overShieldGlowR = midLevelFrame:CreateTexture(name.."OverShieldGlowR", "ARTWORK", nil, -4)
     button.widgets.overShieldGlowR = overShieldGlowR
-    overShieldGlowR:SetTexture("Interface\\AddOns\\Cell\\Media\\overshield_reversed")
+    overShieldGlowR:SetTexture("Interface\\AddOns\\CellD\\Media\\overshield_reversed")
     -- overShieldGlowR:SetBlendMode("ADD")
     overShieldGlowR:Hide()
     shieldBar.overShieldGlowR = overShieldGlowR
@@ -4396,7 +4389,7 @@ function CellUnitButton_OnLoad(button)
     -- over-absorb glow
     local overAbsorbGlow = midLevelFrame:CreateTexture(name.."OverAbsorbGlow", "ARTWORK", nil, -2)
     button.widgets.overAbsorbGlow = overAbsorbGlow
-    overAbsorbGlow:SetTexture("Interface\\AddOns\\Cell\\Media\\overabsorb")
+    overAbsorbGlow:SetTexture("Interface\\AddOns\\CellD\\Media\\overabsorb")
     -- overAbsorbGlow:SetBlendMode("ADD")
     overAbsorbGlow:Hide()
 
@@ -4405,7 +4398,7 @@ function CellUnitButton_OnLoad(button)
     if Cell.isMidnight then
         -- Midnight: StatusBar so native SetMinMaxValues/SetValue work with secret values
         absorbsBar = CreateFrame("StatusBar", name.."AbsorbsBar", midLevelFrame)
-        absorbsBar:SetStatusBarTexture("Interface\\AddOns\\Cell\\Media\\shield.tga")
+        absorbsBar:SetStatusBarTexture("Interface\\AddOns\\CellD\\Media\\shield.tga")
         absorbsBar:GetStatusBarTexture():SetDrawLayer("ARTWORK", 1)
         absorbsBar:SetStatusBarColor(1, 0.1, 0.1, 1)
         absorbsBar:SetFrameLevel(midLevelFrame:GetFrameLevel()+2)
@@ -4417,7 +4410,7 @@ function CellUnitButton_OnLoad(button)
     else
         -- Pre-Midnight: Texture with manual width/height positioning
         absorbsBar = midLevelFrame:CreateTexture(name.."AbsorbsBar", "ARTWORK", nil, 1)
-        absorbsBar:SetTexture("Interface\\AddOns\\Cell\\Media\\shield.tga", "REPEAT", "REPEAT")
+        absorbsBar:SetTexture("Interface\\AddOns\\CellD\\Media\\shield.tga", "REPEAT", "REPEAT")
         absorbsBar:SetHorizTile(true)
         absorbsBar:SetVertTile(true)
         absorbsBar:SetVertexColor(1, 0.1, 0.1, 1)

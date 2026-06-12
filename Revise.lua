@@ -3413,7 +3413,7 @@ function F.Revise()
         end
     end
 
-    -- Migration for Cell r275 (Midnight 12.0.0 compatibility)
+    -- Migration for CellD r275 (Midnight 12.0.0 compatibility)
     if not CellDB["revise"] or dbRevision < 275 then
         -- Remove useCleuHealthUpdater setting (CLEU-based health updater removed in 12.0.0)
         if CellDB["general"] then

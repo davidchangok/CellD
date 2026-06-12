@@ -622,12 +622,12 @@ local function Dispels_SetDispels(self, dispelTypes)
 end
 
 local function Dispels_SetDispel_Blizzard(self, dispelType)
-    self:SetTexture("Interface\\AddOns\\Cell\\Media\\Debuffs\\"..dispelType)
+    self:SetTexture("Interface\\AddOns\\CellD\\Media\\Debuffs\\"..dispelType)
     self:Show()
 end
 
 local function Dispels_SetDispel_Rhombus(self, dispelType)
-    self:SetTexture("Interface\\AddOns\\Cell\\Media\\Debuffs\\Rhombus")
+    self:SetTexture("Interface\\AddOns\\CellD\\Media\\Debuffs\\Rhombus")
     self:SetVertexColor(I.GetDebuffTypeColor(dispelType))
     self:Show()
 end
@@ -1193,7 +1193,7 @@ function I.CreateNameText(parent)
                     local raidIndex = UnitInRaid(parent.states.unit)
                     if raidIndex then
                         local subgroup = select(3, GetRaidRosterInfo(raidIndex))
-                        -- nameText.name:SetText("|TInterface\\AddOns\\Cell\\Media\\Icons\\group"..subgroup..":0:0:0:-1:64:64:6:58:6:58|t"..nameText.name:GetText())
+                        -- nameText.name:SetText("|TInterface\\AddOns\\CellD\\Media\\Icons\\group"..subgroup..":0:0:0:-1:64:64:6:58:6:58|t"..nameText.name:GetText())
                         nameText.name:SetText("|cffbbbbbb"..subgroup.."-|r"..nameText.name:GetText())
                     end
                 end
@@ -1735,7 +1735,7 @@ end
 -------------------------------------------------
 -- power text
 -------------------------------------------------
--- Power values come back secret from within Cell's tainted execution context (no
+-- Power values come back secret from within CellD's tainted execution context (no
 -- power-side calculator exists). hideIfEmptyOrFull is a no-op in the secret path
 -- because it needs comparisons. The non-secret paths use SafeTextWidth because a
 -- FontString that ever held secret text returns a secret GetStringWidth thereafter.
@@ -1894,7 +1894,7 @@ end
 -------------------------------------------------
 -- role icon
 -------------------------------------------------
-local ICON_PATH = "Interface\\AddOns\\Cell\\Media\\Roles\\"
+local ICON_PATH = "Interface\\AddOns\\CellD\\Media\\Roles\\"
 
 local function GetTexCoordsForRole(role)
     if role == "TANK" then
@@ -2052,16 +2052,16 @@ end
 -- READY_CHECK_READY_TEXTURE = "Interface\\RaidFrame\\ReadyCheck-Ready"
 -- READY_CHECK_NOT_READY_TEXTURE = "Interface\\RaidFrame\\ReadyCheck-NotReady"
 -- READY_CHECK_AFK_TEXTURE = "Interface\\RaidFrame\\ReadyCheck-NotReady"
--- 鈫撯啌鈫?since 10.1.5
+-- 閳挴鍟岄埆?since 10.1.5
 -- READY_CHECK_WAITING_TEXTURE = "UI-LFG-PendingMark"
 -- READY_CHECK_READY_TEXTURE = "UI-LFG-ReadyMark"
 -- READY_CHECK_NOT_READY_TEXTURE = "UI-LFG-DeclineMark"
 -- READY_CHECK_AFK_TEXTURE = "UI-LFG-DeclineMark"
 
 local READY_CHECK_STATUS = {
-    ready = {t = "Interface\\AddOns\\Cell\\Media\\Icons\\readycheck-ready", c = {0, 1, 0, 1}},
-    waiting = {t = "Interface\\AddOns\\Cell\\Media\\Icons\\readycheck-waiting", c = {1, 1, 0, 1}},
-    notready = {t = "Interface\\AddOns\\Cell\\Media\\Icons\\readycheck-notready", c = {1, 0, 0, 1}},
+    ready = {t = "Interface\\AddOns\\CellD\\Media\\Icons\\readycheck-ready", c = {0, 1, 0, 1}},
+    waiting = {t = "Interface\\AddOns\\CellD\\Media\\Icons\\readycheck-waiting", c = {1, 1, 0, 1}},
+    notready = {t = "Interface\\AddOns\\CellD\\Media\\Icons\\readycheck-notready", c = {1, 0, 0, 1}},
 }
 
 function I.CreateReadyCheckIcon(parent)
@@ -2345,7 +2345,7 @@ function I.UpdateHealthThresholds()
 end
 
 -------------------------------------------------
--- power word : shield 鎬€鏃ф湇API澶惤鍚庯紝铔嬬柤锛?
+-- power word : shield 閹偓閺冄勬箛API婢额亣鎯ら崥搴礉閾斿鏌ら敍?
 -------------------------------------------------
 function I.CreatePowerWordShield(parent)
     local powerWordShield = CreateFrame("Frame", parent:GetName().."PowerWordShield", parent.widgets.indicatorFrame, "BackdropTemplate")
@@ -2421,7 +2421,7 @@ function I.CreatePowerWordShield(parent)
     end
 
     function powerWordShield:SetShape(shape)
-        local tex = "Interface\\AddOns\\Cell\\Media\\Shapes\\"..shape.."_filled.tga"
+        local tex = "Interface\\AddOns\\CellD\\Media\\Shapes\\"..shape.."_filled.tga"
         powerWordShield:SetBackdrop({bgFile = tex})
         powerWordShield:SetBackdropColor(0, 0, 0, 0.75)
         shieldAmount:SetSwipeTexture(tex)
@@ -2527,12 +2527,12 @@ function I.CreateCombatIcon(parent)
 
     combatIcon.tex = combatIcon:CreateTexture(nil, "ARTWORK", nil, 0)
     combatIcon.tex:SetAllPoints()
-    combatIcon.tex:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\combat", nil, nil, "TRILINEAR")
+    combatIcon.tex:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\combat", nil, nil, "TRILINEAR")
     -- combatIcon.tex:SetAtlas("combat_swords-dynamicIcon")
 
     combatIcon.flashTex = combatIcon:CreateTexture(nil, "ARTWORK", nil, -5)
     combatIcon.flashTex:SetAllPoints()
-    combatIcon.flashTex:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\combat_glow", nil, nil, "TRILINEAR")
+    combatIcon.flashTex:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\combat_glow", nil, nil, "TRILINEAR")
     -- combatIcon.flashTex:SetAtlas("combat_swords-flash")
     combatIcon.flashTex:SetBlendMode("ADD")
 

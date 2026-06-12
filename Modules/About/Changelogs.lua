@@ -6,7 +6,7 @@ local P = Cell.pixelPerfectFuncs
 local changelogsFrame
 
 local function CreateChangelogsFrame()
-    changelogsFrame = Cell.CreateMovableFrame("Cell "..L["Changelogs"], "CellChangelogsFrame", 400, 450, "DIALOG", 1, true)
+    changelogsFrame = Cell.CreateMovableFrame("CellD "..L["Changelogs"], "CellChangelogsFrame", 400, 450, "DIALOG", 1, true)
     Cell.frames.changelogsFrame = changelogsFrame
     changelogsFrame:SetToplevel(true)
 
@@ -17,7 +17,7 @@ local function CreateChangelogsFrame()
     Cell.CreateScrollFrame(changelogsFrame)
     changelogsFrame.scrollFrame:SetScrollStep(37)
 
-    local content = CreateFrame("SimpleHTML", "CellChangelogsContent", changelogsFrame.scrollFrame.content)
+    local content = CreateFrame("SimpleHTML", "CellDChangelogsContent", changelogsFrame.scrollFrame.content)
     content:SetSpacing("h1", 9)
     content:SetSpacing("h2", 7)
     content:SetSpacing("p", 5)

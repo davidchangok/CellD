@@ -9,12 +9,11 @@ local I = Cell.iFuncs
 Cell.vars.playerFaction = UnitFactionGroup("player")
 
 --[[
-    游戏版本检测
-    CellD 仅支持魔兽世界正式服 12.0.5+ (Midnight)
-    Cell.isRetail 始终为 true
-    Cell.isMidnight 始终为 true (Build >= 120000)
-    Cell.isAsian 在简体中文/繁体中文/韩文客户端为 true
-    Cell.flavor = "retail" (固定值)
+    娓告垙鐗堟湰妫€娴?    CellD 浠呮敮鎸侀瓟鍏戒笘鐣屾寮忔湇 12.0.5+ (Midnight)
+    Cell.isRetail 濮嬬粓涓?true
+    Cell.isMidnight 濮嬬粓涓?true (Build >= 120000)
+    Cell.isAsian 鍦ㄧ畝浣撲腑鏂?绻佷綋涓枃/闊╂枃瀹㈡埛绔负 true
+    Cell.flavor = "retail" (鍥哄畾鍊?
 --]]
 -------------------------------------------------
 -- game version
@@ -27,10 +26,9 @@ Cell.isMidnight = true
 Cell.flavor = "retail"
 
 --[[
-    职业系统
-    使用 LocalizedClassList() 获取本地化的职业名称
-    提供 F.GetClassID() / F.GetLocalizedClassName() / F.IterateClasses() 等职业工具函数
---]]
+    鑱屼笟绯荤粺
+    浣跨敤 LocalizedClassList() 鑾峰彇鏈湴鍖栫殑鑱屼笟鍚嶇О
+    鎻愪緵 F.GetClassID() / F.GetLocalizedClassName() / F.IterateClasses() 绛夎亴涓氬伐鍏峰嚱鏁?--]]
 -------------------------------------------------
 -- class
 -------------------------------------------------
@@ -380,11 +378,11 @@ end
 
 local symbol_1K, symbol_10K, symbol_1B
 if LOCALE_zhCN then
-    symbol_1K, symbol_10K, symbol_1B = "闁?, "濞?, "濞?
+    symbol_1K, symbol_10K, symbol_1B = "闂?, "婵?, "婵?
 elseif LOCALE_zhTW then
-    symbol_1K, symbol_10K, symbol_1B = "闁?, "闁解偓?, "闁?
+    symbol_1K, symbol_10K, symbol_1B = "闂?, "闂佽В鍋?, "闂?
 elseif LOCALE_koKR then
-    symbol_1K, symbol_10K, symbol_1B = "鐟?, "濮?, "闂?
+    symbol_1K, symbol_10K, symbol_1B = "閻?, "婵?, "闂?
 end
 
 local abs = math.abs
@@ -1510,9 +1508,9 @@ end
 -------------------------------------------------
 -- LibSharedMedia
 -------------------------------------------------
-Cell.vars.texture = "Interface\\AddOns\\Cell\\Media\\statusbar.tga"
-Cell.vars.emptyTexture = "Interface\\AddOns\\Cell\\Media\\empty.tga"
-Cell.vars.whiteTexture = "Interface\\AddOns\\Cell\\Media\\white.tga"
+Cell.vars.texture = "Interface\\AddOns\\CellD\\Media\\statusbar.tga"
+Cell.vars.emptyTexture = "Interface\\AddOns\\CellD\\Media\\empty.tga"
+Cell.vars.whiteTexture = "Interface\\AddOns\\CellD\\Media\\white.tga"
 
 local LSM = LibStub("LibSharedMedia-3.0", true)
 LSM:Register("statusbar", "Cell ".._G.DEFAULT, Cell.vars.texture)
@@ -1523,7 +1521,7 @@ function F.GetBarTexture()
     if LSM:IsValid("statusbar", CellDB["appearance"]["texture"]) then
         Cell.vars.texture = LSM:Fetch("statusbar", CellDB["appearance"]["texture"])
     else
-        Cell.vars.texture = "Interface\\AddOns\\Cell\\Media\\statusbar.tga"
+        Cell.vars.texture = "Interface\\AddOns\\CellD\\Media\\statusbar.tga"
     end
     return Cell.vars.texture
 end
@@ -1532,7 +1530,7 @@ function F.GetBarTextureByName(name)
     if LSM:IsValid("statusbar", name) then
         return LSM:Fetch("statusbar", name)
     end
-    return "Interface\\AddOns\\Cell\\Media\\statusbar.tga"
+    return "Interface\\AddOns\\CellD\\Media\\statusbar.tga"
 end
 
 function F.GetFont(font)
@@ -1544,7 +1542,7 @@ function F.GetFont(font)
         if CellDB["appearance"]["useGameFont"] then
             return GameFontNormal:GetFont()
         else
-            return "Interface\\AddOns\\Cell\\Media\\Fonts\\Accidental_Presidency.ttf"
+            return "Interface\\AddOns\\CellD\\Media\\Fonts\\Accidental_Presidency.ttf"
         end
     end
 end
@@ -1555,7 +1553,7 @@ function F.GetFontItems()
     if CellDB["appearance"]["useGameFont"] then
         defaultFont = GameFontNormal:GetFont()
     else
-        defaultFont = "Interface\\AddOns\\Cell\\Media\\Fonts\\Accidental_Presidency.ttf"
+        defaultFont = "Interface\\AddOns\\CellD\\Media\\Fonts\\Accidental_Presidency.ttf"
     end
 
     local items = {}
@@ -1702,7 +1700,7 @@ function F.GetTextures()
 
     -- built-ins
     for _, s in pairs(shapes) do
-        tinsert(t, "Interface\\AddOns\\Cell\\Media\\Shapes\\"..s..".tga")
+        tinsert(t, "Interface\\AddOns\\CellD\\Media\\Shapes\\"..s..".tga")
     end
 
     -- add weakauras textures
@@ -1723,12 +1721,12 @@ end
 
 function F.GetDefaultRoleIcon(role)
     if not role or role == "NONE" then return "" end
-    return "Interface\\AddOns\\Cell\\Media\\Roles\\Default_" .. role
+    return "Interface\\AddOns\\CellD\\Media\\Roles\\Default_" .. role
 end
 
 function F.GetDefaultRoleIconEscapeSequence(role, size)
     if not role or role == "NONE" then return "" end
-    return "|TInterface\\AddOns\\Cell\\Media\\Roles\\Default_" .. role .. ":" .. (size or 0) .. "|t"
+    return "|TInterface\\AddOns\\CellD\\Media\\Roles\\Default_" .. role .. ":" .. (size or 0) .. "|t"
 end
 
 -------------------------------------------------
@@ -2030,17 +2028,12 @@ function Cell.GetUnitFramesForLGF(unit, frames, priorities)
 end
 
 --[[
-    距离检查系统
-    使用多种方法检查单位是否在施法范围内:
-    1. UnitInRange() - 仅对队伍成员有效, Midnight 中可能返回 secret boolean
-    2. IsSpellInRange() - 使用职业治疗/伤害法术检查距离
-    3. IsItemInRange() - 使用物品检查敌对单位距离
-    4. CheckInteractDistance() - 28码交互距离检查 (仅在非战斗时)
+    璺濈妫€鏌ョ郴缁?    浣跨敤澶氱鏂规硶妫€鏌ュ崟浣嶆槸鍚﹀湪鏂芥硶鑼冨洿鍐?
+    1. UnitInRange() - 浠呭闃熶紞鎴愬憳鏈夋晥, Midnight 涓彲鑳借繑鍥?secret boolean
+    2. IsSpellInRange() - 浣跨敤鑱屼笟娌荤枟/浼ゅ娉曟湳妫€鏌ヨ窛绂?    3. IsItemInRange() - 浣跨敤鐗╁搧妫€鏌ユ晫瀵瑰崟浣嶈窛绂?    4. CheckInteractDistance() - 28鐮佷氦浜掕窛绂绘鏌?(浠呭湪闈炴垬鏂楁椂)
 
-    Midnight 安全处理: 
-    - F.IsInRange() 内部使用 issecretvalue() 检查 UnitInRange 的返回值
-    - 如果返回值是 secret, 自动回退到法术距离检查
---]]
+    Midnight 瀹夊叏澶勭悊: 
+    - F.IsInRange() 鍐呴儴浣跨敤 issecretvalue() 妫€鏌?UnitInRange 鐨勮繑鍥炲€?    - 濡傛灉杩斿洖鍊兼槸 secret, 鑷姩鍥為€€鍒版硶鏈窛绂绘鏌?--]]
 -------------------------------------------------
 -- range check
 -------------------------------------------------
@@ -2073,19 +2066,19 @@ local playerClass = UnitClassBase("player")
 local friendSpells = {
     -- ["DEATHKNIGHT"] = 47541,
     -- ["DEMONHUNTER"] = ,
-    ["DRUID"] = 8936, -- 娌荤枟涔嬭Е / 鎰堝悎
-    -- FIXME: [361469 娲诲寲鐑堢劙] 浼氳鑻遍泟澶╄祴 [431443 鏃跺簭鐑堢劙] 鏇夸唬锛屼絾瀹冭€屼笖鏈夐棶棰?
-    -- IsSpellInRange 濮嬬粓杩斿洖 nil
-    ["EVOKER"] = 355913, -- 缈＄繝涔嬭姳
+    ["DRUID"] = 8936, -- 濞岃崵鏋熸稊瀣?/ 閹板牆鎮?
+    -- FIXME: [361469 濞茶瀵查悜鍫㈠姍] 娴兼俺顫﹂懟閬嶆碂婢垛晞绁?[431443 閺冭泛绨悜鍫㈠姍] 閺囧じ鍞敍灞肩稻鐎瑰啳鈧奔绗栭張澶愭６妫?
+    -- IsSpellInRange 婵绮撴潻鏂挎礀 nil
+    ["EVOKER"] = 355913, -- 缂堬紕绻濇稊瀣С
     -- ["HUNTER"] = 136,
-    ["MAGE"] = 1459, -- 濂ユ湳鏅烘収 / 濂ユ湳鍏夎緣
-    ["MONK"] = 116670, -- 娲昏鏈?
-    ["PALADIN"] = 19750, -- 鍦ｅ厜闂幇
-    ["PRIEST"] = 2061, -- 蹇€熸不鐤?
+    ["MAGE"] = 1459, -- 婵傘儲婀抽弲鐑樺弾 / 婵傘儲婀抽崗澶庣罚
+    ["MONK"] = 116670, -- 濞叉槒顢呴張?
+    ["PALADIN"] = 19750, -- 閸︼絽鍘滈梻顏嗗箛
+    ["PRIEST"] = 2061, -- 韫囶偊鈧喐涓嶉悿?
     -- ["ROGUE"] = Cell.isWrath and 57934,
-    ["SHAMAN"] = Cell.isRetail and 8004 or 331, -- 婵炲矁宕甸弸鐔哥▕鐎ｎ偆鞋 / 婵炲矁宕甸弸鐔封枖?
-    ["WARLOCK"] = 5697, -- 闁哄啰濮撮弫鏍川閻撳孩鍎?
-    -- ["WARRIOR"] = 3411, -- 闁硅鐡ㄦ慨?
+    ["SHAMAN"] = Cell.isRetail and 8004 or 331, -- 濠电偛鐭佸畷鐢稿几閻斿摜鈻曢悗锝庡亞闉?/ 濠电偛鐭佸畷鐢稿几閻斿皝鏋?
+    ["WARLOCK"] = 5697, -- 闂佸搫鍟版慨鎾极閺嶎厼宸濋柣鎾冲閸?
+    -- ["WARRIOR"] = 3411, -- 闂佺顕ч悺銊︽叏?
 }
 
 local deadSpells = {
@@ -2097,21 +2090,21 @@ local petSpells = {
 }
 
 local harmSpells = {
-    ["DEATHKNIGHT"] = 47541, -- 闁告垵顑夊ù鍌滅磽閻樼數鎼?
-    ["DEMONHUNTER"] = 185123, -- 闁硅埖娲橀獮蹇涘礆閳轰礁鐎?
-    ["DRUID"] = 5176, -- 闁硅埇鍊栭埀?
-    -- FIXME: [361469 婵炶尪顕х€垫煡鎮滈崼銏犲] 濞村吋淇洪～锕傛嚐闁秵纰傚鍨涙櫈缁?[431443 闁哄啳娉涚花顓㈡倻閸垹濮峕 闁哄洤銇橀崬顒勬晬鐏炶偐绋婚悗鐟板暢閳ь剙濂旂粭鏍嫉婢舵劖锛栧Λ?
-    -- IsSpellInRange 濠殿喖顑囩划鎾存交閺傛寧绀€ nil
-    ["EVOKER"] = 362969, -- 缁炬妸鍡樻啱闁瑰灚鎸搁崵?
-    ["HUNTER"] = 75, -- 闁煎浜滄慨鈺冧焊閸曨偄姣?
-    ["MAGE"] = 116, -- 瀵掑啺绠?
-    ["MONK"] = 117952, -- 纰庣帀闂數
-    ["PALADIN"] = 20271, -- 瀹″垽
-    ["PRIEST"] = 589, -- 鏆楄█鏈細鐥?
-    ["ROGUE"] = 1752, -- 褰辫
-    ["SHAMAN"] = 188196, -- 闂數绠?
-    ["WARLOCK"] = 234153, -- 鍚稿彇鐢熷懡
-    ["WARRIOR"] = 355, -- 闁搞垼灏?
+    ["DEATHKNIGHT"] = 47541, -- 闂佸憡鍨甸澶娒归崒婊呯＝闁绘鏁搁幖?
+    ["DEMONHUNTER"] = 185123, -- 闂佺鍩栧ú姗€鐛箛娑樼闁宠桨绀侀悗?
+    ["DRUID"] = 5176, -- 闂佺鍩囬崐鏍焵?
+    -- FIXME: [361469 濠电偠灏褏鈧灚鐓￠幃婊堝醇閵忕姴顫抅 婵炴潙鍚嬫穱娲綖閿曞倹鍤愰梺顒€绉电喊鍌氼熆閸ㄦ稒娅堢紒?[431443 闂佸搫鍟冲▔娑氳姳椤撱垺鍊婚柛顐犲灩婵硶 闂佸搫娲ら妵姗€宕鍕櫖閻忕偠鍋愮粙濠氭倵閻熸澘鏆㈤柍褜鍓欐總鏃傜箔閺嶎厼瀚夊鑸靛姈閿涙牕螞?
+    -- IsSpellInRange 婵犳鍠栭鍥╁垝閹惧瓨浜ら柡鍌涘缁€鈧?nil
+    ["EVOKER"] = 362969, -- 缂佺偓濡搁崱妯诲暠闂佺懓鐏氶幐鎼佸吹?
+    ["HUNTER"] = 75, -- 闂佺厧顨庢禍婊勬叏閳哄啩鐒婇柛鏇ㄥ亜濮?
+    ["MAGE"] = 116, -- 鐎垫帒鍟虹粻?
+    ["MONK"] = 117952, -- 绾板海甯€闂傤亞鏁?
+    ["PALADIN"] = 20271, -- 鐎光€冲灲
+    ["PRIEST"] = 589, -- 閺嗘鈻堥張顖ょ窗閻?
+    ["ROGUE"] = 1752, -- 瑜拌精顫?
+    ["SHAMAN"] = 188196, -- 闂傤亞鏁哥粻?
+    ["WARLOCK"] = 234153, -- 閸氱褰囬悽鐔锋嚒
+    ["WARRIOR"] = 355, -- 闂佹悶鍨肩亸顏堫敊?
 }
 
 -- local friendItems = {
@@ -2381,61 +2374,36 @@ function SlashCmdList.CELLDRC()
 end
 
 --[[
-    ╔══════════════════════════════════════════════════════════════╗
-    ║           Secret Value / Opaque Types 安全包装器            ║
-    ║                 (Patch 12.0.0+ / Midnight)                  ║
-    ╚══════════════════════════════════════════════════════════════╝
+    鈺斺晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晽
+    鈺?          Secret Value / Opaque Types 瀹夊叏鍖呰鍣?           鈺?    鈺?                (Patch 12.0.0+ / Midnight)                  鈺?    鈺氣晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨暆
 
-    暴雪在 12.0.0 开始实施"秘密数值"机制。在战斗/首领战/PvP/挑战模式等
-    受限上下文中，以下 API 的返回值会被包装为 opaque type:
+    鏆撮洩鍦?12.0.0 寮€濮嬪疄鏂?绉樺瘑鏁板€?鏈哄埗銆傚湪鎴樻枟/棣栭鎴?PvP/鎸戞垬妯″紡绛?    鍙楅檺涓婁笅鏂囦腑锛屼互涓?API 鐨勮繑鍥炲€间細琚寘瑁呬负 opaque type:
 
-    受限的 API:
-    - UnitHealth(), UnitHealthMax()        -- 生命值相关
-    - UnitPower(), UnitPowerMax()          -- 能量值相关
-    - UnitGetTotalAbsorbs()               -- 吸收盾总量
-    - UnitGetTotalHealAbsorbs()           -- 治疗吸收量
-    - UnitGetIncomingHeals()              -- 即将到来的治疗
-    - GetUnitSpeed()                      -- 单位移动速度
-    - UnitAura() 的光环数据 (spellId, duration, expirationTime, applications)
-    - UnitInRange() 的第二个返回值 (checked)
-    - COMBAT_LOG_EVENT_UNFILTERED         -- 战斗中完全不可用
+    鍙楅檺鐨?API:
+    - UnitHealth(), UnitHealthMax()        -- 鐢熷懡鍊肩浉鍏?    - UnitPower(), UnitPowerMax()          -- 鑳介噺鍊肩浉鍏?    - UnitGetTotalAbsorbs()               -- 鍚告敹鐩炬€婚噺
+    - UnitGetTotalHealAbsorbs()           -- 娌荤枟鍚告敹閲?    - UnitGetIncomingHeals()              -- 鍗冲皢鍒版潵鐨勬不鐤?    - GetUnitSpeed()                      -- 鍗曚綅绉诲姩閫熷害
+    - UnitAura() 鐨勫厜鐜暟鎹?(spellId, duration, expirationTime, applications)
+    - UnitInRange() 鐨勭浜屼釜杩斿洖鍊?(checked)
+    - COMBAT_LOG_EVENT_UNFILTERED         -- 鎴樻枟涓畬鍏ㄤ笉鍙敤
 
-    安全 API (始终返回非 secret 值):
-    - issecretvalue(val)                  -- 检查值是否为 secret
-    - GetRestrictedActionStatus(type)     -- 查询当前限制状态
-    - C_Secrets.ShouldSpellAuraBeSecret() -- 主动查询技能光环是否会加密
-    - UnitIsDeadOrGhost()                 -- 始终非 secret boolean
-    - CreateUnitHealPredictionCalculator()-- 创建安全生命值计算器
-    - C_CurveUtil.CreateCurve()           -- 创建安全曲线计算器
-    - UnitGetDetailedHealPrediction()     -- 获取详细治疗预测(安全)
-    - C_UnitAuras.GetAuraSlots()          -- 安全的光环槽位获取
-    - C_UnitAuras.GetAuraDataBySlot()     -- 安全的光环数据获取
+    瀹夊叏 API (濮嬬粓杩斿洖闈?secret 鍊?:
+    - issecretvalue(val)                  -- 妫€鏌ュ€兼槸鍚︿负 secret
+    - GetRestrictedActionStatus(type)     -- 鏌ヨ褰撳墠闄愬埗鐘舵€?    - C_Secrets.ShouldSpellAuraBeSecret() -- 涓诲姩鏌ヨ鎶€鑳藉厜鐜槸鍚︿細鍔犲瘑
+    - UnitIsDeadOrGhost()                 -- 濮嬬粓闈?secret boolean
+    - CreateUnitHealPredictionCalculator()-- 鍒涘缓瀹夊叏鐢熷懡鍊艰绠楀櫒
+    - C_CurveUtil.CreateCurve()           -- 鍒涘缓瀹夊叏鏇茬嚎璁＄畻鍣?    - UnitGetDetailedHealPrediction()     -- 鑾峰彇璇︾粏娌荤枟棰勬祴(瀹夊叏)
+    - C_UnitAuras.GetAuraSlots()          -- 瀹夊叏鐨勫厜鐜Ы浣嶈幏鍙?    - C_UnitAuras.GetAuraDataBySlot()     -- 瀹夊叏鐨勫厜鐜暟鎹幏鍙?
+    閲嶈瑙勫垯:
+    1. 姘歌繙涓嶈瀵瑰彲鑳戒负 secret 鐨勫€艰繘琛岀畻鏈繍绠?+,-,*,/,%)
+    2. 姘歌繙涓嶈瀵瑰彲鑳戒负 secret 鐨勫€艰繘琛屾瘮杈冭繍绠?<,>,<=,>=)
+    3. 浣跨敤 issecretvalue() 妫€鏌ュ悗鍐嶄娇鐢?    4. 浣跨敤 pcall() 鍖呰鎵€鏈夊彲鑳芥姏鍑?secret 閿欒鐨?API 璋冪敤
+    5. StatusBar:SetValue() / SetMinMaxValues() 鍙互瀹夊叏鎺ュ彈 secret 鍊?
+    鏈ā鍧楁彁渚涚殑瀹夊叏鍖呰鍣?
+    - F.IsSecretValue(val)         -- 瀹夊叏鐨?issecretvalue 鍖呰
+    - F.IsAuraRestricted()         -- 妫€鏌ュ厜鐜暟鎹槸鍚﹀彈闄?    - F.IsCooldownRestricted()     -- 妫€鏌ュ喎鍗存暟鎹槸鍚﹀彈闄?    - F.IsAuraNonSecret(auraInfo)  -- 妫€鏌ュ崟涓厜鐜暟鎹槸鍚﹀彲璇?    - F.IsValueNonSecret(val)      -- 閫氱敤闈?secret 鍊兼鏌?    - F.IsSpellAuraNonSecret(id)   -- 涓诲姩鏌ヨ鎶€鑳藉厜鐜槸鍚︿細鍔犲瘑
+    - F.SafeUnitHealth(unit)       -- 瀹夊叏鑾峰彇鍗曚綅鐢熷懡鍊?    - F.SafeUnitHealthMax(unit)    -- 瀹夊叏鑾峰彇鍗曚綅鏈€澶х敓鍛藉€?    - F.SafeUnitPower(unit)        -- 瀹夊叏鑾峰彇鍗曚綅鑳介噺鍊?    - F.SafeUnitPowerMax(unit)     -- 瀹夊叏鑾峰彇鍗曚綅鏈€澶ц兘閲忓€?    - F.SafeUnitGetTotalAbsorbs()  -- 瀹夊叏鑾峰彇鍚告敹閲?    - F.SafeUnitGetTotalHealAbsorbs() -- 瀹夊叏鑾峰彇娌荤枟鍚告敹閲?    - F.SafeUnitGetIncomingHeals() -- 瀹夊叏鑾峰彇鍗冲皢鍒版潵鐨勬不鐤?    - F.SafeGetUnitSpeed(unit)     -- 瀹夊叏鑾峰彇鍗曚綅绉诲姩閫熷害
 
-    重要规则:
-    1. 永远不要对可能为 secret 的值进行算术运算(+,-,*,/,%)
-    2. 永远不要对可能为 secret 的值进行比较运算(<,>,<=,>=)
-    3. 使用 issecretvalue() 检查后再使用
-    4. 使用 pcall() 包装所有可能抛出 secret 错误的 API 调用
-    5. StatusBar:SetValue() / SetMinMaxValues() 可以安全接受 secret 值
-
-    本模块提供的安全包装器:
-    - F.IsSecretValue(val)         -- 安全的 issecretvalue 包装
-    - F.IsAuraRestricted()         -- 检查光环数据是否受限
-    - F.IsCooldownRestricted()     -- 检查冷却数据是否受限
-    - F.IsAuraNonSecret(auraInfo)  -- 检查单个光环数据是否可读
-    - F.IsValueNonSecret(val)      -- 通用非 secret 值检查
-    - F.IsSpellAuraNonSecret(id)   -- 主动查询技能光环是否会加密
-    - F.SafeUnitHealth(unit)       -- 安全获取单位生命值
-    - F.SafeUnitHealthMax(unit)    -- 安全获取单位最大生命值
-    - F.SafeUnitPower(unit)        -- 安全获取单位能量值
-    - F.SafeUnitPowerMax(unit)     -- 安全获取单位最大能量值
-    - F.SafeUnitGetTotalAbsorbs()  -- 安全获取吸收量
-    - F.SafeUnitGetTotalHealAbsorbs() -- 安全获取治疗吸收量
-    - F.SafeUnitGetIncomingHeals() -- 安全获取即将到来的治疗
-    - F.SafeGetUnitSpeed(unit)     -- 安全获取单位移动速度
-
-    详见 BlackBox.lua 中的 F.RunBlackBoxTests() 黑箱自检。
---]]
+    璇﹁ BlackBox.lua 涓殑 F.RunBlackBoxTests() 榛戠鑷銆?--]]
 -------------------------------------------------
 -- Secret value utilities (Patch 12.0.0+)
 -------------------------------------------------

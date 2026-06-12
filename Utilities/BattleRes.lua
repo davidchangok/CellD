@@ -87,7 +87,7 @@ end
 --------------------------------------------------
 -- bar
 --------------------------------------------------
-local bar = Cell.CreateStatusBar("CellBattleResBar", battleResFrame, 10, 4, 100, false, nil, false, "Interface\\AddOns\\Cell\\Media\\statusbar", Cell.GetAccentColorTable())
+local bar = Cell.CreateStatusBar("CellBattleResBar", battleResFrame, 10, 4, 100, false, nil, false, "Interface\\AddOns\\CellD\\Media\\statusbar", Cell.GetAccentColorTable())
 bar:SetPoint("BOTTOMLEFT")
 bar:SetPoint("BOTTOMRIGHT")
 -- P.Point(bar, "BOTTOMLEFT", battleResFrame, "BOTTOMLEFT", 1, 1)
@@ -198,7 +198,7 @@ function battleResFrame:PLAYER_ENTERING_WORLD()
     local _, instanceType, difficulty = GetInstanceInfo()
 
     if instanceType == "raid" then -- raid
-        if IsEncounterInProgress() then --濡傛灉 涓婄嚎鏃?閲嶈浇鐣岄潰鍚?宸插湪boss鎴樹腑
+        if IsEncounterInProgress() then --婵″倹鐏?娑撳﹦鍤庨弮?闁插秷娴囬悾宀勬桨閸?瀹告彃婀猙oss閹存ü鑵?
             battleResFrame:Show()
         else
             battleResFrame:RegisterEvent("SPELL_UPDATE_CHARGES")

@@ -51,11 +51,11 @@ local function CreateAuthorPane()
 
     authorText = authorPane:CreateFontString(nil, "OVERLAY")
     authorText:SetPoint("TOPLEFT", 5, -27)
-    authorText.font = "Interface\\AddOns\\Cell\\Media\\Fonts\\font.ttf"
+    authorText.font = "Interface\\AddOns\\CellD\\Media\\Fonts\\font.ttf"
     authorText.size = 12
     UpdateFont(authorText)
 
-    authorText:SetText("绡犲磶-褰变箣鍝€浼?(CN)")
+    authorText:SetText("缁＄姴纾?瑜板彉绠ｉ崫鈧导?(CN)")
 end
 
 -------------------------------------------------
@@ -183,7 +183,7 @@ local function CreateSpecialThanksPane()
     specialThanksText:SetSpacing(5)
     specialThanksText:SetJustifyH("LEFT")
     specialThanksText:SetText(
-        "|cfffb6f92闇查湶缂囧▍, Reat TV, 閽涢敩, Floofe, warbaby|r\n"..
+        "|cfffb6f92闂囨煡婀剁紓鍥р枍, Reat TV, 闁芥盯鏁? Floofe, warbaby|r\n"..
         "|cffff0000Wago:|r Ora\n"..
         "|cffff3333YouTube:|r AutomaticJak, JFunkGaming, yumytv\n"..
         "|cff5662f6Discord:|r |cff7fff00clankz.|r, |cff7fff00DreadMesh|r, |cff7fff00Missgunst|r, |cff00ffffVollmerino|r, aba, BinarySunshine, Bruds, Gharr, honeyhoney, leaKsi, Serghei, swirl, Xepheris"
@@ -294,7 +294,7 @@ local function CreateSupportersPane()
     local heartIcon = supportersPane:CreateTexture(nil, "OVERLAY")
     heartIcon:SetPoint("TOPRIGHT")
     heartIcon:SetSize(16, 16)
-    heartIcon:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\sparkling_heart")
+    heartIcon:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\sparkling_heart")
 
     local bgTex = supportersPane:CreateTexture(nil, "BACKGROUND", nil, 0)
     bgTex:SetPoint("TOPLEFT", -5, 5)
@@ -449,7 +449,7 @@ local function CreateLinksPane()
     end)
 
     --! github
-    local github = CreateLink(linksPane, "github", "Interface\\AddOns\\Cell\\Media\\Links\\github.tga", function()
+    local github = CreateLink(linksPane, "github", "Interface\\AddOns\\CellD\\Media\\Links\\github.tga", function()
         current = "https://github.com/davidchangok/CellD"
         linksEB:SetText(current)
         linksEB:ClearFocus()
@@ -461,7 +461,7 @@ local function CreateLinksPane()
     end)
 
     --! curseforge
-    local curseforge = CreateLink(linksPane, "curseforge", "Interface\\AddOns\\Cell\\Media\\Links\\curseforge.tga", function()
+    local curseforge = CreateLink(linksPane, "curseforge", "Interface\\AddOns\\CellD\\Media\\Links\\curseforge.tga", function()
         current = "https://github.com/davidchangok/CellD"
         linksEB:SetText(current)
         linksEB:ClearFocus()
@@ -469,7 +469,7 @@ local function CreateLinksPane()
     curseforge:SetPoint("TOPLEFT", github, "TOPRIGHT", 7, 0)
 
     --! wago
-    local wago = CreateLink(linksPane, "wago", "Interface\\AddOns\\Cell\\Media\\Links\\wago.tga", function()
+    local wago = CreateLink(linksPane, "wago", "Interface\\AddOns\\CellD\\Media\\Links\\wago.tga", function()
         current = "https://github.com/davidchangok/CellD"
         linksEB:SetText(current)
         linksEB:ClearFocus()
@@ -477,7 +477,7 @@ local function CreateLinksPane()
     wago:SetPoint("TOPLEFT", curseforge, "TOPRIGHT", 7, 0)
 
     --! discord
-    local discord = CreateLink(linksPane, "discord", "Interface\\AddOns\\Cell\\Media\\Links\\discord.tga", function()
+    local discord = CreateLink(linksPane, "discord", "Interface\\AddOns\\CellD\\Media\\Links\\discord.tga", function()
         current = "https://discord.gg/9PSe3fKQGJ"
         linksEB:SetText(current)
         linksEB:ClearFocus()
@@ -485,7 +485,7 @@ local function CreateLinksPane()
     discord:SetPoint("TOPLEFT", wago, "TOPRIGHT", 7, 0)
 
     --! kook
-    local kook = CreateLink(linksPane, "kook", "Interface\\AddOns\\Cell\\Media\\Links\\kook.tga", function()
+    local kook = CreateLink(linksPane, "kook", "Interface\\AddOns\\CellD\\Media\\Links\\kook.tga", function()
         current = "https://kook.top/q4T7yp"
         linksEB:SetText(current)
         linksEB:ClearFocus()
@@ -493,7 +493,7 @@ local function CreateLinksPane()
     kook:SetPoint("TOPLEFT", discord, "TOPRIGHT", 7, 0)
 
     --! nga
-    local nga = CreateLink(linksPane, "nga", "Interface\\AddOns\\Cell\\Media\\Links\\nga.tga", function()
+    local nga = CreateLink(linksPane, "nga", "Interface\\AddOns\\CellD\\Media\\Links\\nga.tga", function()
         current = "https://bbs.nga.cn/read.php?tid=23488341"
         linksEB:SetText(current)
         linksEB:ClearFocus()
@@ -501,7 +501,7 @@ local function CreateLinksPane()
     nga:SetPoint("TOPLEFT", kook, "TOPRIGHT", 7, 0)
 
     --! afdian
-    local afdian = CreateLink(linksPane, "afdian", "Interface\\AddOns\\Cell\\Media\\Links\\afdian.tga", function()
+    local afdian = CreateLink(linksPane, "afdian", "Interface\\AddOns\\CellD\\Media\\Links\\afdian.tga", function()
         current = "https://afdian.com/a/enderneko"
         linksEB:SetText(current)
         linksEB:ClearFocus()
@@ -509,7 +509,7 @@ local function CreateLinksPane()
     afdian:SetPoint("TOPRIGHT", linksEB, "BOTTOMRIGHT", 0, -7)
 
     --! ko-fi
-    local kofi = CreateLink(linksPane, "kofi", "Interface\\AddOns\\Cell\\Media\\Links\\ko-fi.tga", function()
+    local kofi = CreateLink(linksPane, "kofi", "Interface\\AddOns\\CellD\\Media\\Links\\ko-fi.tga", function()
         current = "https://ko-fi.com/enderneko"
         linksEB:SetText(current)
         linksEB:ClearFocus()
@@ -527,17 +527,17 @@ local function CreateImportExportPane()
     local importBtn = Cell.CreateButton(iePane, L["Import"], "accent-hover", {134, 20})
     importBtn:SetPoint("TOPLEFT", 5, -27)
     importBtn:SetScript("OnClick", F.ShowImportFrame)
-    importBtn:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\import", {16, 16}, {"LEFT", 2, 0})
+    importBtn:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\import", {16, 16}, {"LEFT", 2, 0})
 
     local exportBtn = Cell.CreateButton(iePane, L["Export"], "accent-hover", {134, 20})
     exportBtn:SetPoint("TOPLEFT", importBtn, "TOPRIGHT", 5, 0)
     exportBtn:SetScript("OnClick", F.ShowExportFrame)
-    exportBtn:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\export", {16, 16}, {"LEFT", 2, 0})
+    exportBtn:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\export", {16, 16}, {"LEFT", 2, 0})
 
     local backupBtn = Cell.CreateButton(iePane, L["Backups"], "accent-hover", {134, 20})
     backupBtn:SetPoint("TOPLEFT", exportBtn, "TOPRIGHT", 5, 0)
     backupBtn:SetScript("OnClick", F.ShowBackupFrame)
-    backupBtn:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\backup", {16, 16}, {"LEFT", 2, 0})
+    backupBtn:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\backup", {16, 16}, {"LEFT", 2, 0})
 end
 
 -------------------------------------------------
@@ -558,7 +558,7 @@ local function ShowTab(tab)
             CreateSupportersPane()
         end
         aboutTab:Show()
-        descriptionPane:SetTitle("Cell "..Cell.version)
+        descriptionPane:SetTitle("CellD "..Cell.version)
     else
         aboutTab:Hide()
     end

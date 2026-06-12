@@ -11,56 +11,56 @@ local LCG = LibStub("LibCustomGlow-1.0")
 -- ----------------------------------------------------------------------- --
 local defaultOffensiveBuffs = {
     ["DEATHKNIGHT"] = {
-        47568, -- Empower Rune Weapon, 绗︽枃姝﹀櫒澧炴晥
+        47568, -- Empower Rune Weapon, 缁楋附鏋冨锕€娅掓晶鐐存櫏
     },
     ["DEMONHUNTER"] = {
     },
     ["DRUID"] = {
-        102543, -- Incarnation: Avatar of Ashamane, 鍖栬韩锛氶樋鑾庢浖涔嬬伒
-        102560, -- Incarnation: Chosen of Elune, 鍖栬韩锛氳壘闇叉仼涔嬬湻
+        102543, -- Incarnation: Avatar of Ashamane, 閸栨牞闊╅敍姘舵▼閼惧孩娴栨稊瀣紥
+        102560, -- Incarnation: Chosen of Elune, 閸栨牞闊╅敍姘冲闂囧弶浠兼稊瀣够
     },
     ["EVOKER"] = {
-        375087, -- Dragonrage, 鐙傞緳涔嬫€?
+        375087, -- Dragonrage, 閻欏倿绶虫稊瀣偓?
     },
     ["HUNTER"] = {
-        288613, -- Trueshot, 鐧惧彂鐧句腑
-        360952, -- Coordinated Assault, 鍗忓悓杩涙敾
-        359844, -- Call of the Wild, 鑽掗噹鐨勫彫鍞?
+        288613, -- Trueshot, 閻ф儳褰傞惂鍙ヨ厬
+        360952, -- Coordinated Assault, 閸楀繐鎮撴潻娑欐暰
+        359844, -- Call of the Wild, 閼芥帡鍣归惃鍕将閸?
     },
     ["MAGE"] = {
-        12472, -- Icy Veins, 鍐板喎琛€鑴?
-        365362, -- Arcane Surge, 濂ユ湳娑屽姩
+        12472, -- Icy Veins, 閸愭澘鍠庣悰鈧懘?
+        365362, -- Arcane Surge, 婵傘儲婀冲☉灞藉З
     },
     ["MONK"] = {
     },
     ["PALADIN"] = {
-        31884, -- Avenging Wrath, 澶嶄粐涔嬫€?
-        231895, -- Crusade, 寰佷紣
+        31884, -- Avenging Wrath, 婢跺秳绮愭稊瀣偓?
+        231895, -- Crusade, 瀵颁椒绱?
     },
     ["PRIEST"] = {
-        194249, -- Voidform, 铏氱┖褰㈡€?
+        194249, -- Voidform, 閾忔氨鈹栬ぐ銏♀偓?
     },
     ["ROGUE"] = {
-        121471, -- Shadow Blades, 鏆楀奖涔嬪垉
-        13750, -- Adrenaline Rush, 鍐插姩
+        121471, -- Shadow Blades, 閺嗘濂栨稊瀣瀴
+        13750, -- Adrenaline Rush, 閸愭彃濮?
     },
     ["SHAMAN"] = {
-        333957, -- Feral Spirit, 閲庢€х嫾榄?
+        333957, -- Feral Spirit, 闁插孩鈧呭姒?
     },
     ["WARLOCK"] = {
     },
     ["WARRIOR"] = {
-        107574, -- Avatar, 澶╃涓嬪嚒
+        107574, -- Avatar, 婢垛晝顨ｆ稉瀣殥
     },
 }
 
 local defaultOffensiveCasts = {
     ["DEATHKNIGHT"] = {
-        "49206:25", -- Summon Gargoyle, 鍙敜鐭冲儚楝?
-        "42650:30", -- Army of the Dead, 浜¤€呭ぇ鍐?
+        "49206:25", -- Summon Gargoyle, 閸欘剙鏁滈惌鍐插剼妤?
+        "42650:30", -- Army of the Dead, 娴溌も偓鍛亣閸?
     },
     ["DEMONHUNTER"] = {
-        "191427:20", -- Metamorphosis, 鎭堕瓟鍙樺舰
+        "191427:20", -- Metamorphosis, 閹爼鐡熼崣妯鸿埌
     },
     ["DRUID"] = {
     },
@@ -69,25 +69,25 @@ local defaultOffensiveCasts = {
     ["HUNTER"] = {
     },
     ["MAGE"] = {
-        "190319:12", -- Combustion, 鐕冪儳
+        "190319:12", -- Combustion, 閻曞啰鍎?
     },
     ["MONK"] = {
-        "123904:20", -- Invoke Xuen, the White Tiger, 鐧借檸涓嬪嚒
+        "123904:20", -- Invoke Xuen, the White Tiger, 閻у€熸娑撳鍤?
     },
     ["PALADIN"] = {
     },
     ["PRIEST"] = {
     },
     ["ROGUE"] = {
-        "360194:16", -- Deathmark, 姝讳骸鍗拌
+        "360194:16", -- Deathmark, 濮濊楠搁崡鎷岊唶
     },
     ["SHAMAN"] = {
-        "192249:30", -- Storm Elemental, 椋庢毚鍏冪礌
+        "192249:30", -- Storm Elemental, 妞嬪孩姣氶崗鍐
     },
     ["WARLOCK"] = {
-        "1122:30", -- Summon Infernal, 鍙敜鍦扮嫳鐏?
-        "205180:20", -- Summon Darkglare, 鍙敜榛戠溂
-        "265187:15", -- Summon Demonic Tyrant, 鍙敜鎭堕瓟鏆村悰
+        "1122:30", -- Summon Infernal, 閸欘剙鏁滈崷鎵閻?
+        "205180:20", -- Summon Darkglare, 閸欘剙鏁滄鎴犳簜
+        "265187:15", -- Summon Demonic Tyrant, 閸欘剙鏁滈幁鍫曠摕閺嗘潙鎮?
     },
     ["WARRIOR"] = {
     },
@@ -108,105 +108,105 @@ local defaultSpecFilter = {
     {
         "DEATHKNIGHT",
         {
-            {250, true}, -- Blood 椴滆
-            {251, true}, -- Frost 鍐伴湝
-            {252, true}, -- Unholy 閭伓
+            {250, true}, -- Blood 妞存粏顢?
+            {251, true}, -- Frost 閸愪即婀?
+            {252, true}, -- Unholy 闁亝浼?
         },
     },
     {
         "DEMONHUNTER",
         {
-            {581, true}, -- Vengeance 澶嶄粐
-            {577, true}, -- Havoc 娴╁姭
+            {581, true}, -- Vengeance 婢跺秳绮?
+            {577, true}, -- Havoc 濞粹晛濮?
         },
     },
     {
         "DRUID",
         {
-            {104, true}, -- Guardian 瀹堟姢
-            {105, true}, -- Restoration 鎭㈠
-            {103, true}, -- Feral 閲庢€?
-            {102, true}, -- Balance 骞宠　
+            {104, true}, -- Guardian 鐎瑰牊濮?
+            {105, true}, -- Restoration 閹垹顦?
+            {103, true}, -- Feral 闁插孩鈧?
+            {102, true}, -- Balance 楠炲疇銆€
         },
     },
     {
         "EVOKER",
         {
-            {1468, true}, -- Preservation 鎭╂姢
-            {1467, true}, -- Devastation 婀伃
-            {1473, true}, -- Augmentation 澧炶緣
+            {1468, true}, -- Preservation 閹晜濮?
+            {1467, true}, -- Devastation 濠€顔句純
+            {1473, true}, -- Augmentation 婢х偠绶?
         },
     },
     {
         "HUNTER",
         {
-            {255, true}, -- Survival 鐢熷瓨
-            {253, true}, -- Beast Mastery 閲庡吔鎺у埗
-            {254, true}, -- Marksmanship 灏勫嚮
+            {255, true}, -- Survival 閻㈢喎鐡?
+            {253, true}, -- Beast Mastery 闁插骸鍚旈幒褍鍩?
+            {254, true}, -- Marksmanship 鐏忓嫬鍤?
         },
     },
     {
         "MAGE",
         {
-            {62, true}, -- Arcane 濂ユ湳
-            {63, true}, -- Fire 鐏劙
-            {64, true}, -- Frost 鍐伴湝
+            {62, true}, -- Arcane 婵傘儲婀?
+            {63, true}, -- Fire 閻忣偆鍔?
+            {64, true}, -- Frost 閸愪即婀?
         },
     },
     {
         "MONK",
         {
-            {268, true}, -- Brewmaster 閰掍粰
-            {270, true}, -- Mistweaver 缁囬浘
-            {269, true}, -- Windwalker 韪忛
+            {268, true}, -- Brewmaster 闁版帊绮?
+            {270, true}, -- Mistweaver 缂佸洭娴?
+            {269, true}, -- Windwalker 闊繘顥?
         },
     },
     {
         "PALADIN",
         {
-            {66, true}, -- Protection 闃叉姢
-            {65, true}, -- Holy 绁炲湥
-            {70, true}, -- Retribution 鎯╂垝
+            {66, true}, -- Protection 闂冨弶濮?
+            {65, true}, -- Holy 缁佺偛婀?
+            {70, true}, -- Retribution 閹晜鍨?
         },
     },
     {
         "PRIEST",
         {
-            {256, true}, -- Discipline 鎴掑緥
-            {257, true}, -- Holy 绁炲湥
-            {258, true}, -- Shadow 鏆楀奖
+            {256, true}, -- Discipline 閹存帒绶?
+            {257, true}, -- Holy 缁佺偛婀?
+            {258, true}, -- Shadow 閺嗘濂?
         },
     },
     {
         "ROGUE",
         {
-            {259, true}, -- Assassination 濂囪
-            {260, true}, -- Combat 鐙傚緬
-            {261, true}, -- Subtlety 鏁忛攼
+            {259, true}, -- Assassination 婵傚洩顫?
+            {260, true}, -- Combat 閻欏倸绶?
+            {261, true}, -- Subtlety 閺佸繘鏀?
         },
     },
     {
         "SHAMAN",
         {
-            {264, true}, -- Restoration 鎭㈠
-            {263, true}, -- Enhancement 澧炲己
-            {262, true}, -- Elemental 鍏冪礌
+            {264, true}, -- Restoration 閹垹顦?
+            {263, true}, -- Enhancement 婢х偛宸?
+            {262, true}, -- Elemental 閸忓啰绀?
         },
     },
     {
         "WARLOCK",
         {
-            {265, true}, -- Affliction 鐥涜嫤
-            {266, true}, -- Demonology 鎭堕瓟
-            {267, true}, -- Destruction 姣佺伃
+            {265, true}, -- Affliction 閻ユ稖瀚?
+            {266, true}, -- Demonology 閹爼鐡?
+            {267, true}, -- Destruction 濮ｄ胶浼?
         },
     },
     {
         "WARRIOR",
         {
-            {73, true}, -- Protection 闃叉姢
-            {71, true}, -- Arms 姝﹀櫒
-            {72, true}, -- Fury 鐙傛€?
+            {73, true}, -- Protection 闂冨弶濮?
+            {71, true}, -- Arms 濮濓箑娅?
+            {72, true}, -- Fury 閻欏倹鈧?
         },
     },
 }
@@ -802,14 +802,14 @@ local function CreateQuickAssistPane()
     -- import/export --------------------------------------------------------- --
     local export = Cell.CreateButton(qaPane, nil, "accent-hover", {27, 17}, nil, nil, nil, nil, nil, L["Export"])
     export:SetPoint("TOPRIGHT")
-    export:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\export", {15, 15}, {"CENTER", 0, 0})
+    export:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\export", {15, 15}, {"CENTER", 0, 0})
     export:SetScript("OnClick", function()
         F.ShowQuickAssistExportFrame(quickAssistTable)
     end)
 
     local import = Cell.CreateButton(qaPane, nil, "accent-hover", {27, 17}, nil, nil, nil, nil, nil, L["Import"])
     import:SetPoint("TOPRIGHT", export, "TOPLEFT", -1, 0)
-    import:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\import", {15, 15}, {"CENTER", 0, 0})
+    import:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\import", {15, 15}, {"CENTER", 0, 0})
     import:SetScript("OnClick", function()
         F.ShowQuickAssistImportFrame()
     end)
@@ -1099,7 +1099,7 @@ local function CreatePlayerList(parent, box)
         players[i].label:SetPoint("LEFT", P.Scale(13), 0)
 
         players[i].index = players[i]:CreateFontString(nil, "OVERLAY")
-        players[i].index:SetFont("Interface\\AddOns\\Cell\\Media\\Fonts\\Accidental_Presidency.ttf", 12)
+        players[i].index:SetFont("Interface\\AddOns\\CellD\\Media\\Fonts\\Accidental_Presidency.ttf", 12)
         players[i].index:SetShadowColor(0, 0, 0)
         players[i].index:SetShadowOffset(1, -1)
         players[i].index:SetPoint("LEFT", P.Scale(1), 0)
@@ -1754,7 +1754,7 @@ local textures, textureNames
 
 local function LoadTextures()
     local items = {}
-    local defaultTexture, defaultTextureName = "Interface\\AddOns\\Cell\\Media\\statusbar.tga", "Cell ".._G.DEFAULT
+    local defaultTexture, defaultTextureName = "Interface\\AddOns\\CellD\\Media\\statusbar.tga", "Cell ".._G.DEFAULT
     textures, textureNames = F.Copy(LSM:HashTable("statusbar")), F.Copy(LSM:List("statusbar"))
 
     -- make default texture first
@@ -3003,7 +3003,7 @@ end
 -- my buff --------------------------------------------------------------- --
 local function CreateMyBuffWidget(parent, index)
     local b = Cell.CreateButton(parent, " ", "accent-hover", {180, 20})
-    b:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\create", {16, 16}, {"LEFT", 2, 0})
+    b:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\create", {16, 16}, {"LEFT", 2, 0})
     b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     b:GetFontString():SetJustifyH("LEFT")
 
@@ -3033,7 +3033,7 @@ local function CreateMyBuffWidget(parent, index)
             b.id = nil
             b.icon = nil
             b:SetText("")
-            b.tex:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\create")
+            b.tex:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\create")
             b.tex:SetTexCoord(0, 1, 0, 1)
             spellTable["mine"]["buffs"][index][1] = 0
             Cell.Fire("UpdateQuickAssist", "mine")
@@ -3192,7 +3192,7 @@ local function CreateSpellsPane()
 
     buffsAddBtn = Cell.CreateButton(buffsPane, nil, "accent-hover", {24, 24})
     buffsAddBtn:SetPoint("TOPLEFT", 5, -27)
-    buffsAddBtn:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\create", {20, 20}, {"CENTER", 0, 0})
+    buffsAddBtn:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\create", {20, 20}, {"CENTER", 0, 0})
     buffsAddBtn:SetScript("OnClick", function()
         local popup = Cell.CreatePopupEditBox(qaPane, function(text)
             local spellId = tonumber(text)
@@ -3223,7 +3223,7 @@ local function CreateSpellsPane()
 
     castsAddBtn = Cell.CreateButton(castsPane, nil, "accent-hover", {24, 24})
     castsAddBtn:SetPoint("TOPLEFT", 5, -27)
-    castsAddBtn:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\create", {20, 20}, {"CENTER", 0, 0})
+    castsAddBtn:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\create", {20, 20}, {"CENTER", 0, 0})
     castsAddBtn:SetScript("OnClick", function()
         local popup = Cell.CreateDualPopupEditBox(qaPane, "ID", L["Duration"], true, function(spellId, duration)
             local spellName = F.GetSpellInfo(spellId)
@@ -3283,12 +3283,12 @@ local function CreateSpellsPane()
 3. create a PR on GitHub
 *. fill the list by pressing "Reset Offensive Spells" button
 
-|cffe52b50鐢?OmniCD 鏉ョ洃鎺х垎鍙戞槸鏇村ソ鐨勯€夋嫨|r
-|cff00ff7f浣嗗鏋滀綘鎯宠甯繖琛ュ厖鍐呯疆鐖嗗彂娉曟湳鍒楄〃锛殀r
-1. 鎵撳紑 |cfffff2b2Cell\Utilities\QuickAssistConfig.lua|r
-2. 淇敼 |cfffff2b2defaultOffensiveBuffs|r 鍜?|cfffff2b2defaultOffensiveCasts|r
-3. 鍦?GitHub 涓婃彁浜?PR
-*. 鐐瑰嚮鈥滈噸缃垎鍙戞硶鏈€濇寜閽潵鍒锋柊鍒楄〃
+|cffe52b50閻?OmniCD 閺夈儳娲冮幒褏鍨庨崣鎴炴Ц閺囨潙銈介惃鍕偓澶嬪|r
+|cff00ff7f娴ｅ棗顩ч弸婊€缍橀幆瀹狀洣鐢喖绻栫悰銉ュ帠閸愬懐鐤嗛悥鍡楀絺濞夋洘婀抽崚妤勩€冮敍娈€r
+1. 閹垫挸绱?|cfffff2b2Cell\Utilities\QuickAssistConfig.lua|r
+2. 娣囶喗鏁?|cfffff2b2defaultOffensiveBuffs|r 閸?|cfffff2b2defaultOffensiveCasts|r
+3. 閸?GitHub 娑撳﹥褰佹禍?PR
+*. 閻愮懓鍤垾婊堝櫢缂冾喚鍨庨崣鎴炵《閺堫垪鈧繃瀵滈柦顔芥降閸掗攱鏌婇崚妤勩€?
         ]])
         helpText:SetPoint("LEFT", 10, 0)
         helpText:SetPoint("RIGHT", -10, 0)
@@ -3410,7 +3410,7 @@ LoadMyBuff = function(b, t)
 
     if t[1] == 0 then -- no setting
         b:SetText("")
-        b.tex:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\create")
+        b.tex:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\create")
         b.tex:SetTexCoord(0, 1, 0, 1)
     else
         local name, icon = F.GetSpellInfo(t[1])

@@ -10,7 +10,7 @@ local selected, forceLoadSelected = 0, true
 local LoadList, LoadSnippet, RunSnippet
 
 local function CreateCodeSnippetsFrame()
-    codeSnippetsFrame = Cell.CreateMovableFrame("Cell " .. L["Code Snippets"], "CellCodeSnippetsFrame", 641, 550, "DIALOG")
+    codeSnippetsFrame = Cell.CreateMovableFrame("CellD " .. L["Code Snippets"], "CellCodeSnippetsFrame", 641, 550, "DIALOG")
     Cell.frames.codeSnippetsFrame = codeSnippetsFrame
     codeSnippetsFrame:SetToplevel(true)
     codeSnippetsFrame:SetPoint("CENTER")
@@ -46,7 +46,7 @@ local function CreateCodeSnippetsFrame()
     newBtn.tex = newBtn:CreateTexture(nil, "ARTWORK")
     newBtn.tex:SetPoint("CENTER")
     newBtn.tex:SetSize(12, 12)
-    newBtn.tex:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\add.tga")
+    newBtn.tex:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\add.tga")
     newBtn:SetScript("OnClick", function()
         tinsert(CellDB["snippets"], {
             ["name"] = L["unnamed"],
@@ -160,7 +160,7 @@ local function CreateCodeSnippetsFrame()
     errorPopup:SetPoint("BOTTOMRIGHT")
     errorPopup:Hide()
 
-    errorPopup.close = Cell.CreateButton(errorPopup, "×", "red", {18, 18}, false, false, "CELL_FONT_SPECIAL", "CELL_FONT_SPECIAL")
+    errorPopup.close = Cell.CreateButton(errorPopup, "鑴?, "red", {18, 18}, false, false, "CELL_FONT_SPECIAL", "CELL_FONT_SPECIAL")
     errorPopup.close:SetPoint("TOPRIGHT")
     errorPopup.close:SetScript("OnClick", function()
         errorPopup:Hide()
@@ -244,7 +244,7 @@ LoadList = function()
             buttons[i].del:SetSize(12, 12)
             buttons[i].del.tex = buttons[i].del:CreateTexture(nil, "ARTWORK")
             buttons[i].del.tex:SetAllPoints(buttons[i].del)
-            buttons[i].del.tex:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\close.tga")
+            buttons[i].del.tex:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\close.tga")
             buttons[i].del.tex:SetVertexColor(0.4, 0.4, 0.4, 1)
             buttons[i].del:SetScript("OnEnter", function()
                 buttons[i]:GetScript("OnEnter")(buttons[i])

@@ -11,17 +11,17 @@ local orientation, speed
 -- events
 -------------------------------------------------
 -- Audited for Midnight 12.0.0+ compatibility: no changes required.
--- CLEU (COMBAT_LOG_EVENT_UNFILTERED) is not used — it is fully commented out below.
+-- CLEU (COMBAT_LOG_EVENT_UNFILTERED) is not used 鈥?it is fully commented out below.
 -- The active handler listens to UNIT_SPELLCAST_SUCCEEDED for group members only.
 -- spellID from UNIT_SPELLCAST_SUCCEEDED for allied units is non-secret.
 -- Cell.vars.actions[spellID] table key usage is safe because the spellID comes
 -- from your own group's spellcasts, which are never restricted by GetRestrictedActionStatus.
 
 -- CLEU: subevent, source, target, spellId, spellName
--- [15:10] SPELL_HEAL 秋静葉 秋静葉 6262 治疗石
--- [15:10] SPELL_CAST_SUCCESS 秋静葉 nil 6262 治疗石
--- [15:13] SPELL_HEAL 秋静葉 秋静葉 307192 灵魂治疗药水
--- [15:13] SPELL_CAST_SUCCESS 秋静葉 nil 307192 灵魂治疗药水
+-- [15:10] SPELL_HEAL 绉嬮潤钁?绉嬮潤钁?6262 娌荤枟鐭?
+-- [15:10] SPELL_CAST_SUCCESS 绉嬮潤钁?nil 6262 娌荤枟鐭?
+-- [15:13] SPELL_HEAL 绉嬮潤钁?绉嬮潤钁?307192 鐏甸瓊娌荤枟鑽按
+-- [15:13] SPELL_CAST_SUCCESS 绉嬮潤钁?nil 307192 鐏甸瓊娌荤枟鑽按
 
 -- UNIT_SPELLCAST_SUCCEEDED
 -- unit, castGUID, spellID
@@ -37,7 +37,7 @@ eventFrame:SetScript("OnEvent", function(self, event, unit, castGUID, spellID)
 
     if Cell.vars.actionsDebugModeEnabled then
         local name = F.GetSpellInfo(spellID)
-        print("|cFFFF3030[Cell]|r |cFFB2B2B2" .. event .. ":|r", unit, "|cFF00FF00" .. (spellID or "nil") .. "|r", name)
+        print("|cFFFF3030[CellD]|r |cFFB2B2B2" .. event .. ":|r", unit, "|cFF00FF00" .. (spellID or "nil") .. "|r", name)
     end
 
     -- Midnight 12.0.0+: spellID from UNIT_SPELLCAST_SUCCEEDED is secret during restricted contexts
@@ -248,7 +248,7 @@ local function CreateAnimationGroup_TypeC()
     -- texture
     local tex = f:CreateTexture(nil, "ARTWORK")
     tex:SetAllPoints(f)
-    tex:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\upgrade.tga")
+    tex:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\upgrade.tga")
 
     -- animation
     local ag = f:CreateAnimationGroup()

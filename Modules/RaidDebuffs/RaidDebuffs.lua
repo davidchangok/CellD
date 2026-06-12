@@ -61,8 +61,8 @@ local bossIdToName = {
 }
 
 local instanceBossOverrides = {
-    [362] = {  -- 雷电王座
-        [13] = 831,  -- 莱登
+    [362] = {  -- 闆风數鐜嬪骇
+        [13] = 831,  -- 鑾辩櫥
     },
 }
 
@@ -136,11 +136,11 @@ end
 -------------------------------------------------
 --[[
 local CURRENT_SEASON = {
-    1194, -- 塔扎维什
-    860, -- 重返卡拉赞
-    1178, -- 麦卡贡行动
-    558, -- 钢铁码头
-    536, -- 恐轨车站
+    1194, -- 濉旀墡缁翠粈
+    860, -- 閲嶈繑鍗℃媺璧?
+    1178, -- 楹﹀崱璐¤鍔?
+    558, -- 閽㈤搧鐮佸ご
+    536, -- 鎭愯建杞︾珯
     -- 226
 }
 
@@ -313,7 +313,7 @@ local function LoadDebuffs()
         end
     end
 
-    -- texplore(loadedDebuffs[477]) -- 悬槌堡
+    -- texplore(loadedDebuffs[477]) -- 鎮鍫?
 end
 
 local function UpdateRaidDebuffs()
@@ -414,7 +414,7 @@ local function CreateWidgets()
 
     -- help
     local helpBtn = Cell.CreateButton(debuffsTab, "", "accent-hover", {33, 20})
-    helpBtn:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\info2.tga", {16, 16}, {"CENTER", 0, 0})
+    helpBtn:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\info2.tga", {16, 16}, {"CENTER", 0, 0})
     helpBtn:SetPoint("TOPRIGHT", -5, -7)
     helpBtn:HookScript("OnEnter", function()
         CellTooltip:SetOwner(helpBtn, "ANCHOR_NONE")
@@ -444,14 +444,14 @@ local function CreateWidgets()
     -- import/export button
     local exportBtn = Cell.CreateButton(debuffsTab, "", "accent-hover", {33, 20}, nil, nil, nil, nil, nil, L["Export"])
     exportBtn:SetPoint("TOPRIGHT", showCurrentBtn, "TOPLEFT", P.Scale(-5), 0)
-    exportBtn:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\export.blp", {16, 16}, {"CENTER", 0, 0})
+    exportBtn:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\export.blp", {16, 16}, {"CENTER", 0, 0})
     exportBtn:SetScript("OnClick", function()
         F.ShowRaidDebuffsExportFrame(loadedInstance, loadedInstance == loadedBoss and "general" or loadedBoss)
     end)
 
     local importBtn = Cell.CreateButton(debuffsTab, "", "accent-hover", {33, 20}, nil, nil, nil, nil, nil, L["Import"])
     importBtn:SetPoint("TOPRIGHT", exportBtn, "TOPLEFT", P.Scale(-5), 0)
-    importBtn:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\import.blp", {16, 16}, {"CENTER", 0, 0})
+    importBtn:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\import.blp", {16, 16}, {"CENTER", 0, 0})
     importBtn:SetScript("OnClick", function()
         F.ShowRaidDebuffsImportFrame()
     end)
@@ -1470,7 +1470,7 @@ local function CreateDetailsFrame()
     conditionText:SetText(L["Condition"])
     conditionText:SetPoint("TOPLEFT", useElapsedTimeCB, "BOTTOMLEFT", 0, -10)
 
-    -- conditionDropDown TODO: 同时持有另一个debuff
+    -- conditionDropDown TODO: 鍚屾椂鎸佹湁鍙︿竴涓猟ebuff
     conditionDropDown = Cell.CreateDropdown(detailsContentFrame, 117)
     conditionDropDown:SetPoint("TOPLEFT", conditionText, "BOTTOMLEFT", 0, -1)
     conditionDropDown:SetItems({

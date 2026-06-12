@@ -95,7 +95,7 @@ font_disable:SetShadowOffset(1, -1)
 font_disable:SetJustifyH("CENTER")
 
 local font_special = CreateFont(font_special_name)
-font_special:SetFont("Interface\\AddOns\\Cell\\Media\\Fonts\\font.ttf", 12, "")
+font_special:SetFont("Interface\\AddOns\\CellD\\Media\\Fonts\\font.ttf", 12, "")
 font_special:SetTextColor(1, 1, 1, 1)
 font_special:SetShadowColor(0, 0, 0)
 font_special:SetShadowOffset(1, -1)
@@ -122,7 +122,7 @@ function Cell.UpdateOptionsFont(offset, useGameFont)
     if useGameFont then
         defaultFont = GameFontNormal:GetFont()
     else
-        defaultFont = "Interface\\AddOns\\Cell\\Media\\Fonts\\Accidental_Presidency.ttf"
+        defaultFont = "Interface\\AddOns\\CellD\\Media\\Fonts\\Accidental_Presidency.ttf"
     end
     fontSizeOffset = offset
 
@@ -223,7 +223,7 @@ function Cell.StartRainbowText(fs, reverse)
     fs.updater:SetScript("OnUpdate", function(self, elapsed)
 
         local hue = pos
-        -- NOTE: lua 濮濓絽鍨崠褰掑帳娑擃厽鏋冮敍灞肩瑝閻儵浜炬导姘瑝娴兼碍婀侀梻顕€顣?
+        -- NOTE: lua 婵繐绲介崹顖炲礌瑜版帒甯冲☉鎿冨幗閺嬪啴鏁嶇仦鑲╃憹闁活厹鍎垫禍鐐濮橆偆鐟濆ù鍏肩濠€渚€姊婚鈧。?
         str = fs.text:gsub("[%z\1-\127\194-\244][\128-\191]*", function(char)
             colorSelect:SetColorHSV(hue,1,1)
             col = CreateColor(colorSelect:GetColorRGB())
@@ -374,7 +374,7 @@ function Cell.CreateMovableFrame(title, name, width, height, frameStrata, frameL
     header.text:SetText(title)
     header.text:SetPoint("CENTER", header)
 
-    header.closeBtn = Cell.CreateButton(header, "鑴?, "red", {20, 20}, false, false, "CELL_FONT_SPECIAL", "CELL_FONT_SPECIAL")
+    header.closeBtn = Cell.CreateButton(header, "閼?, "red", {20, 20}, false, false, "CELL_FONT_SPECIAL", "CELL_FONT_SPECIAL")
     header.closeBtn:SetPoint("TOPRIGHT")
     header.closeBtn:SetScript("OnClick", function() f:Hide() end)
 
@@ -747,7 +747,7 @@ function Cell.CreateTipsButton(parent, size, points, ...)
     tips:SetPoint("TOPRIGHT")
     tips.tex = tips:CreateTexture(nil, "ARTWORK")
     tips.tex:SetAllPoints(tips)
-    tips.tex:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\info2.tga")
+    tips.tex:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\info2.tga")
 
     local lines = {...}
 
@@ -1641,7 +1641,7 @@ function Cell.CreateStatusBarButton(parent, text, size, maxValue, template)
     b.bar = bar
     bar:SetPoint("TOPLEFT", b)
     bar:SetPoint("BOTTOMRIGHT", b)
-    bar:SetStatusBarTexture("Interface\\AddOns\\Cell\\Media\\statusbar.tga")
+    bar:SetStatusBarTexture("Interface\\AddOns\\CellD\\Media\\statusbar.tga")
     bar:SetStatusBarColor(accentColor.t[1], accentColor.t[2], accentColor.t[3], 0.5)
     bar:SetBackdrop({bgFile = Cell.vars.whiteTexture, edgeFile = Cell.vars.whiteTexture, edgeSize = 1})
     bar:SetBackdropColor(0.115, 0.115, 0.115, 1)
@@ -2343,7 +2343,7 @@ local function CreateItemButtons_Scroll(items, itemTable, limit, level)
         --         P.Size(b.marker, 16, 16)
         --         b.marker:SetAllPoints(b.iconBg)
         --     end
-        --     b.marker:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\icon_marker.tga")
+        --     b.marker:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\icon_marker.tga")
         --     b.marker:SetVertexColor(1, 1, 1, 0.77)
         --     b.marker:SetBlendMode("ADD")
         --     b.marker:Show()
@@ -3216,7 +3216,7 @@ function Cell.CreateBindingButton(parent, width)
         tinsert(UISpecialFrames, parent.bindingButton:GetName())
         Cell.StylizeFrame(parent.bindingButton, {0.1, 0.1, 0.1, 1}, {accentColor.t[1], accentColor.t[2], accentColor.t[3]})
 
-        parent.bindingButton.close = Cell.CreateButton(parent.bindingButton, "鑴?, "red", {18, 18}, true, true, "CELL_FONT_SPECIAL", "CELL_FONT_SPECIAL")
+        parent.bindingButton.close = Cell.CreateButton(parent.bindingButton, "閼?, "red", {18, 18}, true, true, "CELL_FONT_SPECIAL", "CELL_FONT_SPECIAL")
         parent.bindingButton.close:SetPoint("TOPRIGHT", -1, -1)
         parent.bindingButton.close:SetScript("OnClick", function()
             parent.bindingButton:Hide()
@@ -3545,7 +3545,7 @@ function Cell.CreateReceivingFrame(parent)
     cancelBtn:SetPoint("BOTTOMRIGHT")
 
     -- bar
-    local progressBar = Cell.CreateStatusBar("CellReceivingFrameBar", f, 198, 18, 0, true, nil, true, "Interface\\AddOns\\Cell\\Media\\statusbar.tga", {0.7, 0.7, 0, 1})
+    local progressBar = Cell.CreateStatusBar("CellReceivingFrameBar", f, 198, 18, 0, true, nil, true, "Interface\\AddOns\\CellD\\Media\\statusbar.tga", {0.7, 0.7, 0, 1})
     progressBar:SetPoint("BOTTOMLEFT", 1, 1)
     progressBar:SetPoint("BOTTOMRIGHT", cancelBtn, "BOTTOMLEFT")
     progressBar:Hide()
