@@ -42,15 +42,15 @@ end
 --     obj:SetFont()
 -- end
 
-local font_title_name = "CELL_FONT_WIDGET_TITLE"
-local font_title_disable_name = "CELL_FONT_WIDGET_TITLE_DISABLE"
-local font_name = "CELL_FONT_WIDGET"
-local font_small_name = "CELL_FONT_WIDGET_SMALL"
-local font_chinese_name = "CELL_FONT_CHINESE"
-local font_disable_name = "CELL_FONT_WIDGET_DISABLE"
-local font_special_name = "CELL_FONT_SPECIAL"
-local font_class_title_name = "CELL_FONT_CLASS_TITLE"
-local font_class_name = "CELL_FONT_CLASS"
+local font_title_name = strupper(addonName).."_FONT_WIDGET_TITLE"
+local font_title_disable_name = strupper(addonName).."_FONT_WIDGET_TITLE_DISABLE"
+local font_name = strupper(addonName).."_FONT_WIDGET"
+local font_small_name = strupper(addonName).."_FONT_WIDGET_SMALL"
+local font_chinese_name = strupper(addonName).."_FONT_CHINESE"
+local font_disable_name = strupper(addonName).."_FONT_WIDGET_DISABLE"
+local font_special_name = strupper(addonName).."_FONT_SPECIAL"
+local font_class_title_name = strupper(addonName).."_FONT_CLASS_TITLE"
+local font_class_name = strupper(addonName).."_FONT_CLASS"
 
 local font_title = CreateFont(font_title_name)
 font_title:SetFont(GameFontNormal:GetFont(), 14, "")
@@ -95,7 +95,7 @@ font_disable:SetShadowOffset(1, -1)
 font_disable:SetJustifyH("CENTER")
 
 local font_special = CreateFont(font_special_name)
-font_special:SetFont("Interface\\AddOns\\CellD\\Media\\Fonts\\font.ttf", 12, "")
+font_special:SetFont("Interface\\AddOns\\Cell\\Media\\Fonts\\font.ttf", 12, "")
 font_special:SetTextColor(1, 1, 1, 1)
 font_special:SetShadowColor(0, 0, 0)
 font_special:SetShadowOffset(1, -1)
@@ -122,7 +122,7 @@ function Cell.UpdateOptionsFont(offset, useGameFont)
     if useGameFont then
         defaultFont = GameFontNormal:GetFont()
     else
-        defaultFont = "Interface\\AddOns\\CellD\\Media\\Fonts\\Accidental_Presidency.ttf"
+        defaultFont = "Interface\\AddOns\\Cell\\Media\\Fonts\\Accidental_Presidency.ttf"
     end
     fontSizeOffset = offset
 
@@ -747,7 +747,7 @@ function Cell.CreateTipsButton(parent, size, points, ...)
     tips:SetPoint("TOPRIGHT")
     tips.tex = tips:CreateTexture(nil, "ARTWORK")
     tips.tex:SetAllPoints(tips)
-    tips.tex:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\info2.tga")
+    tips.tex:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\info2.tga")
 
     local lines = {...}
 
@@ -822,7 +822,7 @@ function Cell.CreateCheckButton(parent, label, onClick, ...)
 
     cb:SetCheckedTexture(checkedTexture)
     cb:SetHighlightTexture(highlightTexture, "ADD")
-    -- cb:SetDisabledCheckedTexture([[Interface\AddOns\CellD\Media\CheckBox\CheckBox-DisabledChecked-16x16]])
+    -- cb:SetDisabledCheckedTexture([[Interface\AddOns\Cell\Media\CheckBox\CheckBox-DisabledChecked-16x16]])
 
     cb:SetScript("OnEnable", function()
         cb.label:SetTextColor(1, 1, 1)
@@ -1641,7 +1641,7 @@ function Cell.CreateStatusBarButton(parent, text, size, maxValue, template)
     b.bar = bar
     bar:SetPoint("TOPLEFT", b)
     bar:SetPoint("BOTTOMRIGHT", b)
-    bar:SetStatusBarTexture("Interface\\AddOns\\CellD\\Media\\statusbar.tga")
+    bar:SetStatusBarTexture("Interface\\AddOns\\Cell\\Media\\statusbar.tga")
     bar:SetStatusBarColor(accentColor.t[1], accentColor.t[2], accentColor.t[3], 0.5)
     bar:SetBackdrop({bgFile = Cell.vars.whiteTexture, edgeFile = Cell.vars.whiteTexture, edgeSize = 1})
     bar:SetBackdropColor(0.115, 0.115, 0.115, 1)
@@ -2343,7 +2343,7 @@ local function CreateItemButtons_Scroll(items, itemTable, limit, level)
         --         P.Size(b.marker, 16, 16)
         --         b.marker:SetAllPoints(b.iconBg)
         --     end
-        --     b.marker:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\icon_marker.tga")
+        --     b.marker:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\icon_marker.tga")
         --     b.marker:SetVertexColor(1, 1, 1, 0.77)
         --     b.marker:SetBlendMode("ADD")
         --     b.marker:Show()
@@ -2894,11 +2894,11 @@ function Cell.CreateDropdown(parent, width, dropdownType, isMini, isHorizontal)
         Cell.StylizeFrame(menu.button, {0.115, 0.115, 0.115, 1})
         menu.button:SetPoint("TOPRIGHT")
         menu.button:SetFrameLevel(menu:GetFrameLevel()+1)
-        menu.button:SetNormalTexture([[Interface\AddOns\CellD\Media\Icons\dropdown-normal]])
-        menu.button:SetPushedTexture([[Interface\AddOns\CellD\Media\Icons\dropdown-pushed]])
+        menu.button:SetNormalTexture([[Interface\AddOns\Cell\Media\Icons\dropdown-normal]])
+        menu.button:SetPushedTexture([[Interface\AddOns\Cell\Media\Icons\dropdown-pushed]])
 
         local disabledTexture = menu.button:CreateTexture(nil, "OVERLAY")
-        disabledTexture:SetTexture([[Interface\AddOns\CellD\Media\Icons\dropdown-normal]])
+        disabledTexture:SetTexture([[Interface\AddOns\Cell\Media\Icons\dropdown-normal]])
         disabledTexture:SetVertexColor(0.4, 0.4, 0.4, 1)
         menu.button:SetDisabledTexture(disabledTexture)
         -- selected item
@@ -3545,7 +3545,7 @@ function Cell.CreateReceivingFrame(parent)
     cancelBtn:SetPoint("BOTTOMRIGHT")
 
     -- bar
-    local progressBar = Cell.CreateStatusBar("CellReceivingFrameBar", f, 198, 18, 0, true, nil, true, "Interface\\AddOns\\CellD\\Media\\statusbar.tga", {0.7, 0.7, 0, 1})
+    local progressBar = Cell.CreateStatusBar("CellReceivingFrameBar", f, 198, 18, 0, true, nil, true, "Interface\\AddOns\\Cell\\Media\\statusbar.tga", {0.7, 0.7, 0, 1})
     progressBar:SetPoint("BOTTOMLEFT", 1, 1)
     progressBar:SetPoint("BOTTOMRIGHT", cancelBtn, "BOTTOMLEFT")
     progressBar:Hide()

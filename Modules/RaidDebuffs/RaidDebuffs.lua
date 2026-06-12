@@ -41,10 +41,10 @@ local encounterJournalList = {
     --     },
     -- },
 }
---@debug@
+--[==[@debug@
 Cell_DevExpansionData = encounterJournalList
 Cell_DevExpansionNames = {}
---@end-debug@
+--@end-debug@]==]
 
 -- used to GetInstanceInfo/GetRealZoneText --> instanceId
 local instanceNameMapping = {
@@ -116,9 +116,9 @@ local function LoadList()
     for tier = 1, num do
         local name = EJ_GetTierInfo(tier)
         encounterJournalList[name] = {}
-        --@debug@
+        --[==[@debug@
         tinsert(Cell_DevExpansionNames, 1, name)
-        --@end-debug@
+        --@end-debug@]==]
 
         if tier ~= CURRENT_SEASON_INDEX then -- don't load raid for "Current Season"
             LoadInstanceList(tier, "raid", encounterJournalList[name])
@@ -414,7 +414,7 @@ local function CreateWidgets()
 
     -- help
     local helpBtn = Cell.CreateButton(debuffsTab, "", "accent-hover", {33, 20})
-    helpBtn:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\info2.tga", {16, 16}, {"CENTER", 0, 0})
+    helpBtn:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\info2.tga", {16, 16}, {"CENTER", 0, 0})
     helpBtn:SetPoint("TOPRIGHT", -5, -7)
     helpBtn:HookScript("OnEnter", function()
         CellTooltip:SetOwner(helpBtn, "ANCHOR_NONE")
@@ -444,14 +444,14 @@ local function CreateWidgets()
     -- import/export button
     local exportBtn = Cell.CreateButton(debuffsTab, "", "accent-hover", {33, 20}, nil, nil, nil, nil, nil, L["Export"])
     exportBtn:SetPoint("TOPRIGHT", showCurrentBtn, "TOPLEFT", P.Scale(-5), 0)
-    exportBtn:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\export.blp", {16, 16}, {"CENTER", 0, 0})
+    exportBtn:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\export.blp", {16, 16}, {"CENTER", 0, 0})
     exportBtn:SetScript("OnClick", function()
         F.ShowRaidDebuffsExportFrame(loadedInstance, loadedInstance == loadedBoss and "general" or loadedBoss)
     end)
 
     local importBtn = Cell.CreateButton(debuffsTab, "", "accent-hover", {33, 20}, nil, nil, nil, nil, nil, L["Import"])
     importBtn:SetPoint("TOPRIGHT", exportBtn, "TOPLEFT", P.Scale(-5), 0)
-    importBtn:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\import.blp", {16, 16}, {"CENTER", 0, 0})
+    importBtn:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\import.blp", {16, 16}, {"CENTER", 0, 0})
     importBtn:SetScript("OnClick", function()
         F.ShowRaidDebuffsImportFrame()
     end)

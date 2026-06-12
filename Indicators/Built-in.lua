@@ -622,12 +622,12 @@ local function Dispels_SetDispels(self, dispelTypes)
 end
 
 local function Dispels_SetDispel_Blizzard(self, dispelType)
-    self:SetTexture("Interface\\AddOns\\CellD\\Media\\Debuffs\\"..dispelType)
+    self:SetTexture("Interface\\AddOns\\Cell\\Media\\Debuffs\\"..dispelType)
     self:Show()
 end
 
 local function Dispels_SetDispel_Rhombus(self, dispelType)
-    self:SetTexture("Interface\\AddOns\\CellD\\Media\\Debuffs\\Rhombus")
+    self:SetTexture("Interface\\AddOns\\Cell\\Media\\Debuffs\\Rhombus")
     self:SetVertexColor(I.GetDebuffTypeColor(dispelType))
     self:Show()
 end
@@ -1193,7 +1193,7 @@ function I.CreateNameText(parent)
                     local raidIndex = UnitInRaid(parent.states.unit)
                     if raidIndex then
                         local subgroup = select(3, GetRaidRosterInfo(raidIndex))
-                        -- nameText.name:SetText("|TInterface\\AddOns\\CellD\\Media\\Icons\\group"..subgroup..":0:0:0:-1:64:64:6:58:6:58|t"..nameText.name:GetText())
+                        -- nameText.name:SetText("|TInterface\\AddOns\\Cell\\Media\\Icons\\group"..subgroup..":0:0:0:-1:64:64:6:58:6:58|t"..nameText.name:GetText())
                         nameText.name:SetText("|cffbbbbbb"..subgroup.."-|r"..nameText.name:GetText())
                     end
                 end
@@ -1894,7 +1894,7 @@ end
 -------------------------------------------------
 -- role icon
 -------------------------------------------------
-local ICON_PATH = "Interface\\AddOns\\CellD\\Media\\Roles\\"
+local ICON_PATH = "Interface\\AddOns\\Cell\\Media\\Roles\\"
 
 local function GetTexCoordsForRole(role)
     if role == "TANK" then
@@ -2059,9 +2059,9 @@ end
 -- READY_CHECK_AFK_TEXTURE = "UI-LFG-DeclineMark"
 
 local READY_CHECK_STATUS = {
-    ready = {t = "Interface\\AddOns\\CellD\\Media\\Icons\\readycheck-ready", c = {0, 1, 0, 1}},
-    waiting = {t = "Interface\\AddOns\\CellD\\Media\\Icons\\readycheck-waiting", c = {1, 1, 0, 1}},
-    notready = {t = "Interface\\AddOns\\CellD\\Media\\Icons\\readycheck-notready", c = {1, 0, 0, 1}},
+    ready = {t = "Interface\\AddOns\\Cell\\Media\\Icons\\readycheck-ready", c = {0, 1, 0, 1}},
+    waiting = {t = "Interface\\AddOns\\Cell\\Media\\Icons\\readycheck-waiting", c = {1, 1, 0, 1}},
+    notready = {t = "Interface\\AddOns\\Cell\\Media\\Icons\\readycheck-notready", c = {1, 0, 0, 1}},
 }
 
 function I.CreateReadyCheckIcon(parent)
@@ -2352,13 +2352,13 @@ function I.CreatePowerWordShield(parent)
     parent.indicators.powerWordShield = powerWordShield
     powerWordShield:Hide()
 
-    powerWordShield:SetBackdrop({bgFile = [[Interface\AddOns\CellD\Media\Shapes\circle_filled.tga]]})
+    powerWordShield:SetBackdrop({bgFile = [[Interface\AddOns\Cell\Media\Shapes\circle_filled.tga]]})
     powerWordShield:SetBackdropColor(0, 0, 0, 0.75)
 
     --! shield amount
     local shieldAmount = CreateFrame("Cooldown", parent:GetName().."PowerWordShieldAmount", powerWordShield)
     -- shieldAmount:SetAllPoints(powerWordShield)
-    shieldAmount:SetSwipeTexture([[Interface\AddOns\CellD\Media\Shapes\circle_filled.tga]])
+    shieldAmount:SetSwipeTexture([[Interface\AddOns\Cell\Media\Shapes\circle_filled.tga]])
     -- shieldAmount:SetSwipeTexture(Cell.vars.whiteTexture)
     shieldAmount:SetSwipeColor(1, 1, 0)
     shieldAmount.noCooldownCount = true -- disable omnicc
@@ -2367,7 +2367,7 @@ function I.CreatePowerWordShield(parent)
     --! innerBG
     local innerBG = shieldAmount:CreateTexture(nil, "OVERLAY")
     innerBG:SetPoint("CENTER")
-    innerBG:SetTexture([[Interface\AddOns\CellD\Media\Shapes\circle_filled.tga]], "CLAMP", "CLAMP", "TRILINEAR")
+    innerBG:SetTexture([[Interface\AddOns\Cell\Media\Shapes\circle_filled.tga]], "CLAMP", "CLAMP", "TRILINEAR")
     innerBG:SetVertexColor(0, 0, 0, 1)
 
     --! shield duration
@@ -2376,7 +2376,7 @@ function I.CreatePowerWordShield(parent)
     -- shieldCooldown:SetPoint("CENTER")
     shieldCooldown:SetPoint("TOPLEFT", P.Scale(1), P.Scale(-1))
     shieldCooldown:SetPoint("BOTTOMRIGHT", P.Scale(-1), P.Scale(1))
-    shieldCooldown:SetSwipeTexture([[Interface\AddOns\CellD\Media\Shapes\circle_filled.tga]])
+    shieldCooldown:SetSwipeTexture([[Interface\AddOns\Cell\Media\Shapes\circle_filled.tga]])
     shieldCooldown:SetSwipeColor(0, 1, 0)
     shieldCooldown.noCooldownCount = true -- disable omnicc
     shieldCooldown:SetHideCountdownNumbers(true)
@@ -2391,7 +2391,7 @@ function I.CreatePowerWordShield(parent)
     -- weakendedSoulCooldown:SetPoint("CENTER")
     weakendedSoulCooldown:SetPoint("TOPLEFT", P.Scale(1), P.Scale(-1))
     weakendedSoulCooldown:SetPoint("BOTTOMRIGHT", P.Scale(-1), P.Scale(1))
-    weakendedSoulCooldown:SetSwipeTexture([[Interface\AddOns\CellD\Media\Shapes\circle_filled.tga]])
+    weakendedSoulCooldown:SetSwipeTexture([[Interface\AddOns\Cell\Media\Shapes\circle_filled.tga]])
     weakendedSoulCooldown:SetSwipeColor(1, 0, 0)
     weakendedSoulCooldown.noCooldownCount = true -- disable omnicc
     weakendedSoulCooldown:SetHideCountdownNumbers(true)
@@ -2421,7 +2421,7 @@ function I.CreatePowerWordShield(parent)
     end
 
     function powerWordShield:SetShape(shape)
-        local tex = "Interface\\AddOns\\CellD\\Media\\Shapes\\"..shape.."_filled.tga"
+        local tex = "Interface\\AddOns\\Cell\\Media\\Shapes\\"..shape.."_filled.tga"
         powerWordShield:SetBackdrop({bgFile = tex})
         powerWordShield:SetBackdropColor(0, 0, 0, 0.75)
         shieldAmount:SetSwipeTexture(tex)
@@ -2527,12 +2527,12 @@ function I.CreateCombatIcon(parent)
 
     combatIcon.tex = combatIcon:CreateTexture(nil, "ARTWORK", nil, 0)
     combatIcon.tex:SetAllPoints()
-    combatIcon.tex:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\combat", nil, nil, "TRILINEAR")
+    combatIcon.tex:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\combat", nil, nil, "TRILINEAR")
     -- combatIcon.tex:SetAtlas("combat_swords-dynamicIcon")
 
     combatIcon.flashTex = combatIcon:CreateTexture(nil, "ARTWORK", nil, -5)
     combatIcon.flashTex:SetAllPoints()
-    combatIcon.flashTex:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\combat_glow", nil, nil, "TRILINEAR")
+    combatIcon.flashTex:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\combat_glow", nil, nil, "TRILINEAR")
     -- combatIcon.flashTex:SetAtlas("combat_swords-flash")
     combatIcon.flashTex:SetBlendMode("ADD")
 

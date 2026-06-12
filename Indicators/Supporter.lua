@@ -12,7 +12,7 @@ local function creationFunc()
     f:Hide()
 
     local tex = f:CreateTexture(nil, "ARTWORK")
-    tex:SetTexture("Interface/AddOns/CellD/Media/star.png")
+    tex:SetTexture("Interface/AddOns/Cell/Media/star.png")
     tex:SetAllPoints(f)
 
     local ag = f:CreateAnimationGroup()
@@ -149,7 +149,7 @@ local mvpPool = CreateObjectPool(function(pool)
     f:SetSize(128, 128)
 
     local tex = f:CreateTexture(nil, "ARTWORK")
-    tex:SetTexture("Interface/AddOns/CellD/Media/FlipBooks/mvp.png")
+    tex:SetTexture("Interface/AddOns/Cell/Media/FlipBooks/mvp.png")
     tex:SetAllPoints(f)
     tex:SetParentKey("Flipbook")
 
@@ -208,7 +208,7 @@ local goatPool = CreateObjectPool(function(pool)
     f:SetSize(128, 128)
 
     local tex = f:CreateTexture(nil, "ARTWORK")
-    tex:SetTexture("Interface/AddOns/CellD/Media/FlipBooks/goat.png")
+    tex:SetTexture("Interface/AddOns/Cell/Media/FlipBooks/goat.png")
     tex:SetAllPoints(f)
     tex:SetParentKey("Flipbook")
 

@@ -179,7 +179,7 @@ P.Point(loadingBar, "BOTTOMRIGHT", options, -1, 1)
 -------------------------------------------------
 -- MemoryUsage
 -------------------------------------------------
---@debug@
+--[==[@debug@
 -- local memUsage = CreateFrame("Frame", nil, cellMainFrame)
 -- memUsage:SetSize(10, 10)
 -- memUsage:SetPoint("LEFT", raid, "RIGHT", 5, 0)
@@ -193,7 +193,7 @@ P.Point(loadingBar, "BOTTOMRIGHT", options, -1, 1)
 --         self.elapsed = 0
 --     end
 -- end)
---@end-debug@
+--@end-debug@]==]
 
 -------------------------------------------------
 -- fadeIn & fadeOut
@@ -327,10 +327,10 @@ local function GetRaidSetupDetail(role)
 
             for i = 1, Cell.vars.raidSetup[role][class] do
                 if line ~= "  " then
-                    line = line .. "|TInterface\\AddOns\\CellD\\Media\\white:10:1:0:0:1:10:1:1:1:10:0:0:0|t"
+                    line = line .. "|TInterface\\AddOns\\Cell\\Media\\white:10:1:0:0:1:10:1:1:1:10:0:0:0|t"
                 end
 
-                line = line .. "|TInterface\\AddOns\\CellD\\Media\\white:10:2:0:0:2:10:1:2:1:10:"..r..":"..g..":"..b.."|t"
+                line = line .. "|TInterface\\AddOns\\Cell\\Media\\white:10:2:0:0:2:10:1:2:1:10:"..r..":"..g..":"..b.."|t"
             end
         end
     end

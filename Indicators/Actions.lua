@@ -248,7 +248,7 @@ local function CreateAnimationGroup_TypeC()
     -- texture
     local tex = f:CreateTexture(nil, "ARTWORK")
     tex:SetAllPoints(f)
-    tex:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\upgrade.tga")
+    tex:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\upgrade.tga")
 
     -- animation
     local ag = f:CreateAnimationGroup()
@@ -337,7 +337,7 @@ local function CreateAnimationGroup_TypeD()
     -- mask1
     local mask1 = f:CreateMaskTexture()
     mask1:SetAllPoints(tex)
-    mask1:SetTexture("Interface/AddOns/CellD/Media/Shapes/circle_filled_256", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+    mask1:SetTexture("Interface/AddOns/Cell/Media/Shapes/circle_filled_256", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
     tex:AddMaskTexture(mask1)
 
     -- mask2
@@ -419,7 +419,7 @@ local function CreateAnimationGroup_TypeE()
     -- texture
     local tex = f:CreateTexture(nil, "ARTWORK")
     tex:SetAllPoints(f)
-    tex:SetTexture("Interface/AddOns/CellD/Media/Icons/arrow.tga")
+    tex:SetTexture("Interface/AddOns/Cell/Media/Icons/arrow.tga")
 
     -- mask
     local mask = canvas:CreateMaskTexture()
@@ -500,7 +500,7 @@ local function CreateAnimationGroup_TypeF()
     -- mask1
     local mask1 = f:CreateMaskTexture()
     mask1:SetAllPoints(tex)
-    mask1:SetTexture("Interface/AddOns/CellD/Media/Shapes/heart_filled_256", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+    mask1:SetTexture("Interface/AddOns/Cell/Media/Shapes/heart_filled_256", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
     tex:AddMaskTexture(mask1)
 
     -- mask2

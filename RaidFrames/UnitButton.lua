@@ -4296,7 +4296,7 @@ function CellUnitButton_OnLoad(button)
     if Cell.isMidnight then
         -- Midnight: StatusBar so native SetMinMaxValues/SetValue work with secret values
         shieldBar = CreateFrame("StatusBar", name.."ShieldBar", midLevelFrame)
-        shieldBar:SetStatusBarTexture("Interface\\AddOns\\CellD\\Media\\shield")
+        shieldBar:SetStatusBarTexture("Interface\\AddOns\\Cell\\Media\\shield")
         shieldBar:GetStatusBarTexture():SetDrawLayer("ARTWORK", -5)
         shieldBar:SetFrameLevel(midLevelFrame:GetFrameLevel()+1)
         shieldBar:SetAllPoints(healthBar)
@@ -4306,7 +4306,7 @@ function CellUnitButton_OnLoad(button)
     else
         -- Pre-Midnight: Texture with manual width/height positioning
         shieldBar = midLevelFrame:CreateTexture(name.."ShieldBar", "ARTWORK", nil, -5)
-        shieldBar:SetTexture("Interface\\AddOns\\CellD\\Media\\shield", "REPEAT", "REPEAT")
+        shieldBar:SetTexture("Interface\\AddOns\\Cell\\Media\\shield", "REPEAT", "REPEAT")
         shieldBar:SetHorizTile(true)
         shieldBar:SetVertTile(true)
         shieldBar.SetValue = DumbFunc
@@ -4318,7 +4318,7 @@ function CellUnitButton_OnLoad(button)
     if Cell.isMidnight then
         -- Midnight: StatusBar for reverse-fill shield display with secret values
         shieldBarR = CreateFrame("StatusBar", name.."ShieldBarR", midLevelFrame)
-        shieldBarR:SetStatusBarTexture("Interface\\AddOns\\CellD\\Media\\shield")
+        shieldBarR:SetStatusBarTexture("Interface\\AddOns\\Cell\\Media\\shield")
         shieldBarR:GetStatusBarTexture():SetDrawLayer("ARTWORK", -5)
         shieldBarR:SetFrameLevel(midLevelFrame:GetFrameLevel()+1)
         shieldBarR:SetAllPoints(healthBar)
@@ -4329,7 +4329,7 @@ function CellUnitButton_OnLoad(button)
     else
         -- Pre-Midnight: Texture with manual width/height positioning
         shieldBarR = midLevelFrame:CreateTexture(name.."ShieldBarR", "ARTWORK", nil, -5)
-        shieldBarR:SetTexture("Interface\\AddOns\\CellD\\Media\\shield", "REPEAT", "REPEAT")
+        shieldBarR:SetTexture("Interface\\AddOns\\Cell\\Media\\shield", "REPEAT", "REPEAT")
         shieldBarR:SetHorizTile(true)
         shieldBarR:SetVertTile(true)
     end
@@ -4340,7 +4340,7 @@ function CellUnitButton_OnLoad(button)
     -- over-shield glow
     local overShieldGlow = midLevelFrame:CreateTexture(name.."OverShieldGlow", "ARTWORK", nil, -4)
     button.widgets.overShieldGlow = overShieldGlow
-    overShieldGlow:SetTexture("Interface\\AddOns\\CellD\\Media\\overshield")
+    overShieldGlow:SetTexture("Interface\\AddOns\\Cell\\Media\\overshield")
     -- overShieldGlow:SetBlendMode("ADD")
     overShieldGlow:Hide()
     shieldBar.overShieldGlow = overShieldGlow
@@ -4348,7 +4348,7 @@ function CellUnitButton_OnLoad(button)
     -- over-shield glow reversed
     local overShieldGlowR = midLevelFrame:CreateTexture(name.."OverShieldGlowR", "ARTWORK", nil, -4)
     button.widgets.overShieldGlowR = overShieldGlowR
-    overShieldGlowR:SetTexture("Interface\\AddOns\\CellD\\Media\\overshield_reversed")
+    overShieldGlowR:SetTexture("Interface\\AddOns\\Cell\\Media\\overshield_reversed")
     -- overShieldGlowR:SetBlendMode("ADD")
     overShieldGlowR:Hide()
     shieldBar.overShieldGlowR = overShieldGlowR
@@ -4356,7 +4356,7 @@ function CellUnitButton_OnLoad(button)
     -- over-absorb glow
     local overAbsorbGlow = midLevelFrame:CreateTexture(name.."OverAbsorbGlow", "ARTWORK", nil, -2)
     button.widgets.overAbsorbGlow = overAbsorbGlow
-    overAbsorbGlow:SetTexture("Interface\\AddOns\\CellD\\Media\\overabsorb")
+    overAbsorbGlow:SetTexture("Interface\\AddOns\\Cell\\Media\\overabsorb")
     -- overAbsorbGlow:SetBlendMode("ADD")
     overAbsorbGlow:Hide()
 
@@ -4365,7 +4365,7 @@ function CellUnitButton_OnLoad(button)
     if Cell.isMidnight then
         -- Midnight: StatusBar so native SetMinMaxValues/SetValue work with secret values
         absorbsBar = CreateFrame("StatusBar", name.."AbsorbsBar", midLevelFrame)
-        absorbsBar:SetStatusBarTexture("Interface\\AddOns\\CellD\\Media\\shield.tga")
+        absorbsBar:SetStatusBarTexture("Interface\\AddOns\\Cell\\Media\\shield.tga")
         absorbsBar:GetStatusBarTexture():SetDrawLayer("ARTWORK", 1)
         absorbsBar:SetStatusBarColor(1, 0.1, 0.1, 1)
         absorbsBar:SetFrameLevel(midLevelFrame:GetFrameLevel()+2)
@@ -4377,7 +4377,7 @@ function CellUnitButton_OnLoad(button)
     else
         -- Pre-Midnight: Texture with manual width/height positioning
         absorbsBar = midLevelFrame:CreateTexture(name.."AbsorbsBar", "ARTWORK", nil, 1)
-        absorbsBar:SetTexture("Interface\\AddOns\\CellD\\Media\\shield.tga", "REPEAT", "REPEAT")
+        absorbsBar:SetTexture("Interface\\AddOns\\Cell\\Media\\shield.tga", "REPEAT", "REPEAT")
         absorbsBar:SetHorizTile(true)
         absorbsBar:SetVertTile(true)
         absorbsBar:SetVertexColor(1, 0.1, 0.1, 1)

@@ -1,27 +1,67 @@
----@class Cell
-local addonName = select(1, ...)
-local Cell = select(2, ...)
-_G.Cell = Cell
+--[[
+    CellD 核心入口模块 (Core.lua)
+    ==============================
+    CellD 是一款魔兽世界团队框架插件，继承自 enderneko 的 Cell (r277-beta)。
+    原作者因工作繁忙已停止更新，由 David W Zhang 继续维护。
+
+    主要职责:
+    1. 初始化全局 _G.Cell 命名空间和各子表（funcs/iFuncs/bFuncs/uFuncs/animations）
+    2. 定义核心函数 F (CellFuncs): Debug, Print, UpdateLayout
+    3. 管理布局自动切换逻辑 (solo/party/raid/battleground/arena)
+    4. 注册游戏事件: VARIABLES_LOADED, ADDON_LOADED, PLAYER_LOGIN 等
+    5. 初始化所有 SavedVariables 默认值 (CellDB 各类子表)
+    6. 处理斜杠命令 (/celld, /cell 兼容)
+    7. 管理插件状态: 专精切换、进出副本、团队配置
+
+    全局架构:
+    - _G.Cell 主表: 含所有子功能和数据
+    - Cell.funcs (F): 核心工具函数集合 (CellFuncs)
+    - Cell.iFuncs (I): 指示器相关函数 (CellIndicatorFuncs)
+    - Cell.bFuncs (B): 单位按钮相关函数 (CellUnitButtonFuncs)
+    - Cell.uFuncs (U): 工具模块函数 (CellUtilityFuncs)
+    - Cell.animations: 动画函数集合 (CellAnimations)
+    - Cell.pixelPerfectFuncs (P): 像素精确调整函数
+    - CellDB: 全局账号级配置保存
+    - CellDBBackup: 配置备份
+
+    适配: 魔兽世界 12.0.5+ (Midnight) 正式服，不再支持怀旧服
+
+    安全说明 (Secret Values / Opaque Types):
+    暴雪在 12.0.0+ 中对战斗中敏感数据实施了 Secret Value 机制。
+    在战斗/首领战/PvP中，UnitHealth/UnitPower/光环持续时间等会返回
+    不可运算的 opaque 值。详见 BlackBox 自检模块和 Utils.lua 中的保护措施。
+    -- 可通过以下 CVar 在非战斗时强制模拟 Secret Value 限制进行测试:
+    -- /run SetCVar("secretCombatRestrictionsForced", 1)
+    -- /run SetCVar("secretEncounterRestrictionsForced", 1)
+    -- /run SetCVar("secretChallengeModeRestrictionsForced", 1)
+    -- /run SetCVar("secretPvPMatchRestrictionsForced", 1)
+    -- 重置: /run SetCVar("secretCombatRestrictionsForced", 0)
+--]]
 
 ---@class Cell
----@field defaults table
----@field frames table
----@field vars table
----@field snippetVars table
----@field funcs CellFuncs
----@field iFuncs CellIndicatorFuncs
----@field bFuncs CellUnitButtonFuncs
----@field uFuncs CellUtilityFuncs
----@field animations CellAnimations
+local addonName = select(1, ...)                                   -- 插件文件夹名 "CellD"
+local Cell = select(2, ...)                                        -- 插件加载时传入的全局表
+_G.Cell = Cell                                                     -- 暴露到全局，供其他插件访问
+
+---@class Cell
+---@field defaults table         -- 默认配置表
+---@field frames table           -- UI框架引用
+---@field vars table             -- 运行时变量
+---@field snippetVars table      -- 代码片段共享变量
+---@field funcs CellFuncs        -- 核心函数集
+---@field iFuncs CellIndicatorFuncs -- 指示器函数集
+---@field bFuncs CellUnitButtonFuncs -- 单位按钮函数集
+---@field uFuncs CellUtilityFuncs -- 工具函数集
+---@field animations CellAnimations -- 动画函数集
 
 Cell.defaults = {}
 Cell.frames = {}
 Cell.vars = {}
 Cell.snippetVars = {}
-Cell.funcs = {}
-Cell.iFuncs = {}
-Cell.bFuncs = {}
-Cell.uFuncs = {}
+Cell.funcs = {}                                                    -- F
+Cell.iFuncs = {}                                                   -- I
+Cell.bFuncs = {}                                                   -- B
+Cell.uFuncs = {}                                                   -- U
 Cell.animations = {}
 
 ---@class CellFuncs
@@ -31,7 +71,7 @@ local I = Cell.iFuncs
 local P = Cell.pixelPerfectFuncs
 local L = Cell.L
 
--- sharing version check
+-- 版本共享检查协议版本号（用于团队间配置同步的兼容性校验）
 Cell.MIN_VERSION = 275
 Cell.MIN_CLICKCASTINGS_VERSION = 275
 Cell.MIN_LAYOUTS_VERSION = 275
@@ -39,16 +79,9 @@ Cell.MIN_INDICATORS_VERSION = 275
 Cell.MIN_DEBUFFS_VERSION = 275
 Cell.MIN_QUICKASSIST_VERSION = 275
 
--- Patch 12.0.0+ Secret Value Testing CVars (use in-game to force restrictions):
--- /run SetCVar("secretCombatRestrictionsForced", 1)
--- /run SetCVar("secretEncounterRestrictionsForced", 1)
--- /run SetCVar("secretChallengeModeRestrictionsForced", 1)
--- /run SetCVar("secretPvPMatchRestrictionsForced", 1)
--- Reset: /run SetCVar("secretCombatRestrictionsForced", 0)
-
---@debug@
-local debugMode = true
---@end-debug@
+--[==[@debug@
+local debugMode = true                                              -- 调试模式开关
+--@end-debug@]==]
 function F.Debug(arg, ...)
     if debugMode then
         if type(arg) == "string" or type(arg) == "number" then
@@ -64,15 +97,16 @@ function F.Debug(arg, ...)
 end
 
 function F.Print(msg)
-    print("|cFFFF3030[Cell]|r " .. msg)
+    print("|cFFFF3030[CellD]|r " .. msg)                            -- CellD 日志前缀
 end
 
 --------------------------------------------------
--- CellParent
+-- CellParent — 主框架的父级容器，覆盖整个屏幕
 --------------------------------------------------
 local CellParent = CreateFrame("Frame", "CellParent", UIParent)
 CellParent:SetAllPoints(UIParent)
 CellParent:SetFrameLevel(0)
+
 
 -------------------------------------------------
 -- layout
@@ -540,7 +574,7 @@ function eventFrame:ADDON_LOADED(arg1)
         Cell.vars.actions = I.ConvertActions(CellDB["actions"])
 
         -- misc -----------------------------------------------------------------------------------
-        Cell.version = GetAddOnMetadata(addonName, "Version") or "1.0.0"
+        Cell.version = GetAddOnMetadata("Cell", "version")
         Cell.versionNum = tonumber(string.match(Cell.version, "%d+"))
         if not CellDB["revise"] then CellDB["firstRun"] = true end
         F.Revise()
@@ -955,9 +989,10 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
 end)
 
 -------------------------------------------------
--- slash command
+-- 斜杠命令 (/cell 和 /celld 双入口)
 -------------------------------------------------
-SLASH_CELL1 = "/cell"
+SLASH_CELL1 = "/cell"                                            -- 兼容旧命令
+SLASH_CELL2 = "/celld"                                           -- CellD 新命令
 function SlashCmdList.CELL(msg, editbox)
     local command, rest = msg:match("^(%S*)%s*(.-)$")
     command = strlower(command or "")
@@ -965,6 +1000,14 @@ function SlashCmdList.CELL(msg, editbox)
 
     if command == "options" or command == "opt" then
         F.ShowOptionsFrame()
+
+    elseif command == "blackbox" then
+        -- CellD 黑箱自检: Secret Value 安全测试
+        if CellD_BlackBox then
+            CellD_BlackBox()
+        else
+            F.Print("|cFFFF0000BlackBox 自检模块未加载，请检查插件完整性")
+        end
 
     elseif command == "healers" then
         F.FirstRun()
@@ -1048,17 +1091,18 @@ function SlashCmdList.CELL(msg, editbox)
 
     else
         F.Print(L["Available slash commands"]..":\n"..
-            "|cFFFFB5C5/cell options|r, |cFFFFB5C5/cell opt|r: "..L["show Cell options frame"]..".\n"..
-            "|cFFFFB5C5/cell healers|r: "..L["create a \"Healers\" indicator"]..".\n"..
-            "|cFFFFB5C5/cell rescale|r: "..strlower(L["Apply Recommended Scale"])..".\n"..
+            "|cFFFFB5C5/celld options|r: "..L["show Cell options frame"]..".\n"..
+            "|cFFFFB5C5/celld healers|r: "..L["create a \"Healers\" indicator"]..".\n"..
+            "|cFFFFB5C5/celld rescale|r: "..strlower(L["Apply Recommended Scale"])..".\n"..
+            "|cFFFFB5C5/celld blackbox|r: Secret Value 黑箱自检.\n"..
             "|cFFFF7777"..L["These \"reset\" commands below affect all your characters in this account"]..".|r\n"..
-            "|cFFFFB5C5/cell reset position|r: "..L["reset Cell position"]..".\n"..
-            "|cFFFFB5C5/cell reset layouts|r: "..L["reset all Layouts and Indicators"]..".\n"..
-            "|cFFFFB5C5/cell reset clickcastings|r: "..L["reset all Click-Castings"]..".\n"..
-            "|cFFFFB5C5/cell reset raiddebuffs|r: "..L["reset all Raid Debuffs"]..".\n"..
-            "|cFFFFB5C5/cell reset snippets|r: "..L["reset all Code Snippets"]..".\n"..
-            "|cFFFFB5C5/cell reset quickassist|r: "..L["reset Quick Assist for current spec"]..".\n"..
-            "|cFFFFB5C5/cell reset all|r: "..L["reset all Cell settings"].."."
+            "|cFFFFB5C5/celld reset position|r: "..L["reset Cell position"]..".\n"..
+            "|cFFFFB5C5/celld reset layouts|r: "..L["reset all Layouts and Indicators"]..".\n"..
+            "|cFFFFB5C5/celld reset clickcastings|r: "..L["reset all Click-Castings"]..".\n"..
+            "|cFFFFB5C5/celld reset raiddebuffs|r: "..L["reset all Raid Debuffs"]..".\n"..
+            "|cFFFFB5C5/celld reset snippets|r: "..L["reset all Code Snippets"]..".\n"..
+            "|cFFFFB5C5/celld reset quickassist|r: "..L["reset Quick Assist for current spec"]..".\n"..
+            "|cFFFFB5C5/celld reset all|r: "..L["reset all Cell settings"].."."
         )
     end
 end

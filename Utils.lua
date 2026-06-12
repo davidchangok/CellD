@@ -1,3 +1,17 @@
+--[[
+    CellD 工具函数模块 (Utils.lua)
+    =================================
+    提供全局工具函数（CellFuncs / F 命名空间）。
+    包含: 职业系统、颜色转换、表操作、法术信息、单位迭代等核心工具。
+
+    重要: 该文件在游戏加载时执行顶层代码，任何未保护的 API 调用失败
+    都会导致整个文件加载中断，进而使所有核心函数为 nil。
+
+    Secret Value 保护:
+    战斗中敏感数据（生命值、能量、吸收量等）会被包装为 opaque 类型，
+    不可直接比较或运算。本模块提供 F.IsSecretValue / F.SafeNumber
+    / F.SafeCompareGE 等安全包装函数。
+--]]
 ---@class Cell
 local Cell = select(2, ...)
 local L = Cell.L
@@ -6,82 +20,77 @@ local F = Cell.funcs
 ---@type CellIndicatorFuncs
 local I = Cell.iFuncs
 
+-- 12.0.5: UnitFactionGroup 已移除，使用 C_UnitInfo.GetFactionGroup
 local ok, faction = pcall(UnitFactionGroup, "player")
 if not ok then ok, faction = pcall(C_UnitInfo.GetFactionGroup, "player") end
 Cell.vars.playerFaction = ok and faction or "Neutral"
 
 -------------------------------------------------
--- game version
+-- 游戏版本检测 (CellD: 仅支持 12.0.5+ 正式服)
 -------------------------------------------------
 Cell.isAsian = LOCALE_zhCN or LOCALE_zhTW or LOCALE_koKR
-
-Cell.isRetail = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE
-Cell.isMidnight = Cell.isRetail and (select(4, GetBuildInfo()) >= 120000)
-Cell.isVanilla = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC
-Cell.isTBC = WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC
-Cell.isWrath = WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC
-Cell.isCata = WOW_PROJECT_ID == WOW_PROJECT_CATACLYSM_CLASSIC
-Cell.isMists = WOW_PROJECT_ID == WOW_PROJECT_MISTS_CLASSIC
-Cell.isTWW = LE_EXPANSION_LEVEL_CURRENT == LE_EXPANSION_WAR_WITHIN
-
-if Cell.isRetail then
-    Cell.flavor = "retail"
-elseif Cell.isMists then
-    Cell.flavor = "mists"
-elseif Cell.isCata then
-    Cell.flavor = "cata"
-elseif Cell.isWrath then
-    Cell.flavor = "wrath"
-elseif Cell.isTBC then
-    Cell.flavor = "tbc"
-elseif Cell.isVanilla then
-    Cell.flavor = "vanilla"
-end
+Cell.isRetail = true                                                -- CellD 仅正式服
+Cell.isMidnight = true                                              -- CellD 仅 12.0+
+Cell.isVanilla = false
+Cell.isTBC = false
+Cell.isWrath = false
+Cell.isCata = false
+Cell.isMists = false
+Cell.isTWW = false                                                  -- 已进入 Midnight
+Cell.flavor = "retail"
 
 -------------------------------------------------
--- class
+-- 职业系统初始化 (12.0.5 适配)
+-- C_ClassInfo API 替代了废弃的 LocalizedClassList / GetNumClasses / GetClassInfo
 -------------------------------------------------
 local localizedClass = {}
+local sortedClasses = {}
+local classFileToID = {}
+local classIDToFile = {}
 
--- 12.0.5: Build localizedClass from C_ClassInfo
-do
-    local ok = pcall(function()
-        for i = 1, C_ClassInfo.GetNumClasses() do
-            local className, classFile = C_ClassInfo.GetClassInfo(i)
-            if classFile then
-                localizedClass[classFile] = className or classFile
-            end
-        end
-    end)
-    if not ok then
-        local ok2 = pcall(function()
-            localizedClass = LocalizedClassList()
-        end)
-        if not ok2 then
-            FillLocalizedClassList(localizedClass)
+-- 硬编码零售服13职业列表作为回退方案
+local FALLBACK_CLASSES = {
+    "WARRIOR", "PALADIN", "HUNTER", "ROGUE", "PRIEST",
+    "DEATHKNIGHT", "SHAMAN", "MAGE", "WARLOCK",
+    "MONK", "DRUID", "DEMONHUNTER", "EVOKER"
+}
+local FALLBACK_IDS = {1,2,3,4,5,6,7,8,9,10,11,12,13}
+
+-- 尝试通过 C_ClassInfo API 初始化
+local classInitOk = pcall(function()
+    for i = 1, C_ClassInfo.GetNumClasses() do
+        local className, classFile, classID = C_ClassInfo.GetClassInfo(i)
+        if classFile then
+            tinsert(sortedClasses, classFile)
+            classFileToID[classFile] = classID or i
+            classIDToFile[classID or i] = classFile
         end
     end
-end
+    sort(sortedClasses)
 
-local sortedClasses, classFileToID, classIDToFile = {}, {}, {}
-
-do
-    local ok2 = pcall(function()
-        for i = 1, C_ClassInfo.GetNumClasses() do
-            local className, classFile, classID = C_ClassInfo.GetClassInfo(i)
-            if classFile then
-                tinsert(sortedClasses, classFile)
-                classFileToID[classFile] = classID or i
-                classIDToFile[classID or i] = classFile
-            end
-        end
-        sort(sortedClasses)
+    -- 本地化职业名称
+    pcall(function()
+        localizedClass = LocalizedClassList() or {}
     end)
-    if not ok2 then
-        sortedClasses = {"DEATHKNIGHT","DEMONHUNTER","DRUID","EVOKER","HUNTER","MAGE","MONK","PALADIN","PRIEST","ROGUE","SHAMAN","WARLOCK","WARRIOR"}
-        classFileToID = {DEATHKNIGHT=6,DEMONHUNTER=12,DRUID=11,EVOKER=13,HUNTER=3,MAGE=8,MONK=10,PALADIN=2,PRIEST=5,ROGUE=4,SHAMAN=7,WARLOCK=9,WARRIOR=1}
-        local t = {"WARRIOR","PALADIN","HUNTER","ROGUE","PRIEST","DEATHKNIGHT","SHAMAN","MAGE","WARLOCK","MONK","DRUID","DEMONHUNTER","EVOKER"}
-        for i, f in ipairs(t) do classIDToFile[i] = f end
+end)
+
+if not classInitOk then
+    -- 回退：使用硬编码职业列表
+    sortedClasses = {}
+    for i, f in ipairs(FALLBACK_CLASSES) do
+        tinsert(sortedClasses, f)
+        classFileToID[f] = FALLBACK_IDS[i]
+        classIDToFile[FALLBACK_IDS[i]] = f
+    end
+    sort(sortedClasses)
+
+    -- 尝试旧 API 获取本地化名称
+    pcall(function()
+        localizedClass = LocalizedClassList()
+    end)
+    -- 如果旧 API 也不可用，使用 FillLocalizedClassList
+    if not next(localizedClass) then
+        pcall(FillLocalizedClassList, localizedClass)
     end
 end
 
@@ -1554,9 +1563,9 @@ end
 -------------------------------------------------
 -- LibSharedMedia
 -------------------------------------------------
-Cell.vars.texture = "Interface\\AddOns\\CellD\\Media\\statusbar.tga"
-Cell.vars.emptyTexture = "Interface\\AddOns\\CellD\\Media\\empty.tga"
-Cell.vars.whiteTexture = "Interface\\AddOns\\CellD\\Media\\white.tga"
+Cell.vars.texture = "Interface\\AddOns\\Cell\\Media\\statusbar.tga"
+Cell.vars.emptyTexture = "Interface\\AddOns\\Cell\\Media\\empty.tga"
+Cell.vars.whiteTexture = "Interface\\AddOns\\Cell\\Media\\white.tga"
 
 local LSM = LibStub("LibSharedMedia-3.0", true)
 LSM:Register("statusbar", "Cell ".._G.DEFAULT, Cell.vars.texture)
@@ -1567,7 +1576,7 @@ function F.GetBarTexture()
     if LSM:IsValid("statusbar", CellDB["appearance"]["texture"]) then
         Cell.vars.texture = LSM:Fetch("statusbar", CellDB["appearance"]["texture"])
     else
-        Cell.vars.texture = "Interface\\AddOns\\CellD\\Media\\statusbar.tga"
+        Cell.vars.texture = "Interface\\AddOns\\Cell\\Media\\statusbar.tga"
     end
     return Cell.vars.texture
 end
@@ -1576,7 +1585,7 @@ function F.GetBarTextureByName(name)
     if LSM:IsValid("statusbar", name) then
         return LSM:Fetch("statusbar", name)
     end
-    return "Interface\\AddOns\\CellD\\Media\\statusbar.tga"
+    return "Interface\\AddOns\\Cell\\Media\\statusbar.tga"
 end
 
 function F.GetFont(font)
@@ -1588,7 +1597,7 @@ function F.GetFont(font)
         if CellDB["appearance"]["useGameFont"] then
             return GameFontNormal:GetFont()
         else
-            return "Interface\\AddOns\\CellD\\Media\\Fonts\\Accidental_Presidency.ttf"
+            return "Interface\\AddOns\\Cell\\Media\\Fonts\\Accidental_Presidency.ttf"
         end
     end
 end
@@ -1599,7 +1608,7 @@ function F.GetFontItems()
     if CellDB["appearance"]["useGameFont"] then
         defaultFont = GameFontNormal:GetFont()
     else
-        defaultFont = "Interface\\AddOns\\CellD\\Media\\Fonts\\Accidental_Presidency.ttf"
+        defaultFont = "Interface\\AddOns\\Cell\\Media\\Fonts\\Accidental_Presidency.ttf"
     end
 
     local items = {}
@@ -1746,7 +1755,7 @@ function F.GetTextures()
 
     -- built-ins
     for _, s in pairs(shapes) do
-        tinsert(t, "Interface\\AddOns\\CellD\\Media\\Shapes\\"..s..".tga")
+        tinsert(t, "Interface\\AddOns\\Cell\\Media\\Shapes\\"..s..".tga")
     end
 
     -- add weakauras textures
@@ -1767,12 +1776,12 @@ end
 
 function F.GetDefaultRoleIcon(role)
     if not role or role == "NONE" then return "" end
-    return "Interface\\AddOns\\CellD\\Media\\Roles\\Default_" .. role
+    return "Interface\\AddOns\\Cell\\Media\\Roles\\Default_" .. role
 end
 
 function F.GetDefaultRoleIconEscapeSequence(role, size)
     if not role or role == "NONE" then return "" end
-    return "|TInterface\\AddOns\\CellD\\Media\\Roles\\Default_" .. role .. ":" .. (size or 0) .. "|t"
+    return "|TInterface\\AddOns\\Cell\\Media\\Roles\\Default_" .. role .. ":" .. (size or 0) .. "|t"
 end
 
 -------------------------------------------------
