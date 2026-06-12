@@ -37,24 +37,18 @@ Cell.flavor = "retail"
 -------------------------------------------------
 -- class
 -------------------------------------------------
-local localizedClass = LocalizedClassList()
-
+local localizedClass = {}
 local sortedClasses = {}
 local classFileToID = {}
 local classIDToFile = {}
 
-do
+local ok, classInitErr = pcall(function()
+    localizedClass = LocalizedClassList() or {}
+
     -- WARRIOR = 1, PALADIN = 2, HUNTER = 3, ROGUE = 4, PRIEST = 5,
     -- DEATHKNIGHT = 6, SHAMAN = 7, MAGE = 8, WARLOCK = 9, MONK = 10,
     -- DRUID = 11, DEMONHUNTER = 12, EVOKER = 13
-    local function GetNumClassesSafe()
-        if C_ClassInfo and C_ClassInfo.GetNumClasses then
-            return C_ClassInfo.GetNumClasses()
-        end
-        return 13
-    end
-    local highestClassID = GetNumClassesSafe()
-    if highestClassID < 11 then highestClassID = 11 end
+    local highestClassID = C_ClassInfo.GetNumClasses()
     for i = 1, highestClassID do
         local className, classFile, classID = C_ClassInfo.GetClassInfo(i)
         if classFile and classID == i then
@@ -64,7 +58,7 @@ do
         end
     end
     sort(sortedClasses)
-end
+end)
 
 function F.GetClassID(classFile)
     return classFileToID[classFile]
