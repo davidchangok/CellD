@@ -233,8 +233,8 @@ local GetAddOnMetadata = C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetad
 
 -- local cellLoaded, omnicdLoaded
 function eventFrame:ADDON_LOADED(arg1)
-    if arg1 == "Cell" then
-        -- cellLoaded = true
+    if arg1 == addonName then
+        -- CellD 插件加载完成，初始化所有 SavedVariables
         eventFrame:UnregisterEvent("ADDON_LOADED")
 
         if type(CellDB) ~= "table" then CellDB = {} end
