@@ -1832,7 +1832,7 @@ local function UpdateAppearance(which)
 
     -- scale
     if not which or which == "scale" then
-        CellDParent:SetScale(CellDB["appearance"]["scale"])
+        CellParent:SetScale(CellDB["appearance"]["scale"])
 
         CellTooltip:UpdatePixelPerfect()
         CellSpellTooltip:UpdatePixelPerfect()

@@ -351,7 +351,7 @@ end
 -------------------------------------------------
 -- make them accessible
 -------------------------------------------------
-if addonName == "CellD" then -- CellD
+if addonName == "Cell" then -- Cell
     ns.supporters1 = supporters1
     ns.supporters2 = supporters2
     ns.wowSupporters = Cell.funcs.TMergeOverwrite(wowSupporters, tests)

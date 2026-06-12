@@ -31,11 +31,11 @@ local tooltipPoint, tooltipRelativePoint, tooltipX, tooltipY
 -- ----------------------------------------------------------------------- --
 --                            quick assist frame                           --
 -- ----------------------------------------------------------------------- --
-local quickAssistFrame = CreateFrame("Frame", "CellDQuickAssistFrame", Cell.frames.mainFrame, "SecureFrameTemplate")
+local quickAssistFrame = CreateFrame("Frame", "CellQuickAssistFrame", Cell.frames.mainFrame, "SecureFrameTemplate")
 Cell.frames.quickAssistFrame = quickAssistFrame
 
-local anchorFrame = CreateFrame("Frame", "CellDQuickAssistAnchorFrame", quickAssistFrame)
-PixelUtil.SetPoint(anchorFrame, "TOPLEFT", CellDParent, "CENTER", 1, -1)
+local anchorFrame = CreateFrame("Frame", "CellQuickAssistAnchorFrame", quickAssistFrame)
+PixelUtil.SetPoint(anchorFrame, "TOPLEFT", CellParent, "CENTER", 1, -1)
 anchorFrame:SetMovable(true)
 anchorFrame:SetClampedToScreen(true)
 
@@ -401,29 +401,15 @@ end
 
 local function QuickAssist_UpdateHealthMax(self)
     if not self.unit then return end
-    -- Midnight 12.0.0+: UnitHealthMax 在受限上下文中可能返回 secret value
-    -- SetMinMaxValues 接受 secret 包裝值，但需要用 pcall 保护避免直接算术运算
-    local maxHealth = 100 -- 安全默认值
-    local ok, result = pcall(UnitHealthMax, self.unit)
-    if ok and result then
-        if Cell.isMidnight and issecretvalue and issecretvalue(result) then
-            maxHealth = result -- 直接传递 secret value 给 SetMinMaxValues
-        elseif type(result) == "number" and result > 0 then
-            maxHealth = result
-        end
-    end
-    self.healthBar:SetMinMaxValues(0, maxHealth)
+    -- StatusBar:SetMinMaxValues accepts secret-wrapped values on Midnight (see UnitButton.lua:2398).
+    self.healthBar:SetMinMaxValues(0, UnitHealthMax(self.unit))
 end
 
 local function QuickAssist_UpdateHealth(self)
     if not self.unit then return end
 
-    -- Midnight 12.0.0+: UnitHealth 在受限上下文中可能返回 secret value
-    -- SetValue 接受 secret 包裝值，需要 pcall 保护
-    local ok, health = pcall(UnitHealth, self.unit)
-    if ok then
-        self.healthBar:SetValue(health)
-    end
+    -- StatusBar:SetValue accepts secret-wrapped values on Midnight.
+    self.healthBar:SetValue(UnitHealth(self.unit))
 
     if UnitIsDeadOrGhost(self.unit) then
         self.deadTex:Show()
@@ -625,7 +611,7 @@ end
 -- ----------------------------------------------------------------------- --
 --                                  OnLoad                                 --
 -- ----------------------------------------------------------------------- --
-function CellDQuickAssist_OnLoad(button)
+function CellQuickAssist_OnLoad(button)
     InitAuraTables(button)
 
     -- ping system
@@ -720,7 +706,7 @@ end
 -- ----------------------------------------------------------------------- --
 --                              create header                              --
 -- ----------------------------------------------------------------------- --
-local header = CreateFrame("Frame", "CellDQuickAssistHeader", quickAssistFrame, "SecureGroupHeaderTemplate")
+local header = CreateFrame("Frame", "CellQuickAssistHeader", quickAssistFrame, "SecureGroupHeaderTemplate")
 
 -- function header:UpdateButtonUnit(bName, unit)
 --     local b = _G[bName]
@@ -744,7 +730,7 @@ local header = CreateFrame("Frame", "CellDQuickAssistHeader", quickAssistFrame, 
 --     self:SetHeight(header:GetAttribute("minHeight") or 25)
 -- ]])
 
-header:SetAttribute("template", "CellDQuickAssistButtonTemplate")
+header:SetAttribute("template", "CellQuickAssistButtonTemplate")
 
 -- header:SetAttribute("showRaid", true)
 -- header:SetAttribute("showParty", true)

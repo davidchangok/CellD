@@ -407,7 +407,7 @@ function U.CreateDispelRequestText(parent)
     drText:Hide()
 
     local tex = drText:CreateTexture(nil, "ARTWORK")
-    -- tex:SetTexture("Interface/AddOns/Cell/Media/FlipBooks/dispel.png")
+    -- tex:SetTexture("Interface/AddOns/CellD/Media/FlipBooks/dispel.png")
     --tex:SetAtlas("UI-HUD-ActionBar-GCD-Flipbook")
     --tex:SetTexture("interface/hud/uiactionbarfx")
     --tex:SetTexCoord(0.412598, 0.458496, 0.393555, 0.898438) -- NOTE: SetTexCoord will NOT work
@@ -432,7 +432,7 @@ function U.CreateDispelRequestText(parent)
     end
 
     function drText:SetType(type)
-        tex:SetTexture("Interface/AddOns/Cell/Media/FlipBooks/dispel_"..type..".png")
+        tex:SetTexture("Interface/AddOns/CellD/Media/FlipBooks/dispel_"..type..".png")
         flip:SetFlipBookFrames(flipBookFrames[type])
     end
 

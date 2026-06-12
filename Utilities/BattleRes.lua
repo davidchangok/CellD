@@ -31,7 +31,7 @@ battleResFrame.onMenuShow:SetScript("OnPlay", function()
 end)
 battleResFrame.onMenuShow:SetScript("OnFinished", function()
     battleResFrame:ClearAllPoints()
-    battleResFrame:SetPoint(point, CellDAnchorFrame, relativePoint, 0, onShow)
+    battleResFrame:SetPoint(point, CellAnchorFrame, relativePoint, 0, onShow)
 end)
 
 function battleResFrame:OnMenuShow()
@@ -62,7 +62,7 @@ battleResFrame.onMenuHide:SetScript("OnPlay", function()
 end)
 battleResFrame.onMenuHide:SetScript("OnFinished", function()
     battleResFrame:ClearAllPoints()
-    battleResFrame:SetPoint(point, CellDAnchorFrame, relativePoint, 0, onHide)
+    battleResFrame:SetPoint(point, CellAnchorFrame, relativePoint, 0, onHide)
 end)
 
 function battleResFrame:OnMenuHide()
@@ -198,7 +198,7 @@ function battleResFrame:PLAYER_ENTERING_WORLD()
     local _, instanceType, difficulty = GetInstanceInfo()
 
     if instanceType == "raid" then -- raid
-        if IsEncounterInProgress() then --婵″倹鐏?娑撳﹦鍤庨弮?闁插秷娴囬悾宀勬桨閸?瀹告彃婀猙oss閹存ü鑵?
+        if IsEncounterInProgress() then --如果 上线时/重载界面后 已在boss战中
             battleResFrame:Show()
         else
             battleResFrame:RegisterEvent("SPELL_UPDATE_CHARGES")
@@ -308,9 +308,9 @@ local function UpdatePosition()
 
     if CellDB["general"]["menuPosition"] == "top_bottom" then
         if CellDB["general"]["fadeOut"] then
-            battleResFrame:SetPoint(point, CellDAnchorFrame, relativePoint, 0, onHide)
+            battleResFrame:SetPoint(point, CellAnchorFrame, relativePoint, 0, onHide)
         else
-            battleResFrame:SetPoint(point, CellDAnchorFrame, relativePoint, 0, onShow)
+            battleResFrame:SetPoint(point, CellAnchorFrame, relativePoint, 0, onShow)
         end
     else
         battleResFrame:SetPoint(point, CellMainFrame, relativePoint, 0, onShow)
@@ -334,7 +334,7 @@ local function UpdateTools(which)
                 P.ClearPoints(battleResFrame)
                 battleResFrame:SetPoint("BOTTOMLEFT", battleResMover)
                 if not P.LoadPosition(battleResMover, CellDB["tools"]["battleResTimer"][3]) then
-                    PixelUtil.SetPoint(battleResMover, "TOPLEFT", CellDParent, "CENTER", 1, -100)
+                    PixelUtil.SetPoint(battleResMover, "TOPLEFT", CellParent, "CENTER", 1, -100)
                 end
             else
                 MoverHide()

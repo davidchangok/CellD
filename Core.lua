@@ -1,46 +1,17 @@
---[[
-    CellD 鏍稿績鍏ュ彛妯″潡 (Core.lua)
-    =============================
-    杩欐槸 CellD 鍥㈤槦妗嗘灦鎻掍欢鐨勬牳蹇冨叆鍙ｆ枃浠躲€?
-
-    涓昏鑱岃矗:
-    1. 鍒濆鍖栧叏灞€ _G.Cell 鍛藉悕绌洪棿鍜屽瓙琛?
-    2. 瀹氫箟鏍稿績鍑芥暟 F (CellFuncs): Debug, Print, UpdateLayout
-    3. 绠＄悊甯冨眬鑷姩鍒囨崲閫昏緫 (solo/party/raid/battleground/arena)
-    4. 娉ㄥ唽娓告垙浜嬩欢: VARIABLES_LOADED, ADDON_LOADED, PLAYER_LOGIN, GROUP_ROSTER_UPDATE, PLAYER_ENTERING_WORLD
-    5. 鍒濆鍖栨墍鏈?SavedVariables 榛樿鍊?(CellDB鍚勭被瀛愯〃)
-    6. 澶勭悊鏂滄潬鍛戒护 (/celld, /cell)
-    7. 绠＄悊鎻掍欢鐘舵€? 涓撶簿鍒囨崲, 杩涘嚭鍏ュ壇鏈? 鍥㈤槦閰嶇疆
-
-    鍏ㄥ眬鏋舵瀯:
-    - Cell 涓昏〃 (_G): 鍖呭惈鎵€鏈夊瓙鍔熻兘鍜屾暟鎹?
-    - Cell.funcs (F): 鏍稿績宸ュ叿鍑芥暟
-    - Cell.iFuncs (I): 鎸囩ず鍣ㄧ浉鍏冲嚱鏁?
-    - Cell.bFuncs (B): 鍗曚綅鎸夐挳鐩稿叧鍑芥暟
-    - Cell.uFuncs (U): 宸ュ叿妯″潡鍑芥暟
-    - CellDB: 鍏ㄥ眬璐﹀彿绾ч厤缃繚瀛?
-    - CellDBBackup: 閰嶇疆澶囦唤
-
-    瀹夊叏璇存槑 (Secret Values / Opaque Types):
-    鏆撮洩鍦?12.0.0+ 涓鎴樻枟涓晱鎰熸暟鎹疄鏂戒簡 Secret Value 鏈哄埗锛?
-    鍦ㄦ垬鏂?棣栭鎴?PvP涓? UnitHealth/UnitPower/鍏夌幆鎸佺画鏃堕棿绛変細杩斿洖鏃犳硶杩愮畻鐨?opaque 鍊笺€?
-    璇﹁ BlackBox.lua 鍜?Utils.lua 涓殑 F.IsSecretValue/F.IsAuraRestricted 绛変繚鎶ゆ帾鏂姐€?
---]]
-
 ---@class Cell
 local Cell = select(2, ...)
 _G.Cell = Cell
 
 ---@class Cell
----@field defaults table        -- 榛樿閰嶇疆琛?
----@field frames table           -- UI妗嗘灦寮曠敤
----@field vars table             -- 杩愯鏃跺彉閲?
----@field snippetVars table      -- 浠ｇ爜鐗囨鍏变韩鍙橀噺
----@field funcs CellFuncs        -- 鏍稿績鍑芥暟闆?
----@field iFuncs CellIndicatorFuncs -- 鎸囩ず鍣ㄥ嚱鏁伴泦
----@field bFuncs CellUnitButtonFuncs -- 鍗曚綅鎸夐挳鍑芥暟闆?
----@field uFuncs CellUtilityFuncs -- 宸ュ叿鍑芥暟闆?
----@field animations CellAnimations -- 鍔ㄧ敾鍑芥暟闆?
+---@field defaults table
+---@field frames table
+---@field vars table
+---@field snippetVars table
+---@field funcs CellFuncs
+---@field iFuncs CellIndicatorFuncs
+---@field bFuncs CellUnitButtonFuncs
+---@field uFuncs CellUtilityFuncs
+---@field animations CellAnimations
 
 Cell.defaults = {}
 Cell.frames = {}
@@ -59,12 +30,7 @@ local I = Cell.iFuncs
 local P = Cell.pixelPerfectFuncs
 local L = Cell.L
 
--- 鐗堟湰鍏煎鎬ф鏌? 鏈€浣庢敮鎸佺増鏈彿 275 (浣庝簬姝ょ増鏈渶閲嶇疆閰嶇疆)
--- Secret Value 娴嬭瘯 CVar (12.0.0+): 鍙湪娓告垙涓己鍒跺紑鍚畨鍏ㄩ檺鍒?
--- /run SetCVar("secretCombatRestrictionsForced", 1) 寮哄埗鎴樻枟闄愬埗
--- /run SetCVar("secretEncounterRestrictionsForced", 1) 寮哄埗棣栭鎴橀檺鍒?
--- /run SetCVar("secretChallengeModeRestrictionsForced", 1) 寮哄埗澶х澧冮檺鍒?
--- /run SetCVar("secretPvPMatchRestrictionsForced", 1) 寮哄埗PvP闄愬埗
+-- sharing version check
 Cell.MIN_VERSION = 275
 Cell.MIN_CLICKCASTINGS_VERSION = 275
 Cell.MIN_LAYOUTS_VERSION = 275
@@ -79,9 +45,9 @@ Cell.MIN_QUICKASSIST_VERSION = 275
 -- /run SetCVar("secretPvPMatchRestrictionsForced", 1)
 -- Reset: /run SetCVar("secretCombatRestrictionsForced", 0)
 
---[==[@debug@
+--@debug@
 local debugMode = true
---@end-debug@]==]
+--@end-debug@
 function F.Debug(arg, ...)
     if debugMode then
         if type(arg) == "string" or type(arg) == "number" then
@@ -97,25 +63,16 @@ function F.Debug(arg, ...)
 end
 
 function F.Print(msg)
-    print("|cFFFF3030[CellD]|r " .. msg)
+    print("|cFFFF3030[Cell]|r " .. msg)
 end
 
--- 创建 CellD 主父框架,所有 UI 子元素挂载在此下方
 --------------------------------------------------
--- CellDParent
+-- CellParent
 --------------------------------------------------
-local CellDParent = CreateFrame("Frame", "CellDParent", UIParent)
-CellDParent:SetAllPoints(UIParent)
-CellDParent:SetFrameLevel(0)
+local CellParent = CreateFrame("Frame", "CellParent", UIParent)
+CellParent:SetAllPoints(UIParent)
+CellParent:SetFrameLevel(0)
 
---[[
-    布局自动切换系统 (Layout Auto Switch)
-    CellD 支持按专精/职责/队伍类型自动切换布局。
-    对应副本类型: solo, party, raid_outdoor, raid_instance, raid_mythic
-    对应PvP类型: battleground15, battleground40, arena
-    战斗中切换布局会被延迟到 PLAYER_REGEN_ENABLED 事件触发。
-    布局优先级: 专精设置 > 职责设置
---]]
 -------------------------------------------------
 -- layout
 -------------------------------------------------
@@ -165,7 +122,7 @@ function F.UpdateLayout(layoutGroupType)
 end
 
 local bgMaxPlayers = {
-    [2197] = 40, -- 缁夋垵鐨甸幏澶婂帬閻ㄥ嫬顦叉禒?
+    [2197] = 40, -- 科尔拉克的复仇
 }
 
 -- layout auto switch
@@ -211,17 +168,6 @@ Cell.RegisterCallback("GroupTypeChanged", "Core_GroupTypeChanged", PreUpdateLayo
 Cell.RegisterCallback("SpecChanged", "Core_SpecChanged", PreUpdateLayout)
 Cell.RegisterCallback("LayoutAutoSwitchChanged", "Core_LayoutAutoSwitchChanged", PreUpdateLayout)
 
---[[
-    事件处理系统
-    注册并处理以下游戏事件:
-    - VARIABLES_LOADED: 设置 predictedHealth CVar
-    - ADDON_LOADED: 初始化 CellDB 所有默认配置,触发各类更新
-    - PLAYER_LOGIN: 注册所有运行时事件,初始化单位信息
-    - GROUP_ROSTER_UPDATE: 检测队伍类型变化,更新单位列表
-    - PLAYER_ENTERING_WORLD: 处理进出入副本,恢复队伍类型
-    - ACTIVE_TALENT_GROUP_CHANGED: 处理专精切换
-    - UI_SCALE_CHANGED: 处理UI缩放变化
---]]
 -------------------------------------------------
 -- events
 -------------------------------------------------
@@ -252,7 +198,7 @@ local GetAddOnMetadata = C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetad
 
 -- local cellLoaded, omnicdLoaded
 function eventFrame:ADDON_LOADED(arg1)
-    if arg1 == "CellD" then
+    if arg1 == "Cell" then
         -- cellLoaded = true
         eventFrame:UnregisterEvent("ADDON_LOADED")
 
@@ -593,7 +539,7 @@ function eventFrame:ADDON_LOADED(arg1)
         Cell.vars.actions = I.ConvertActions(CellDB["actions"])
 
         -- misc -----------------------------------------------------------------------------------
-        Cell.version = GetAddOnMetadata("CellD", "version")
+        Cell.version = GetAddOnMetadata("Cell", "version")
         Cell.versionNum = tonumber(string.match(Cell.version, "%d+"))
         if not CellDB["revise"] then CellDB["firstRun"] = true end
         F.Revise()
@@ -623,7 +569,7 @@ function eventFrame:ADDON_LOADED(arg1)
     --     local E = OmniCD[1]
     --     tinsert(E.unitFrameData, 1, {
     --         [1] = "Cell",
-    --         [2] = "CellDPartyFrameMember",
+    --         [2] = "CellPartyFrameMember",
     --         [3] = "unitid",
     --         [4] = 1,
     --     })
@@ -633,7 +579,7 @@ function eventFrame:ADDON_LOADED(arg1)
     --             E.customUF.optionTable.Cell = "Cell"
     --             E.customUF.optionTable.enabled.Cell = {
     --                 ["delay"] = 1,
-    --                 ["frame"] = "CellDPartyFrameMember",
+    --                 ["frame"] = "CellPartyFrameMember",
     --                 ["unit"] = "unitid",
     --             }
     --         end
@@ -691,7 +637,7 @@ function eventFrame:GROUP_ROSTER_UPDATE(skipFallbackUpdate)
         -- update Cell.unitButtons.raid.units
         for i = GetNumGroupMembers()+1, 40 do
             Cell.unitButtons.raid.units["raid"..i] = nil
-            _G["CellDRaidFrameMember"..i] = nil
+            _G["CellRaidFrameMember"..i] = nil
         end
         F.UpdateRaidSetup()
 
@@ -713,7 +659,7 @@ function eventFrame:GROUP_ROSTER_UPDATE(skipFallbackUpdate)
         -- update Cell.unitButtons.raid.units
         for i = 1, 40 do
             Cell.unitButtons.raid.units["raid"..i] = nil
-            _G["CellDRaidFrameMember"..i] = nil
+            _G["CellRaidFrameMember"..i] = nil
         end
 
         -- update Cell.unitButtons.party.units
@@ -732,7 +678,7 @@ function eventFrame:GROUP_ROSTER_UPDATE(skipFallbackUpdate)
         -- update Cell.unitButtons.raid.units
         for i = 1, 40 do
             Cell.unitButtons.raid.units["raid"..i] = nil
-            _G["CellDRaidFrameMember"..i] = nil
+            _G["CellRaidFrameMember"..i] = nil
         end
 
         -- update Cell.unitButtons.party.units
@@ -937,7 +883,7 @@ end
 
 local function UpdatePixels()
     if not InCombatLockdown() then
-        F.Debug("UI_SCALE_CHANGED: ", UIParent:GetScale(), CellDParent:GetEffectiveScale())
+        F.Debug("UI_SCALE_CHANGED: ", UIParent:GetScale(), CellParent:GetEffectiveScale())
         Cell.Fire("UpdatePixelPerfect")
         Cell.Fire("UpdateAppearance", "scale")
     end
@@ -1007,25 +953,11 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
     self[event](self, ...)
 end)
 
---[[
-    斜杠命令处理
-    /celld options (opt)  - 打开设置窗口
-    /celld healers       - 创建"治疗者"指示器
-    /celld rescale       - 应用推荐缩放比例
-    /celld reset <类型>  - 重置各类设置
-    /celld report <N>    - 设置团队战死亡通报数量
-    旧的 /cell 命令保留向后兼容
---]]
 -------------------------------------------------
 -- slash command
 -------------------------------------------------
-SLASH_CELLD1 = "/celld"
--- Backward compatibility: /cell also works
 SLASH_CELL1 = "/cell"
 function SlashCmdList.CELL(msg, editbox)
-    SlashCmdList.CELLD(msg, editbox)
-end
-function SlashCmdList.CELLD(msg, editbox)
     local command, rest = msg:match("^(%S*)%s*(.-)$")
     command = strlower(command or "")
     rest = strlower(rest or "")
@@ -1043,27 +975,27 @@ function SlashCmdList.CELLD(msg, editbox)
     elseif command == "reset" then
         if rest == "position" then
             Cell.frames.anchorFrame:ClearAllPoints()
-            Cell.frames.anchorFrame:SetPoint("TOPLEFT", CellDParent, "CENTER")
+            Cell.frames.anchorFrame:SetPoint("TOPLEFT", CellParent, "CENTER")
             Cell.vars.currentLayoutTable["position"] = {}
             P.ClearPoints(Cell.frames.readyAndPullFrame)
-            Cell.frames.readyAndPullFrame:SetPoint("TOPRIGHT", CellDParent, "CENTER")
+            Cell.frames.readyAndPullFrame:SetPoint("TOPRIGHT", CellParent, "CENTER")
             CellDB["tools"]["readyAndPull"][4] = {}
             P.ClearPoints(Cell.frames.raidMarksFrame)
-            Cell.frames.raidMarksFrame:SetPoint("BOTTOMRIGHT", CellDParent, "CENTER")
+            Cell.frames.raidMarksFrame:SetPoint("BOTTOMRIGHT", CellParent, "CENTER")
             CellDB["tools"]["marks"][4] = {}
             P.ClearPoints(Cell.frames.buffTrackerFrame)
-            Cell.frames.buffTrackerFrame:SetPoint("BOTTOMLEFT", CellDParent, "CENTER")
+            Cell.frames.buffTrackerFrame:SetPoint("BOTTOMLEFT", CellParent, "CENTER")
             CellDB["tools"]["buffTracker"][4] = {}
 
         elseif rest == "all" then
             Cell.frames.anchorFrame:ClearAllPoints()
-            Cell.frames.anchorFrame:SetPoint("TOPLEFT", CellDParent, "CENTER")
+            Cell.frames.anchorFrame:SetPoint("TOPLEFT", CellParent, "CENTER")
             Cell.frames.readyAndPullFrame:ClearAllPoints()
-            Cell.frames.readyAndPullFrame:SetPoint("TOPRIGHT", CellDParent, "CENTER")
+            Cell.frames.readyAndPullFrame:SetPoint("TOPRIGHT", CellParent, "CENTER")
             Cell.frames.raidMarksFrame:ClearAllPoints()
-            Cell.frames.raidMarksFrame:SetPoint("BOTTOMRIGHT", CellDParent, "CENTER")
+            Cell.frames.raidMarksFrame:SetPoint("BOTTOMRIGHT", CellParent, "CENTER")
             Cell.frames.buffTrackerFrame:ClearAllPoints()
-            Cell.frames.buffTrackerFrame:SetPoint("BOTTOMLEFT", CellDParent, "CENTER")
+            Cell.frames.buffTrackerFrame:SetPoint("BOTTOMLEFT", CellParent, "CENTER")
             CellDB = nil
             ReloadUI()
 
@@ -1115,21 +1047,21 @@ function SlashCmdList.CELLD(msg, editbox)
 
     else
         F.Print(L["Available slash commands"]..":\n"..
-            "|cFFFFB5C5/celld options|r, |cFFFFB5C5/celld opt|r: "..L["show Cell options frame"]..".\n"..
-            "|cFFFFB5C5/celld healers|r: "..L["create a \"Healers\" indicator"]..".\n"..
-            "|cFFFFB5C5/celld rescale|r: "..strlower(L["Apply Recommended Scale"])..".\n"..
+            "|cFFFFB5C5/cell options|r, |cFFFFB5C5/cell opt|r: "..L["show Cell options frame"]..".\n"..
+            "|cFFFFB5C5/cell healers|r: "..L["create a \"Healers\" indicator"]..".\n"..
+            "|cFFFFB5C5/cell rescale|r: "..strlower(L["Apply Recommended Scale"])..".\n"..
             "|cFFFF7777"..L["These \"reset\" commands below affect all your characters in this account"]..".|r\n"..
-            "|cFFFFB5C5/celld reset position|r: "..L["reset Cell position"]..".\n"..
-            "|cFFFFB5C5/celld reset layouts|r: "..L["reset all Layouts and Indicators"]..".\n"..
-            "|cFFFFB5C5/celld reset clickcastings|r: "..L["reset all Click-Castings"]..".\n"..
-            "|cFFFFB5C5/celld reset raiddebuffs|r: "..L["reset all Raid Debuffs"]..".\n"..
-            "|cFFFFB5C5/celld reset snippets|r: "..L["reset all Code Snippets"]..".\n"..
-            "|cFFFFB5C5/celld reset quickassist|r: "..L["reset Quick Assist for current spec"]..".\n"..
-            "|cFFFFB5C5/celld reset all|r: "..L["reset all Cell settings"].."."
+            "|cFFFFB5C5/cell reset position|r: "..L["reset Cell position"]..".\n"..
+            "|cFFFFB5C5/cell reset layouts|r: "..L["reset all Layouts and Indicators"]..".\n"..
+            "|cFFFFB5C5/cell reset clickcastings|r: "..L["reset all Click-Castings"]..".\n"..
+            "|cFFFFB5C5/cell reset raiddebuffs|r: "..L["reset all Raid Debuffs"]..".\n"..
+            "|cFFFFB5C5/cell reset snippets|r: "..L["reset all Code Snippets"]..".\n"..
+            "|cFFFFB5C5/cell reset quickassist|r: "..L["reset Quick Assist for current spec"]..".\n"..
+            "|cFFFFB5C5/cell reset all|r: "..L["reset all Cell settings"].."."
         )
     end
 end
 
-function CellD_OnAddonCompartmentClick()
+function Cell_OnAddonCompartmentClick()
     F.ShowOptionsFrame()
 end

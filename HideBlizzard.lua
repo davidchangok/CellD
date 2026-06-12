@@ -1,12 +1,3 @@
---[[
-    CellD 隐藏暴雪原生框架模块 (HideBlizzard.lua)
-    隐藏暴雪自带的队伍/团队/团队管理框架，避免与 CellD 重复显示。
-
-    实现方式: 将原生框架的父级设为隐藏的 hiddenParent 框架，
-    同时取消所有事件注册，确保它们不会意外重新显示。
-    
-    Midnight (12.0.0+) 兼容性: 检查 CompactPartyFrame 新结构。
---]]
 local _, Cell = ...
 local F = Cell.funcs
 

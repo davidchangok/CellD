@@ -11,56 +11,56 @@ local LCG = LibStub("LibCustomGlow-1.0")
 -- ----------------------------------------------------------------------- --
 local defaultOffensiveBuffs = {
     ["DEATHKNIGHT"] = {
-        47568, -- Empower Rune Weapon, 缁楋附鏋冨锕€娅掓晶鐐存櫏
+        47568, -- Empower Rune Weapon, 符文武器增效
     },
     ["DEMONHUNTER"] = {
     },
     ["DRUID"] = {
-        102543, -- Incarnation: Avatar of Ashamane, 閸栨牞闊╅敍姘舵▼閼惧孩娴栨稊瀣紥
-        102560, -- Incarnation: Chosen of Elune, 閸栨牞闊╅敍姘冲闂囧弶浠兼稊瀣够
+        102543, -- Incarnation: Avatar of Ashamane, 化身：阿莎曼之灵
+        102560, -- Incarnation: Chosen of Elune, 化身：艾露恩之眷
     },
     ["EVOKER"] = {
-        375087, -- Dragonrage, 閻欏倿绶虫稊瀣偓?
+        375087, -- Dragonrage, 狂龙之怒
     },
     ["HUNTER"] = {
-        288613, -- Trueshot, 閻ф儳褰傞惂鍙ヨ厬
-        360952, -- Coordinated Assault, 閸楀繐鎮撴潻娑欐暰
-        359844, -- Call of the Wild, 閼芥帡鍣归惃鍕将閸?
+        288613, -- Trueshot, 百发百中
+        360952, -- Coordinated Assault, 协同进攻
+        359844, -- Call of the Wild, 荒野的召唤
     },
     ["MAGE"] = {
-        12472, -- Icy Veins, 閸愭澘鍠庣悰鈧懘?
-        365362, -- Arcane Surge, 婵傘儲婀冲☉灞藉З
+        12472, -- Icy Veins, 冰冷血脉
+        365362, -- Arcane Surge, 奥术涌动
     },
     ["MONK"] = {
     },
     ["PALADIN"] = {
-        31884, -- Avenging Wrath, 婢跺秳绮愭稊瀣偓?
-        231895, -- Crusade, 瀵颁椒绱?
+        31884, -- Avenging Wrath, 复仇之怒
+        231895, -- Crusade, 征伐
     },
     ["PRIEST"] = {
-        194249, -- Voidform, 閾忔氨鈹栬ぐ銏♀偓?
+        194249, -- Voidform, 虚空形态
     },
     ["ROGUE"] = {
-        121471, -- Shadow Blades, 閺嗘濂栨稊瀣瀴
-        13750, -- Adrenaline Rush, 閸愭彃濮?
+        121471, -- Shadow Blades, 暗影之刃
+        13750, -- Adrenaline Rush, 冲动
     },
     ["SHAMAN"] = {
-        333957, -- Feral Spirit, 闁插孩鈧呭姒?
+        333957, -- Feral Spirit, 野性狼魂
     },
     ["WARLOCK"] = {
     },
     ["WARRIOR"] = {
-        107574, -- Avatar, 婢垛晝顨ｆ稉瀣殥
+        107574, -- Avatar, 天神下凡
     },
 }
 
 local defaultOffensiveCasts = {
     ["DEATHKNIGHT"] = {
-        "49206:25", -- Summon Gargoyle, 閸欘剙鏁滈惌鍐插剼妤?
-        "42650:30", -- Army of the Dead, 娴溌も偓鍛亣閸?
+        "49206:25", -- Summon Gargoyle, 召唤石像鬼
+        "42650:30", -- Army of the Dead, 亡者大军
     },
     ["DEMONHUNTER"] = {
-        "191427:20", -- Metamorphosis, 閹爼鐡熼崣妯鸿埌
+        "191427:20", -- Metamorphosis, 恶魔变形
     },
     ["DRUID"] = {
     },
@@ -69,25 +69,25 @@ local defaultOffensiveCasts = {
     ["HUNTER"] = {
     },
     ["MAGE"] = {
-        "190319:12", -- Combustion, 閻曞啰鍎?
+        "190319:12", -- Combustion, 燃烧
     },
     ["MONK"] = {
-        "123904:20", -- Invoke Xuen, the White Tiger, 閻у€熸娑撳鍤?
+        "123904:20", -- Invoke Xuen, the White Tiger, 白虎下凡
     },
     ["PALADIN"] = {
     },
     ["PRIEST"] = {
     },
     ["ROGUE"] = {
-        "360194:16", -- Deathmark, 濮濊楠搁崡鎷岊唶
+        "360194:16", -- Deathmark, 死亡印记
     },
     ["SHAMAN"] = {
-        "192249:30", -- Storm Elemental, 妞嬪孩姣氶崗鍐
+        "192249:30", -- Storm Elemental, 风暴元素
     },
     ["WARLOCK"] = {
-        "1122:30", -- Summon Infernal, 閸欘剙鏁滈崷鎵閻?
-        "205180:20", -- Summon Darkglare, 閸欘剙鏁滄鎴犳簜
-        "265187:15", -- Summon Demonic Tyrant, 閸欘剙鏁滈幁鍫曠摕閺嗘潙鎮?
+        "1122:30", -- Summon Infernal, 召唤地狱火
+        "205180:20", -- Summon Darkglare, 召唤黑眼
+        "265187:15", -- Summon Demonic Tyrant, 召唤恶魔暴君
     },
     ["WARRIOR"] = {
     },
@@ -108,105 +108,105 @@ local defaultSpecFilter = {
     {
         "DEATHKNIGHT",
         {
-            {250, true}, -- Blood 妞存粏顢?
-            {251, true}, -- Frost 閸愪即婀?
-            {252, true}, -- Unholy 闁亝浼?
+            {250, true}, -- Blood 鲜血
+            {251, true}, -- Frost 冰霜
+            {252, true}, -- Unholy 邪恶
         },
     },
     {
         "DEMONHUNTER",
         {
-            {581, true}, -- Vengeance 婢跺秳绮?
-            {577, true}, -- Havoc 濞粹晛濮?
+            {581, true}, -- Vengeance 复仇
+            {577, true}, -- Havoc 浩劫
         },
     },
     {
         "DRUID",
         {
-            {104, true}, -- Guardian 鐎瑰牊濮?
-            {105, true}, -- Restoration 閹垹顦?
-            {103, true}, -- Feral 闁插孩鈧?
-            {102, true}, -- Balance 楠炲疇銆€
+            {104, true}, -- Guardian 守护
+            {105, true}, -- Restoration 恢复
+            {103, true}, -- Feral 野性
+            {102, true}, -- Balance 平衡
         },
     },
     {
         "EVOKER",
         {
-            {1468, true}, -- Preservation 閹晜濮?
-            {1467, true}, -- Devastation 濠€顔句純
-            {1473, true}, -- Augmentation 婢х偠绶?
+            {1468, true}, -- Preservation 恩护
+            {1467, true}, -- Devastation 湮灭
+            {1473, true}, -- Augmentation 增辉
         },
     },
     {
         "HUNTER",
         {
-            {255, true}, -- Survival 閻㈢喎鐡?
-            {253, true}, -- Beast Mastery 闁插骸鍚旈幒褍鍩?
-            {254, true}, -- Marksmanship 鐏忓嫬鍤?
+            {255, true}, -- Survival 生存
+            {253, true}, -- Beast Mastery 野兽控制
+            {254, true}, -- Marksmanship 射击
         },
     },
     {
         "MAGE",
         {
-            {62, true}, -- Arcane 婵傘儲婀?
-            {63, true}, -- Fire 閻忣偆鍔?
-            {64, true}, -- Frost 閸愪即婀?
+            {62, true}, -- Arcane 奥术
+            {63, true}, -- Fire 火焰
+            {64, true}, -- Frost 冰霜
         },
     },
     {
         "MONK",
         {
-            {268, true}, -- Brewmaster 闁版帊绮?
-            {270, true}, -- Mistweaver 缂佸洭娴?
-            {269, true}, -- Windwalker 闊繘顥?
+            {268, true}, -- Brewmaster 酒仙
+            {270, true}, -- Mistweaver 织雾
+            {269, true}, -- Windwalker 踏风
         },
     },
     {
         "PALADIN",
         {
-            {66, true}, -- Protection 闂冨弶濮?
-            {65, true}, -- Holy 缁佺偛婀?
-            {70, true}, -- Retribution 閹晜鍨?
+            {66, true}, -- Protection 防护
+            {65, true}, -- Holy 神圣
+            {70, true}, -- Retribution 惩戒
         },
     },
     {
         "PRIEST",
         {
-            {256, true}, -- Discipline 閹存帒绶?
-            {257, true}, -- Holy 缁佺偛婀?
-            {258, true}, -- Shadow 閺嗘濂?
+            {256, true}, -- Discipline 戒律
+            {257, true}, -- Holy 神圣
+            {258, true}, -- Shadow 暗影
         },
     },
     {
         "ROGUE",
         {
-            {259, true}, -- Assassination 婵傚洩顫?
-            {260, true}, -- Combat 閻欏倸绶?
-            {261, true}, -- Subtlety 閺佸繘鏀?
+            {259, true}, -- Assassination 奇袭
+            {260, true}, -- Combat 狂徒
+            {261, true}, -- Subtlety 敏锐
         },
     },
     {
         "SHAMAN",
         {
-            {264, true}, -- Restoration 閹垹顦?
-            {263, true}, -- Enhancement 婢х偛宸?
-            {262, true}, -- Elemental 閸忓啰绀?
+            {264, true}, -- Restoration 恢复
+            {263, true}, -- Enhancement 增强
+            {262, true}, -- Elemental 元素
         },
     },
     {
         "WARLOCK",
         {
-            {265, true}, -- Affliction 閻ユ稖瀚?
-            {266, true}, -- Demonology 閹爼鐡?
-            {267, true}, -- Destruction 濮ｄ胶浼?
+            {265, true}, -- Affliction 痛苦
+            {266, true}, -- Demonology 恶魔
+            {267, true}, -- Destruction 毁灭
         },
     },
     {
         "WARRIOR",
         {
-            {73, true}, -- Protection 闂冨弶濮?
-            {71, true}, -- Arms 濮濓箑娅?
-            {72, true}, -- Fury 閻欏倹鈧?
+            {73, true}, -- Protection 防护
+            {71, true}, -- Arms 武器
+            {72, true}, -- Fury 狂怒
         },
     },
 }
@@ -400,7 +400,7 @@ local function UpdatePreviewButton()
     if not quickAssistTab:IsVisible() then return end
 
     if not previewButton then
-        previewButton = CreateFrame("Button", "CellDQuickAssistPreviewButton", quickAssistTab, "CellDQuickAssistPreviewButtonTemplate")
+        previewButton = CreateFrame("Button", "CellQuickAssistPreviewButton", quickAssistTab, "CellQuickAssistPreviewButtonTemplate")
         previewButton:SetPoint("BOTTOMLEFT", quickAssistTab, "BOTTOMRIGHT", 5, 270)
         previewButton:UnregisterAllEvents()
         previewButton:SetScript("OnEnter", nil)
@@ -426,7 +426,7 @@ local function UpdatePreviewButton()
             self.elapsed = 13
         end)
 
-        previewButtonBG = Cell.CreateFrame("CellDQuickAssistPreviewButtonBG", quickAssistTab)
+        previewButtonBG = Cell.CreateFrame("CellQuickAssistPreviewButtonBG", quickAssistTab)
         previewButtonBG:SetPoint("TOPLEFT", previewButton, 0, 20)
         previewButtonBG:SetPoint("BOTTOMRIGHT", previewButton, "TOPRIGHT")
         Cell.StylizeFrame(previewButtonBG, {0.1, 0.1, 0.1, 0.77}, {0, 0, 0, 0})
@@ -590,8 +590,8 @@ local layoutPreviewButtons = {}
 
 local function UpdateLayoutPreview()
     if not layoutPreviewFrame then
-        layoutPreviewFrame = CreateFrame("Frame", "CellDQuickAssistPreviewFrame", CellDQuickAssistFrame)
-        layoutPreviewFrame:SetAllPoints(CellDQuickAssistFrame)
+        layoutPreviewFrame = CreateFrame("Frame", "CellQuickAssistPreviewFrame", CellQuickAssistFrame)
+        layoutPreviewFrame:SetAllPoints(CellQuickAssistFrame)
         layoutPreviewFrame:SetFrameLevel(1)
         layoutPreviewFrame:Hide()
 
@@ -610,13 +610,13 @@ local function UpdateLayoutPreview()
             -- drag
             layoutPreviewButtons[i]:RegisterForDrag("LeftButton")
             layoutPreviewButtons[i]:SetScript("OnDragStart", function()
-                CellDQuickAssistAnchorFrame:StartMoving()
-                CellDQuickAssistAnchorFrame:SetUserPlaced(false)
+                CellQuickAssistAnchorFrame:StartMoving()
+                CellQuickAssistAnchorFrame:SetUserPlaced(false)
             end)
 
             layoutPreviewButtons[i]:SetScript("OnDragStop", function()
-                CellDQuickAssistAnchorFrame:StopMovingOrSizing()
-                P.SavePosition(CellDQuickAssistAnchorFrame, layoutTable["position"])
+                CellQuickAssistAnchorFrame:StopMovingOrSizing()
+                P.SavePosition(CellQuickAssistAnchorFrame, layoutTable["position"])
             end)
         end
     end
@@ -1662,7 +1662,7 @@ end
 -- ----------------------------------------------------------------------- --
 local asterisk
 local function CreateAutoSwitchFrame()
-    autoSwitchFrame = Cell.CreateFrame("CellDQuickAssistFilterAutoSwitchFrame", pages.layout, 160, 185)
+    autoSwitchFrame = Cell.CreateFrame("CellQuickAssistFilterAutoSwitchFrame", pages.layout, 160, 185)
     autoSwitchFrame:SetPoint("BOTTOMLEFT", quickAssistTab, "BOTTOMRIGHT", 5, 0)
     autoSwitchFrame:Show()
 
@@ -3283,12 +3283,12 @@ local function CreateSpellsPane()
 3. create a PR on GitHub
 *. fill the list by pressing "Reset Offensive Spells" button
 
-|cffe52b50閻?OmniCD 閺夈儳娲冮幒褏鍨庨崣鎴炴Ц閺囨潙銈介惃鍕偓澶嬪|r
-|cff00ff7f娴ｅ棗顩ч弸婊€缍橀幆瀹狀洣鐢喖绻栫悰銉ュ帠閸愬懐鐤嗛悥鍡楀絺濞夋洘婀抽崚妤勩€冮敍娈€r
-1. 閹垫挸绱?|cfffff2b2Cell\Utilities\QuickAssistConfig.lua|r
-2. 娣囶喗鏁?|cfffff2b2defaultOffensiveBuffs|r 閸?|cfffff2b2defaultOffensiveCasts|r
-3. 閸?GitHub 娑撳﹥褰佹禍?PR
-*. 閻愮懓鍤垾婊堝櫢缂冾喚鍨庨崣鎴炵《閺堫垪鈧繃瀵滈柦顔芥降閸掗攱鏌婇崚妤勩€?
+|cffe52b50用 OmniCD 来监控爆发是更好的选择|r
+|cff00ff7f但如果你想要帮忙补充内置爆发法术列表：|r
+1. 打开 |cfffff2b2Cell\Utilities\QuickAssistConfig.lua|r
+2. 修改 |cfffff2b2defaultOffensiveBuffs|r 和 |cfffff2b2defaultOffensiveCasts|r
+3. 在 GitHub 上提交 PR
+*. 点击“重置爆发法术”按钮来刷新列表
         ]])
         helpText:SetPoint("LEFT", 10, 0)
         helpText:SetPoint("RIGHT", -10, 0)

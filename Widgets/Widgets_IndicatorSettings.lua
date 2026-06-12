@@ -4570,7 +4570,7 @@ local function CreateSetting_Auras(parent, index)
         auraImportExportFrame.info = auraImportExportFrame:CreateFontString(nil, "OVERLAY", font_name)
         auraImportExportFrame.info:SetPoint("BOTTOMLEFT", auraImportExportFrame.textArea, "TOPLEFT", 0, 3)
 
-        auraImportExportFrame.closeBtn = Cell.CreateButton(auraImportExportFrame, "脳", "red", {18, 18}, false, false, "CELL_FONT_SPECIAL", "CELL_FONT_SPECIAL")
+        auraImportExportFrame.closeBtn = Cell.CreateButton(auraImportExportFrame, "×", "red", {18, 18}, false, false, "CELL_FONT_SPECIAL", "CELL_FONT_SPECIAL")
         auraImportExportFrame.closeBtn:SetPoint("BOTTOMRIGHT", auraImportExportFrame.textArea, "TOPRIGHT", 0, 1)
         auraImportExportFrame.closeBtn:SetScript("OnClick", function() auraImportExportFrame:Hide() end)
 
@@ -5099,7 +5099,7 @@ local function CreateSpellButtons(parent, class, spells, disableds)
         end)
 
         if spellId == 45438 then
-            -- 娣卞瘨鍑濆啺 瑕嗙洊浜?瀵掑啺灞忛殰
+            -- 深寒凝冰 覆盖了 寒冰屏障
             spellButtons[buttonIndex].icon:SetTexture(135841)
         else
             local icon = select(2, F.GetSpellInfo(spellId))

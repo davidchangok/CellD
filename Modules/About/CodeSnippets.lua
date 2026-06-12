@@ -10,7 +10,7 @@ local selected, forceLoadSelected = 0, true
 local LoadList, LoadSnippet, RunSnippet
 
 local function CreateCodeSnippetsFrame()
-    codeSnippetsFrame = Cell.CreateMovableFrame("CellD " .. L["Code Snippets"], "CellCodeSnippetsFrame", 641, 550, "DIALOG")
+    codeSnippetsFrame = Cell.CreateMovableFrame("Cell " .. L["Code Snippets"], "CellCodeSnippetsFrame", 641, 550, "DIALOG")
     Cell.frames.codeSnippetsFrame = codeSnippetsFrame
     codeSnippetsFrame:SetToplevel(true)
     codeSnippetsFrame:SetPoint("CENTER")
@@ -200,7 +200,7 @@ LoadList = function()
         buttons[0].label:SetPoint("RIGHT", -3, 0)
         buttons[0].label:SetJustifyH("LEFT")
         buttons[0].label:SetWordWrap(false)
-        buttons[0].label:SetText("CellD")
+        buttons[0].label:SetText("Cell")
     end
 
     buttons[0].cb:SetChecked(CellDB["snippets"][0]["autorun"])

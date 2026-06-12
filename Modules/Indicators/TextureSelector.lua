@@ -126,7 +126,7 @@ LoadTextures = function()
             b.tex:SetPoint("TOPLEFT", 5, -5)
             b.tex:SetPoint("BOTTOMRIGHT", -5, 5)
 
-            b.delBtn = Cell.CreateButton(b, "脳", "red", {13, 13})
+            b.delBtn = Cell.CreateButton(b, "×", "red", {13, 13})
             b.delBtn:GetFontString():SetFont("Interface\\AddOns\\CellD\\Media\\Fonts\\font.ttf", 10, "")
             b.delBtn:SetPoint("TOPRIGHT")
             b.delBtn:HookScript("OnEnter", function()

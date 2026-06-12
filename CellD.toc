@@ -4,7 +4,7 @@
 ## Author: David W Zhang
 ## X-Flavor: Mainline
 ## SavedVariables: CellDB, CellDBBackup
-## AddonCompartmentFunc: CellD_OnAddonCompartmentClick
+## AddonCompartmentFunc: Cell_OnAddonCompartmentClick
 ## IconTexture: Interface\AddOns\CellD\Media\icon.tga
 
 ## X-Website: https://github.com/davidchangok/CellD

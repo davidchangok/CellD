@@ -104,7 +104,7 @@ columnAnchorPoint = [STRING] - the anchor point of each new column (ie. use LEFT
 -------------------------------------------------
 local combinedHeader
 do
-    local headerName = "CellDRaidFrameHeader0"
+    local headerName = "CellRaidFrameHeader0"
     combinedHeader = CreateFrame("Frame", headerName, raidFrame, "SecureGroupHeaderTemplate")
     Cell.unitButtons.raid[headerName] = combinedHeader
 
@@ -133,7 +133,7 @@ end
 -------------------------------------------------
 local separatedHeaders = {}
 local function CreateGroupHeader(group)
-    local headerName = "CellDRaidFrameHeader"..group
+    local headerName = "CellRaidFrameHeader"..group
     local header = CreateFrame("Frame", headerName, raidFrame, "SecureGroupHeaderTemplate")
     separatedHeaders[group] = header
     Cell.unitButtons.raid[headerName] = header
@@ -310,7 +310,7 @@ local function UpdateHeader(header, layout, which)
         end
 
         if not which or which == "header" or which == "main-size" or which == "groupFilter" then
-            -- 纭繚鎸夐挳鍦ㄢ€滀竴瀹氱▼搴︿笂鈥濆榻?
+            -- 确保按钮在“一定程度上”对齐
             header:SetAttribute("minWidth", P.Scale(width))
             header:SetAttribute("minHeight", P.Scale(height))
 

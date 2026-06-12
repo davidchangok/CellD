@@ -1,36 +1,3 @@
---[[
-    CellD 鍗曚綅鎸夐挳妯″潡 (UnitButton.lua)
-    杩欐槸 CellD 鏈€鏍稿績鐨勬ā鍧椾箣涓€锛岃礋璐ｆ瘡涓洟闃熸鏋跺崟浣嶆寜閽殑瀹屾暣鐢熷懡鍛ㄦ湡銆?
-    涓昏鍔熻兘:
-    1. 鐢熷懡鍊兼洿鏂?(UnitButton_UpdateHealth):
-       - Midnight (12.0.0+) 瀹夊叏璺緞: 浣跨敤 CreateUnitHealPredictionCalculator
-         杩斿洖鐨?healthCalculator 瀵硅薄鏉ュ畨鍏ㄨ鍙栫敓鍛藉€?       - 缁忓吀璺緞 (鍚戝悗鍏煎): 鐩存帴浣跨敤 UnitHealth/UnitHealthMax API
-
-    2. 鍏夌幆鏇存柊 (UnitButton_UpdateAuras):
-       - 浣跨敤 C_UnitAuras.GetAuraSlots + GetAuraDataBySlot (Midnight 鎺ㄨ崘)
-       - 鍦ㄥ彈闄愪笂涓嬫枃涓? 姣忎釜鍏夌幆鐨勫瓧娈甸€愰」妫€鏌?issecretvalue()
-       - 闈?secret 瀛楁姝ｅ父澶勭悊; secret 瀛楁瀹夊叏鍥為€€鍒伴粯璁ゅ€?
-    3. 鑳介噺鍊兼洿鏂?(UnitButton_UpdatePowerStates):
-       - UnitPower/UnitPowerMax 鍙兘杩斿洖 secret value
-       - 浣跨敤 F.IsSecretValue() 妫€鏌ュ悗鍐嶅畨鍏ㄥ鐞?
-    4. 鍑忕泭绯荤粺 (UnitButton_UpdateDebuffs):
-       - 妫€鏌?debuffType/dispelName 鏄惁涓?secret
-       - 妫€鏌?duration/expirationTime/applications 鏄惁涓?secret
-       - 瀵?raid debuffs, 浣跨敤 GetDebuffOrder/GetDebuffGlow 瀹夊叏鏌ヨ
-
-    5. 澧炵泭绯荤粺 (UnitButton_UpdateBuffs):
-       - 澶勭悊闃插尽鍐峰嵈/澶栭儴鍐峰嵈/鍧﹀厠涓诲姩鍑忎激
-       - 澶勭悊楗按鐘舵€?鎴樺満鏃楀笢
-       - 妫€鏌ラ暅鍍?缇や綋灞忛殰 (閫氳繃 CLEU, Midnight 涓嚜鍔ㄧ鐢?
-
-    6. 鎸囩ず鍣ㄧ鐞?(HandleIndicators):
-       - 鎸夊竷灞€閰嶇疆鍒涘缓/鏇存柊/绉婚櫎鎵€鏈夋寚绀哄櫒
-       - 鏀寔鍐呯疆鎸囩ず鍣?(鐢熷懡鏉? 鑳介噺鏉? 鍑忕泭绛? 鍜岃嚜瀹氫箟鎸囩ず鍣?
-    Midnight 瀹夊叏鎺柦:
-    - 鎵€鏈夊厜鐜暟鎹闂兘閫氳繃 pcall + issecretvalue 淇濇姢
-    - 鐢熷懡鍊间娇鐢?CreateUnitHealPredictionCalculator 瀹夊叏璁＄畻鍣?    - CLEU (COMBAT_LOG_EVENT_UNFILTERED) 鍦?Midnight 涓畬鍏ㄧ鐢?    - 娓愰殣鏇茬嚎浣跨敤 C_CurveUtil.CreateCurve() 閬垮厤绠楁湳杩愮畻
-    - 鑳介噺鍊兼瘮杈冩搷浣滃墠妫€鏌ュ€兼槸鍚︿负 secret
---]]
 local _, Cell = ...
 local L = Cell.L
 ---@type CellFuncs
@@ -110,14 +77,14 @@ local shieldEnabled, overshieldEnabled, overshieldReverseFillEnabled
 local absorbEnabled, absorbInvertColor
 
 -- Midnight: Curve for CELL_FADE_OUT_HEALTH_PERCENT feature
--- Maps health percent 閼烘帡鍨鹃悩顐熷亾?alpha so we can evaluate secret health% without comparisons
+-- Maps health percent â†’ alpha so we can evaluate secret health% without comparisons
 local fadeOutHealthCurve
 local fadeOutHealthCurve_threshold -- track last threshold to know when to rebuild
 local fadeOutHealthCurve_alpha -- track last outOfRangeAlpha to know when to rebuild
 
 -- Builds/rebuilds the fade-out health curve when threshold or alpha changes.
--- health% < threshold 閼烘帡鍨鹃悩顐熷亾?alpha 1.0 (fully visible, needs healing)
--- health% >= threshold 閼烘帡鍨鹃悩顐熷亾?outOfRangeAlpha (faded out, healthy enough)
+-- health% < threshold â†’ alpha 1.0 (fully visible, needs healing)
+-- health% >= threshold â†’ outOfRangeAlpha (faded out, healthy enough)
 local function RebuildFadeOutHealthCurve()
     if not Cell.isMidnight or not C_CurveUtil then return end
     local threshold = CELL_FADE_OUT_HEALTH_PERCENT
@@ -497,14 +464,14 @@ local function Process(b)
             UnitButton_UpdateAuras(b)
         end
 
-        CellDLoadingBar.current = (CellDLoadingBar.current or 0) + 1
-        CellDLoadingBar:SetValue(CellDLoadingBar.current)
+        CellLoadingBar.current = (CellLoadingBar.current or 0) + 1
+        CellLoadingBar:SetValue(CellLoadingBar.current)
         b._status = nil
         b._config = nil
         queue[b] = nil
     else
-        CellDLoadingBar:Hide()
-        CellDLoadingBar.current = 0
+        CellLoadingBar:Hide()
+        CellLoadingBar.current = 0
         updater:Hide()
     end
 end
@@ -515,11 +482,11 @@ updater:SetScript("OnUpdate", function()
 end)
 
 hooksecurefunc(updater, "Show", function()
-    CellDLoadingBar.total = F.Getn(queue)
-    CellDLoadingBar.current = 0
-    CellDLoadingBar:SetMinMaxValues(0, CellDLoadingBar.total)
-    CellDLoadingBar:SetValue(0)
-    CellDLoadingBar:Show()
+    CellLoadingBar.total = F.Getn(queue)
+    CellLoadingBar.current = 0
+    CellLoadingBar:SetMinMaxValues(0, CellLoadingBar.total)
+    CellLoadingBar:SetValue(0)
+    CellLoadingBar:Show()
 end)
 
 local function FlushQueue()
@@ -1296,7 +1263,7 @@ local function HandleDebuff(self, auraInfo)
 
         -- Per-aura check: only compare spellId if non-secret
         if F.IsAuraNonSecret(auraInfo) then
-            -- resurrections: 濮樻捇鍨鹃柈婵呯畽閵娾懇鍋撳熬娑斿懌鍎岄妵銏犵瑜夐埀顒佺饭?濮樻捇妾遍懕褑骞楅柍銉︾饭?
+            -- resurrections: å›¾è…¾å¤ç”Ÿ/å¤ç”Ÿ
             if spellId == 255234 or spellId == 225080 then
                 -- NOTE: this rez lasts longer than the debuff
                 self._debuffs.resurrectionFound = true
@@ -1722,9 +1689,9 @@ local function UpdateMirrorImage(b, event)
 end
 
 local SelfBarriers = {
-    [11426] = true, -- 濮樻挾鍊濋柍銉︻仾閵夆懇鍋撻悩鍛櫞钄氶悩鍛化閵囥垼袙閳?(self)
-    [235313] = true, -- 閼惧€熷皟閽樻稖骞楅柍銉т紲閹冲á鐢靛Τ閵囷絻浠憴锝傚亾?(self)
-    [235450] = true, -- 韫囨瑦瀚濋崡銈嗙毘闁炽儻鑵归埀顒佸櫞钄氶悩鍛化閵囥垼袙閳?(self)
+    [11426] = true, -- å¯’å†°æŠ¤ä½“ (self)
+    [235313] = true, -- çƒˆç„°æŠ¤ä½“ (self)
+    [235450] = true, -- æ£±å…‰æŠ¤ä½“ (self)
 }
 
 local function UpdateMassBarrier(b, event)
@@ -1869,7 +1836,7 @@ UnitButton_UpdateAuras = function(self, updateInfo)
                         self._debuffs_cache[aura.auraInstanceID] = aura
                     end
                 end
-                -- Secret missing auras are silently dropped 閼烘帡鍩€椤戣В鍋?they'll be
+                -- Secret missing auras are silently dropped â€” they'll be
                 -- picked up on the next full update if needed
             end
         end
@@ -1894,10 +1861,10 @@ local function UnitButton_UpdateHealthStates(self, diff)
     local unit = self.states.displayedUnit
 
     if Cell.isMidnight and self.widgets.healthCalculator then
-        -- MIDNIGHT PATH: use calculator 閼烘帡鍩€? no arithmetic on secrets
+        -- MIDNIGHT PATH: use calculator â€" no arithmetic on secrets
         UnitButton_UpdateCalculator(self)
         -- Store healthPercent for color logic.
-        -- GetCurrentHealthPercent() returns a secret value inside PvP instances 闁?
+        -- GetCurrentHealthPercent() returns a secret value inside PvP instances —
         -- Lua comparisons on secrets throw errors. Use it only when non-secret.
         local hpPct = self.widgets.healthCalculator:GetCurrentHealthPercent()
         if F.IsValueNonSecret(hpPct) then
@@ -2378,7 +2345,7 @@ local function UnitButton_UpdateHealthMax(self)
 
     if Cell.isMidnight and self.widgets.healthCalculator then
         -- MIDNIGHT PATH: pass secret maxHealth directly
-        -- SetMinMaxSmoothedValue is a Lua mixin that does arithmetic (Clamp) 閼烘帡鍩€椤戣В鍋?fails on secrets.
+        -- SetMinMaxSmoothedValue is a Lua mixin that does arithmetic (Clamp) â€” fails on secrets.
         -- Always use native SetMinMaxValues on Midnight since maxHealth may be secret.
         local maxHealth = self.widgets.healthCalculator:GetMaximumHealth()
         self.widgets.healthBar:SetMinMaxValues(0, maxHealth)
@@ -2421,7 +2388,7 @@ local function UnitButton_UpdateHealth(self, diff, skipStateUpdates)
         -- MIDNIGHT PATH: pass secret values directly to status bar
         local calc = self.widgets.healthCalculator
         local health = calc:GetCurrentHealth()
-        -- Always use native SetValue on Midnight 闁?SetSmoothedValue (SetBarValue in Smooth mode)
+        -- Always use native SetValue on Midnight — SetSmoothedValue (SetBarValue in Smooth mode)
         -- is a Lua mixin that does Clamp() arithmetic, which fails on secret values.
         self.widgets.healthBar:SetValue(health)
         if barAnimationType == "Flash" then
@@ -2448,7 +2415,7 @@ local function UnitButton_UpdateHealth(self, diff, skipStateUpdates)
                 -- EvaluateCurrentHealthPercent feeds secret health% into the curve
                 -- Curve output: 1.0 if below threshold (needs healing), outOfRangeAlpha if above
                 local targetAlpha = self.widgets.healthCalculator:EvaluateCurrentHealthPercent(fadeOutHealthCurve)
-                -- targetAlpha is a secret value 閼烘帡鍩€椤戣В鍋?SetAlpha accepts secrets on Midnight
+                -- targetAlpha is a secret value â€” SetAlpha accepts secrets on Midnight
                 self:SetAlpha(targetAlpha)
             end
         end
@@ -2567,7 +2534,7 @@ UnitButton_UpdateShieldAbsorbs = function(self, skipStateUpdates)
         self.widgets.shieldBar:Show()
 
         -- Overshield glow and reverse-fill bar
-        -- NOTE: absorbs is a secret value on Midnight 閼烘帡鍩€椤戣В鍋?we can't compare it to health to detect overshield.
+        -- NOTE: absorbs is a secret value on Midnight â€” we can't compare it to health to detect overshield.
         -- Show the glow whenever shields are present and overshieldEnabled is on.
         -- TODO: Use a Curve to map (absorbs + health - maxHealth) to glow visibility for precise overshield detection.
         if overshieldReverseFillEnabled then
@@ -2596,8 +2563,7 @@ UnitButton_UpdateShieldAbsorbs = function(self, skipStateUpdates)
             -- NOTE: indicatorBooleans["shieldBar"] (onlyShowOvershields) can't be honored with
             -- secrets since we can't compute overshieldPercent. Show full absorbs instead.
             self.indicators.shieldBar:Show()
-            local ok = pcall(self.indicators.shieldBar.SetValue, self.indicators.shieldBar, absorbs)
-            if not ok then self.indicators.shieldBar:Hide() end
+            self.indicators.shieldBar:SetValue(absorbs)
         else
             self.indicators.shieldBar:Hide()
         end
@@ -2822,7 +2788,7 @@ UnitButton_UpdateStatusText = function(self)
         statusText:Show()
         statusText:SetStatus("OFFLINE")
         statusText:ShowTimer()
-    -- Midnight 12.0.0+: UnitIsAFK may return a secret boolean 閼烘帡鍩€椤戣В鍋?skip on Midnight
+    -- Midnight 12.0.0+: UnitIsAFK may return a secret boolean â€” skip on Midnight
     elseif not Cell.isMidnight and UnitIsAFK(unit) then
         statusText:Show()
         statusText:SetStatus("AFK")
@@ -3114,7 +3080,7 @@ local function UnitButton_RegisterEvents(self)
     -- self:RegisterEvent("UNIT_PET")
     self:RegisterEvent("UNIT_PORTRAIT_UPDATE") -- pet summoned far away
 
-    --! OnShow韫囨瑩鍨鹃弬鍛緬椤媭鍋€閳ь剙顫栭妷鍌氱鐡掍緤鑵归埀顒€銈ラ‖鈽嗙厐閳劍宕￠宄扮構閹规ぜ浠憴锝傚亾閻曠棷dateIndicators濮樻捁浼€閻愬灏楅懠鐘绘濮樻捇绠嶉棁鎻掔箹閼规瑩妾佃箛娆撳灳婵傘儺鐏愰…濞惧焷閹规ぜ鍎岄婊勫础灏鹃妞诲亾閳锋凹鍤€靛倹宕￠妷鍌ゅ毆濞村簺鍔夐埀顑為鏌曢妷鍛媰閳湯setCustomIndicators閻氼偊鈹愰柍銉㈠煑椤姰鍔夐埀顒€顫栭妵銏犳椤掑槈鍨坊閳ь兘鍩楅‖鐘划婵傚鍎崝澶岀槵濮樻捁浼€闁炽儲鈼よ閳ь剚绶圭拠銉ｅ剬瀵帮附绨妷鍛坊閳ь剚鎷嬮宄扮構閹规鐓€鎼存挴鍋撴總濮愬妷閸嬫捁澧箛娆掑⒖濡よ壈瀵橀柍銉︾妇閸?
+    --! OnShowæ—¶ç«‹å³æ‰§è¡Œï¼Œä½†UpdateIndicatorså¯èƒ½å¹¶æœªæ‰§è¡Œå®Œæ¯•ï¼Œå¯¼è‡´åœ¨ResetCustomIndicatorsè¿‡ç¨‹ä¸­æŒ‡ç¤ºå™¨å‘ç”Ÿå˜åŒ–ï¼Œè¿›è€ŒæŠ¥é”™
     local success, result = pcall(UnitButton_UpdateAll, self)
     if not success then
         F.Debug("UnitButton_UpdateAll |cffff0000FAILED:|r", self:GetName(), result)
@@ -3309,7 +3275,7 @@ local function UnitButton_OnAttributeChanged(self, name, value)
             -- for omnicd
             if string.match(value, "raid%d") then
                 local i = string.match(value, "%d")
-                _G["CellDRaidFrameMember"..i] = self
+                _G["CellRaidFrameMember"..i] = self
                 self.unit = value
             end
 
@@ -3425,7 +3391,7 @@ local function UnitButton_OnTick(self)
                 -- update Cell.vars.guids
                 self.__unitGuid = guid
                 -- On Midnight 12.0.0+, GUIDs for non-player units in instances are secret
-                -- Can't use a secret as a table key 閼烘帡鍩€椤戣В鍋?only store non-secret GUIDs
+                -- Can't use a secret as a table key â€” only store non-secret GUIDs
                 if not self.isSpotlight then
                     if not (Cell.isMidnight and F.IsSecretValue and F.IsSecretValue(guid)) then
                         Cell.vars.guids[guid] = self.states.unit
@@ -3442,7 +3408,7 @@ local function UnitButton_OnTick(self)
                         self.__nameRetries = nil
                     else
                         -- NOTE: update on next tick
-                        -- 濮樻捇鍨鹃柈婵堢叓钄氶幘鈧畵婧垮剬瀵版侗鍤妵銏狀吔閵夊喚鐓€瀵扮柉顔栭妷鍌涘厞瀹撴嚎浠崲搴°偨閳垛晛浜鹃懝娆忕箹閼规瑩妾甸懢浠嬪紬濡よ壈骞楅柍銉╁劑椤旀鑼Л閳ь兘鍩楅埗鈺佷壕閼遍缚瀵曡ぐ鏇″濮樻捇绠嶉搹蹇氬瘯瑜版洝浠滃鎾村箠閸椼倖鐨抽懕顐︽濮樻捇妾遍幏褑瀵橀柍銉冨嘲绂嶉…濠庡灙閳?韫囨瑥宕查梾鍡樼毘濡ゅジ妾伴惄鍙夌稏闁?
+                        -- å›½æœå¯ä»¥èµ·åä¸ºâ€œæœªçŸ¥ç›®æ ‡â€ï¼Œå¹²ï¼å°±åªå¤šé‡è¯•4æ¬¡å¥½äº†
                         self.__nameRetries = (self.__nameRetries or 0) + 1
                         self.__unitGuid = nil
                     end

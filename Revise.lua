@@ -19,7 +19,7 @@ function F.Revise()
         f:RegisterEvent("PLAYER_ENTERING_WORLD")
         f:SetScript("OnEvent", function()
             f:UnregisterAllEvents()
-            local popup = Cell.CreateConfirmPopup(CellDAnchorFrame, 260, L["RESET"].."\n"..L["RESET_YES_NO"], function()
+            local popup = Cell.CreateConfirmPopup(CellAnchorFrame, 260, L["RESET"].."\n"..L["RESET_YES_NO"], function()
                 CellDB = nil
                 CellCharacterDB = nil
                 ReloadUI()
@@ -34,7 +34,7 @@ function F.Revise()
         f:RegisterEvent("PLAYER_ENTERING_WORLD")
         f:SetScript("OnEvent", function()
             f:UnregisterAllEvents()
-            local popup = Cell.CreateConfirmPopup(CellDAnchorFrame, 260, L["RESET_CHARACTER"].."\n|cFFB7B7B7"..L["RESET_INCLUDES"].."|r\n"..L["RESET_YES_NO"], function()
+            local popup = Cell.CreateConfirmPopup(CellAnchorFrame, 260, L["RESET_CHARACTER"].."\n|cFFB7B7B7"..L["RESET_INCLUDES"].."|r\n"..L["RESET_YES_NO"], function()
                 CellCharacterDB = nil
                 ReloadUI()
             end)
@@ -521,10 +521,10 @@ function F.Revise()
     if CellDB["revise"] and dbRevision < 44 then
         for _, layout in pairs(CellDB["layouts"]) do
             if layout["indicators"][19] and layout["indicators"][19]["indicatorName"] == "targetedSpells" then
-                if not F.TContains(layout["indicators"][19]["spells"], 320132) then -- 鏆楀奖涔嬫€?
+                if not F.TContains(layout["indicators"][19]["spells"], 320132) then -- 暗影之怒
                     tinsert(layout["indicators"][19]["spells"], 320132)
                 end
-                if not F.TContains(layout["indicators"][19]["spells"], 322614) then -- 蹇冪伒杩炴帴
+                if not F.TContains(layout["indicators"][19]["spells"], 322614) then -- 心灵连接
                     tinsert(layout["indicators"][19]["spells"], 322614)
                 end
             end
@@ -552,7 +552,7 @@ function F.Revise()
     if CellDB["revise"] and dbRevision < 47 then
         for _, layout in pairs(CellDB["layouts"]) do
             if layout["indicators"][19] and layout["indicators"][19]["indicatorName"] == "targetedSpells" then
-                if not F.TContains(layout["indicators"][19]["spells"], 334053) then -- 鍑€鍖栧啿鍑绘尝
+                if not F.TContains(layout["indicators"][19]["spells"], 334053) then -- 净化冲击波
                     tinsert(layout["indicators"][19]["spells"], 334053)
                 end
             end
@@ -570,10 +570,10 @@ function F.Revise()
     if CellDB["revise"] and dbRevision < 48 then
         for _, layout in pairs(CellDB["layouts"]) do
             if layout["indicators"][19] and layout["indicators"][19]["indicatorName"] == "targetedSpells" then
-                if not F.TContains(layout["indicators"][19]["spells"], 343556) then -- 鐥呮€佸嚌瑙?
+                if not F.TContains(layout["indicators"][19]["spells"], 343556) then -- 病态凝视
                     tinsert(layout["indicators"][19]["spells"], 343556)
                 end
-                if not F.TContains(layout["indicators"][19]["spells"], 320596) then -- 娣遍噸鍛曞悙
+                if not F.TContains(layout["indicators"][19]["spells"], 320596) then -- 深重呕吐
                     tinsert(layout["indicators"][19]["spells"], 320596)
                 end
             end
@@ -607,8 +607,8 @@ function F.Revise()
             if layout["indicators"][18] and layout["indicators"][18]["indicatorName"] == "debuffs" then
                 if type(layout["indicators"][18]["bigDebuffs"]) ~= "table" then
                     layout["indicators"][18]["bigDebuffs"] = {
-                        209858, -- 姝荤柦婧冪儌
-                        46392, -- 涓撴敞鎵撳嚮
+                        209858, -- 死疽溃烂
+                        46392, -- 专注打击
                     }
                     layout["indicators"][18]["size"] = {layout["indicators"][18]["size"], {17, 17}} -- normalSize, bigSize
                 end
@@ -635,33 +635,33 @@ function F.Revise()
         for _, layout in pairs(CellDB["layouts"]) do
             -- update debuffs
             if layout["indicators"][18] and layout["indicators"][18]["indicatorName"] == "debuffs" then
-                --- 鐒氬寲鑰呴樋瀵囨媺鏂?
+                --- 焚化者阿寇拉斯
                 if not F.TContains(layout["indicators"][18]["bigDebuffs"], 355732) then
-                    tinsert(layout["indicators"][18]["bigDebuffs"], 355732) -- 铻嶅寲鐏甸瓊
+                    tinsert(layout["indicators"][18]["bigDebuffs"], 355732) -- 融化灵魂
                 end
                 if not F.TContains(layout["indicators"][18]["bigDebuffs"], 355738) then
-                    tinsert(layout["indicators"][18]["bigDebuffs"], 355738) -- 鐏肩儹鐖嗙牬
+                    tinsert(layout["indicators"][18]["bigDebuffs"], 355738) -- 灼热爆破
                 end
-                -- 鍑囧績涔嬫缃楁柉
+                -- 凇心之欧罗斯
                 if not F.TContains(layout["indicators"][18]["bigDebuffs"], 356667) then
-                    tinsert(layout["indicators"][18]["bigDebuffs"], 356667) -- 鍒洪涔嬪瘨
+                    tinsert(layout["indicators"][18]["bigDebuffs"], 356667) -- 刺骨之寒
                 end
-                -- 鍒藉瓙鎵嬬摝鍗㈡柉
+                -- 刽子手瓦卢斯
                 if not F.TContains(layout["indicators"][18]["bigDebuffs"], 356925) then
-                    tinsert(layout["indicators"][18]["bigDebuffs"], 356925) -- 灞犳埉
+                    tinsert(layout["indicators"][18]["bigDebuffs"], 356925) -- 屠戮
                 end
                 if not F.TContains(layout["indicators"][18]["bigDebuffs"], 356923) then
-                    tinsert(layout["indicators"][18]["bigDebuffs"], 356923) -- 鎾曡
+                    tinsert(layout["indicators"][18]["bigDebuffs"], 356923) -- 撕裂
                 end
                 if not F.TContains(layout["indicators"][18]["bigDebuffs"], 358973) then
-                    tinsert(layout["indicators"][18]["bigDebuffs"], 358973) -- 鎭愭儳娴疆
+                    tinsert(layout["indicators"][18]["bigDebuffs"], 358973) -- 恐惧浪潮
                 end
-                -- 绮夌鑰呯储鑻熷啲
+                -- 粉碎者索苟冬
                 if not F.TContains(layout["indicators"][18]["bigDebuffs"], 355806) then
-                    tinsert(layout["indicators"][18]["bigDebuffs"], 355806) -- 閲嶅帇
+                    tinsert(layout["indicators"][18]["bigDebuffs"], 355806) -- 重压
                 end
                 if not F.TContains(layout["indicators"][18]["bigDebuffs"], 358777) then
-                    tinsert(layout["indicators"][18]["bigDebuffs"], 358777) -- 鐥涜嫤涔嬮摼
+                    tinsert(layout["indicators"][18]["bigDebuffs"], 358777) -- 痛苦之链
                 end
             end
         end
@@ -672,18 +672,18 @@ function F.Revise()
         for _, layout in pairs(CellDB["layouts"]) do
             if layout["indicators"][20] and layout["indicators"][20]["indicatorName"] == "targetedSpells" then
                 if not F.TContains(layout["indicators"][20]["spells"], 356924) then
-                    tinsert(layout["indicators"][20]["spells"], 356924)  -- 灞犳埉
+                    tinsert(layout["indicators"][20]["spells"], 356924)  -- 屠戮
                 end
-                if not F.TContains(layout["indicators"][20]["spells"], 356666) then -- 鍒洪涔嬪瘨
+                if not F.TContains(layout["indicators"][20]["spells"], 356666) then -- 刺骨之寒
                     tinsert(layout["indicators"][20]["spells"], 356666)
                 end
-                if not F.TContains(layout["indicators"][20]["spells"], 319713) then -- 宸ㄥ吔濂旇
+                if not F.TContains(layout["indicators"][20]["spells"], 319713) then -- 巨兽奔袭
                     tinsert(layout["indicators"][20]["spells"], 319713)
                 end
             end
             if layout["indicators"][18] and layout["indicators"][18]["indicatorName"] == "debuffs" then
                 if not F.TContains(layout["indicators"][18]["bigDebuffs"], 240559) then
-                    tinsert(layout["indicators"][18]["bigDebuffs"], 240559)  -- 閲嶄激
+                    tinsert(layout["indicators"][18]["bigDebuffs"], 240559)  -- 重伤
                 end
             end
         end
@@ -707,10 +707,10 @@ function F.Revise()
         for _, layout in pairs(CellDB["layouts"]) do
             if layout["indicators"][20] and layout["indicators"][20]["indicatorName"] == "targetedSpells" then
                 if not F.TContains(layout["indicators"][20]["spells"], 338606) then
-                    tinsert(layout["indicators"][20]["spells"], 338606) -- 鐥呮€佸嚌瑙?
+                    tinsert(layout["indicators"][20]["spells"], 338606) -- 病态凝视
                 end
                 if not F.TContains(layout["indicators"][20]["spells"], 343556) then
-                    tinsert(layout["indicators"][20]["spells"], 343556) -- 鐥呮€佸嚌瑙?
+                    tinsert(layout["indicators"][20]["spells"], 343556) -- 病态凝视
                 end
             end
             if type(layout["petSize"]) ~= "table" then
@@ -765,7 +765,7 @@ function F.Revise()
 
     -- r63-release
     if CellDB["revise"] and dbRevision < 63 then
-        -- 璧蜂紡鏈哄姩
+        -- 起伏机动
         if not F.TContains(CellDB["debuffBlacklist"], 352562) then
             tinsert(CellDB["debuffBlacklist"], 352562)
             Cell.vars.debuffBlacklist = F.ConvertTable(CellDB["debuffBlacklist"])
@@ -777,22 +777,22 @@ function F.Revise()
         for _, layout in pairs(CellDB["layouts"]) do
             if layout["indicators"][21] and layout["indicators"][21]["indicatorName"] == "targetedSpells" then
                 if not F.TContains(layout["indicators"][21]["spells"], 324079) then
-                    tinsert(layout["indicators"][21]["spells"], 324079) -- 鏀跺壊涔嬮暟
+                    tinsert(layout["indicators"][21]["spells"], 324079) -- 收割之镰
                 end
                 if not F.TContains(layout["indicators"][21]["spells"], 317963) then
-                    tinsert(layout["indicators"][21]["spells"], 317963) -- 鐭ヨ瘑鐑︽壈
+                    tinsert(layout["indicators"][21]["spells"], 317963) -- 知识烦扰
                 end
             end
             if layout["indicators"][19] and layout["indicators"][19]["indicatorName"] == "debuffs" then
                 if not F.TContains(layout["indicators"][19]["bigDebuffs"], 240443) then
-                    tinsert(layout["indicators"][19]["bigDebuffs"], 240443) -- 鐖嗚
+                    tinsert(layout["indicators"][19]["bigDebuffs"], 240443) -- 爆裂
                 end
                 if F.TContains(layout["indicators"][19]["bigDebuffs"], 243237) then
                     F.TRemove(layout["indicators"][19]["bigDebuffs"], 243237)
                 end
             end
         end
-        -- 瀹″垽鐏甸瓊
+        -- 审判灵魂
         if not F.TContains(CellDB["debuffBlacklist"], 356419) then
             tinsert(CellDB["debuffBlacklist"], 356419)
             Cell.vars.debuffBlacklist = F.ConvertTable(CellDB["debuffBlacklist"])
@@ -804,7 +804,7 @@ function F.Revise()
         for _, layout in pairs(CellDB["layouts"]) do
             if layout["indicators"][21] and layout["indicators"][21]["indicatorName"] == "targetedSpells" then
                 if not F.TContains(layout["indicators"][21]["spells"], 333861) then
-                    tinsert(layout["indicators"][21]["spells"], 333861) -- 鍥炴棆鍒╁垉
+                    tinsert(layout["indicators"][21]["spells"], 333861) -- 回旋利刃
                 end
             end
         end
@@ -1005,10 +1005,10 @@ function F.Revise()
         for _, layout in pairs(CellDB["layouts"]) do
             if layout["indicators"][19] and layout["indicators"][19]["indicatorName"] == "debuffs" then
                 if not F.TContains(layout["indicators"][19]["bigDebuffs"], 366297) then
-                    tinsert(layout["indicators"][19]["bigDebuffs"], 366297) -- 瑙ｆ瀯
+                    tinsert(layout["indicators"][19]["bigDebuffs"], 366297) -- 解构
                 end
                 if not F.TContains(layout["indicators"][19]["bigDebuffs"], 366288) then
-                    tinsert(layout["indicators"][19]["bigDebuffs"], 366288) -- 鐚涘姏鐮稿嚮
+                    tinsert(layout["indicators"][19]["bigDebuffs"], 366288) -- 猛力砸击
                 end
             end
         end
@@ -1242,7 +1242,7 @@ function F.Revise()
     if CellDB["revise"] and dbRevision < 96 then
         for _, layout in pairs(CellDB["layouts"]) do
             if layout["indicators"][22] and layout["indicators"][22]["indicatorName"] == "targetedSpells" then
-                if not F.TContains(layout["indicators"][22]["spells"], 332234) then -- 鎸ュ彂绮炬补
+                if not F.TContains(layout["indicators"][22]["spells"], 332234) then -- 挥发精油
                     tinsert(layout["indicators"][22]["spells"], 332234)
                 end
             end
@@ -1314,10 +1314,10 @@ function F.Revise()
     if CellDB["revise"] and dbRevision < 107 then
         -- add season 4 debuffs
         if not F.TContains(CellDB["bigDebuffs"], 373391) then
-            tinsert(CellDB["bigDebuffs"], 373391) -- 姊﹂瓏
+            tinsert(CellDB["bigDebuffs"], 373391) -- 梦魇
         end
         if not F.TContains(CellDB["bigDebuffs"], 373429) then
-            tinsert(CellDB["bigDebuffs"], 373429) -- 鑵愯嚟铏兢
+            tinsert(CellDB["bigDebuffs"], 373429) -- 腐臭虫群
         end
         Cell.vars.bigDebuffs = F.ConvertTable(CellDB["bigDebuffs"])
     end
@@ -1469,7 +1469,7 @@ function F.Revise()
     -- r138-release
     if CellDB["revise"] and dbRevision < 138 then
         if Cell.isRetail then
-            -- 閭敳鏈?
+            -- 邪甲术
             if not F.TContains(CellDB["debuffBlacklist"], 387847) then
                 tinsert(CellDB["debuffBlacklist"], 387847)
                 Cell.vars.debuffBlacklist = F.ConvertTable(CellDB["debuffBlacklist"])
@@ -1491,7 +1491,7 @@ function F.Revise()
     -- r139-release
     if CellDB["revise"] and dbRevision < 139 then
         if Cell.isRetail then
-            -- 绛嬬柌鍔涘敖
+            -- 筋疲力尽
             if not F.TContains(CellDB["debuffBlacklist"], 390435) then
                 tinsert(CellDB["debuffBlacklist"], 390435)
                 Cell.vars.debuffBlacklist = F.ConvertTable(CellDB["debuffBlacklist"])
@@ -1635,42 +1635,42 @@ function F.Revise()
 
         if Cell.isRetail then
             -- targetedSpells
-            -- 绾㈢帀鏂扮敓娉曟睜
-            if not F.TContains(CellDB["targetedSpellsList"], 372858) then -- 鐏肩儹鎵撳嚮
+            -- 红玉新生法池
+            if not F.TContains(CellDB["targetedSpellsList"], 372858) then -- 灼热打击
                 tinsert(CellDB["targetedSpellsList"], 372858)
             end
-            -- 濂堣惃椴佹柉
-            if not F.TContains(CellDB["targetedSpellsList"], 374533) then -- 鐐界儹鎸ヨ垶
+            -- 奈萨鲁斯
+            if not F.TContains(CellDB["targetedSpellsList"], 374533) then -- 炽热挥舞
                 tinsert(CellDB["targetedSpellsList"], 374533)
             end
-            if not F.TContains(CellDB["targetedSpellsList"], 377018) then -- 鐔旂伀鐪熼噾
+            if not F.TContains(CellDB["targetedSpellsList"], 377018) then -- 熔火真金
                 tinsert(CellDB["targetedSpellsList"], 377018)
             end
-            -- 钑ㄧ毊灞辫胺
-            if not F.TContains(CellDB["targetedSpellsList"], 381444) then -- 閲庤洰鍐叉挒
+            -- 蕨皮山谷
+            if not F.TContains(CellDB["targetedSpellsList"], 381444) then -- 野蛮冲撞
                 tinsert(CellDB["targetedSpellsList"], 381444)
             end
-            if not F.TContains(CellDB["targetedSpellsList"], 373912) then -- 鑵愭溄鎵撳嚮
+            if not F.TContains(CellDB["targetedSpellsList"], 373912) then -- 腐朽打击
                 tinsert(CellDB["targetedSpellsList"], 373912)
             end
-            -- 鑻辩伒娈?
-            if not F.TContains(CellDB["targetedSpellsList"], 193092) then -- 鏀捐鎵嚮
+            -- 英灵殿
+            if not F.TContains(CellDB["targetedSpellsList"], 193092) then -- 放血扫击
                 tinsert(CellDB["targetedSpellsList"], 193092)
             end
 
             -- debuffBlacklist
-            if not F.TContains(CellDB["debuffBlacklist"], 213213) then -- 浼
+            if not F.TContains(CellDB["debuffBlacklist"], 213213) then -- 伪装
                 tinsert(CellDB["debuffBlacklist"], 213213)
             end
 
             -- bigDebuffs
-            if not F.TContains(CellDB["bigDebuffs"], 240559) then -- 閲嶄激
+            if not F.TContains(CellDB["bigDebuffs"], 240559) then -- 重伤
                 tinsert(CellDB["bigDebuffs"], 240559)
             end
-            if not F.TContains(CellDB["bigDebuffs"], 396369) then -- 闂數鏍囪
+            if not F.TContains(CellDB["bigDebuffs"], 396369) then -- 闪电标记
                 tinsert(CellDB["bigDebuffs"], 396369)
             end
-            if not F.TContains(CellDB["bigDebuffs"], 396364) then -- 鐙傞鏍囪
+            if not F.TContains(CellDB["bigDebuffs"], 396364) then -- 狂风标记
                 tinsert(CellDB["bigDebuffs"], 396364)
             end
         end
@@ -1686,20 +1686,20 @@ function F.Revise()
             end
             if not found1 then
                 tinsert(CellDB["consumables"], {
-                    370511, -- 鎸娌荤枟鑽按
+                    370511, -- 振奋治疗药水
                     {"A", {1, 0.1, 0.1}},
                 })
             end
             if not found2 then
                 tinsert(CellDB["consumables"], {
-                    371024, -- 鍏冪礌寮鸿兘鑽按
+                    371024, -- 元素强能药水
                     {"C3", {1, 1, 0}},
                 })
             end
             Cell.vars.consumables = I.ConvertConsumables(CellDB["consumables"])
 
-            -- 鑻辩伒娈?
-            if not F.TContains(CellDB["targetedSpellsList"], 193659) then -- 閭偨鍐插埡
+            -- 英灵殿
+            if not F.TContains(CellDB["targetedSpellsList"], 193659) then -- 邪炽冲刺
                 tinsert(CellDB["targetedSpellsList"], 193659)
             end
         end
@@ -1719,68 +1719,68 @@ function F.Revise()
     if CellDB["revise"] and dbRevision < 153 then
         if Cell.isRetail then
             -- targetedSpells
-            -- 闈掗緳瀵?
-            if not F.TContains(CellDB["targetedSpellsList"], 106823) then -- 缈旈緳鐚涜
+            -- 青龙寺
+            if not F.TContains(CellDB["targetedSpellsList"], 106823) then -- 翔龙猛袭
                 tinsert(CellDB["targetedSpellsList"], 106823)
             end
-            if not F.TContains(CellDB["targetedSpellsList"], 106841) then -- 闈掗緳鐚涜
+            if not F.TContains(CellDB["targetedSpellsList"], 106841) then -- 青龙猛袭
                 tinsert(CellDB["targetedSpellsList"], 106841)
             end
-            -- 缇ゆ槦搴櫌
-            if not F.TContains(CellDB["targetedSpellsList"], 211473) then -- 鏆楀奖闉瑸
+            -- 群星庭院
+            if not F.TContains(CellDB["targetedSpellsList"], 211473) then -- 暗影鞭笞
                 tinsert(CellDB["targetedSpellsList"], 211473)
             end
-            -- 鑻辩伒娈?
-            if not F.TContains(CellDB["targetedSpellsList"], 192018) then -- 鍏夋槑涔嬬浘
+            -- 英灵殿
+            if not F.TContains(CellDB["targetedSpellsList"], 192018) then -- 光明之盾
                 tinsert(CellDB["targetedSpellsList"], 192018)
             end
-            -- 鍖栬韩宸ㄩ緳鐗㈢獰
-            if not F.TContains(CellDB["targetedSpellsList"], 375870) then -- 鑷存鐭崇埅
+            -- 化身巨龙牢窟
+            if not F.TContains(CellDB["targetedSpellsList"], 375870) then -- 致死石爪
                 tinsert(CellDB["targetedSpellsList"], 375870)
             end
-            if not F.TContains(CellDB["targetedSpellsList"], 395906) then -- 鐢靛寲涔嬮
+            if not F.TContains(CellDB["targetedSpellsList"], 395906) then -- 电化之颌
                 tinsert(CellDB["targetedSpellsList"], 395906)
             end
-            if not F.TContains(CellDB["targetedSpellsList"], 372158) then -- 鐮寸敳涓€鍑?
+            if not F.TContains(CellDB["targetedSpellsList"], 372158) then -- 破甲一击
                 tinsert(CellDB["targetedSpellsList"], 372158)
             end
-            if not F.TContains(CellDB["targetedSpellsList"], 372056) then -- 纰惧帇
+            if not F.TContains(CellDB["targetedSpellsList"], 372056) then -- 碾压
                 tinsert(CellDB["targetedSpellsList"], 372056)
             end
-            if not F.TContains(CellDB["targetedSpellsList"], 375580) then -- 瑗块鐚涘嚮
+            if not F.TContains(CellDB["targetedSpellsList"], 375580) then -- 西风猛击
                 tinsert(CellDB["targetedSpellsList"], 375580)
             end
-            if not F.TContains(CellDB["targetedSpellsList"], 376276) then -- 闇囪崱鐚涘嚮
+            if not F.TContains(CellDB["targetedSpellsList"], 376276) then -- 震荡猛击
                 tinsert(CellDB["targetedSpellsList"], 376276)
             end
-            -- 绾㈢帀鏂扮敓娉曟睜
-            if not F.TContains(CellDB["targetedSpellsList"], 381512) then -- 椋庢毚鐚涘嚮
+            -- 红玉新生法池
+            if not F.TContains(CellDB["targetedSpellsList"], 381512) then -- 风暴猛击
                 tinsert(CellDB["targetedSpellsList"], 381512)
             end
-            -- 纰ц摑榄旈
-            if not F.TContains(CellDB["targetedSpellsList"], 374789) then -- 娉ㄨ兘鎵撳嚮
+            -- 碧蓝魔馆
+            if not F.TContains(CellDB["targetedSpellsList"], 374789) then -- 注能打击
                 tinsert(CellDB["targetedSpellsList"], 374789)
             end
-            if not F.TContains(CellDB["targetedSpellsList"], 372222) then -- 濂ユ湳椤哄妶
+            if not F.TContains(CellDB["targetedSpellsList"], 372222) then -- 奥术顺劈
                 tinsert(CellDB["targetedSpellsList"], 372222)
             end
-            if not F.TContains(CellDB["targetedSpellsList"], 384978) then -- 宸ㄩ緳鎵撳嚮
+            if not F.TContains(CellDB["targetedSpellsList"], 384978) then -- 巨龙打击
                 tinsert(CellDB["targetedSpellsList"], 384978)
             end
-            if not F.TContains(CellDB["targetedSpellsList"], 391136) then -- 鑲╅儴鐚涘嚮
+            if not F.TContains(CellDB["targetedSpellsList"], 391136) then -- 肩部猛击
                 tinsert(CellDB["targetedSpellsList"], 391136)
             end
-            -- 璇哄簱寰烽樆鍑绘垬
-            if not F.TContains(CellDB["targetedSpellsList"], 376827) then -- 浼犲鎵撳嚮
+            -- 诺库德阻击战
+            if not F.TContains(CellDB["targetedSpellsList"], 376827) then -- 传导打击
                 tinsert(CellDB["targetedSpellsList"], 376827)
             end
-            if not F.TContains(CellDB["targetedSpellsList"], 376829) then -- 闆烽渾鎵撳嚮
+            if not F.TContains(CellDB["targetedSpellsList"], 376829) then -- 雷霆打击
                 tinsert(CellDB["targetedSpellsList"], 376829)
             end
-            if not F.TContains(CellDB["targetedSpellsList"], 375937) then -- 鎾曡鐚涘嚮
+            if not F.TContains(CellDB["targetedSpellsList"], 375937) then -- 撕裂猛击
                 tinsert(CellDB["targetedSpellsList"], 375937)
             end
-            if not F.TContains(CellDB["targetedSpellsList"], 375929) then -- 閲庤洰鎵撳嚮
+            if not F.TContains(CellDB["targetedSpellsList"], 375929) then -- 野蛮打击
                 tinsert(CellDB["targetedSpellsList"], 375929)
             end
 
@@ -1791,18 +1791,18 @@ function F.Revise()
     -- r154-release
     if CellDB["revise"] and dbRevision < 154 then
         if Cell.isRetail then
-            -- 璇哄簱寰烽樆鍑绘垬
-            if not F.TContains(CellDB["targetedSpellsList"], 376644) then -- 閽㈤搧涔嬬煕
+            -- 诺库德阻击战
+            if not F.TContains(CellDB["targetedSpellsList"], 376644) then -- 钢铁之矛
                 tinsert(CellDB["targetedSpellsList"], 376644)
             end
-            if not F.TContains(CellDB["targetedSpellsList"], 376865) then -- 闈欑數涔嬬煕
+            if not F.TContains(CellDB["targetedSpellsList"], 376865) then -- 静电之矛
                 tinsert(CellDB["targetedSpellsList"], 376865)
             end
-            if not F.TContains(CellDB["targetedSpellsList"], 382836) then -- 娈嬫潃
+            if not F.TContains(CellDB["targetedSpellsList"], 382836) then -- 残杀
                 tinsert(CellDB["targetedSpellsList"], 382836)
             end
-            -- 鑻辩伒娈?
-            if not F.TContains(CellDB["targetedSpellsList"], 196838) then -- 琛€涔嬫皵鎭?
+            -- 英灵殿
+            if not F.TContains(CellDB["targetedSpellsList"], 196838) then -- 血之气息
                 tinsert(CellDB["targetedSpellsList"], 196838)
             end
         end
@@ -1875,11 +1875,11 @@ function F.Revise()
     if CellDB["revise"] and dbRevision < 168 then
         if Cell.isRetail then
             -- targetedSpells
-            -- 浜氳礉椴佹柉锛岀劙褰辩啍鐐?
-            if not F.TContains(CellDB["targetedSpellsList"], 401022) then -- 鐏剧ジ鎺犲嚮
+            -- 亚贝鲁斯，焰影熔炉
+            if not F.TContains(CellDB["targetedSpellsList"], 401022) then -- 灾祸掠击
                 tinsert(CellDB["targetedSpellsList"], 401022)
             end
-            if not F.TContains(CellDB["targetedSpellsList"], 407790) then -- 韬奖纰庣
+            if not F.TContains(CellDB["targetedSpellsList"], 407790) then -- 身影碎离
                 tinsert(CellDB["targetedSpellsList"], 407790)
             end
         end
@@ -2342,8 +2342,8 @@ function F.Revise()
     -- r201-release
     if CellDB["revise"] and dbRevision < 201 then
         if Cell.isRetail then
-            -- 闃挎杈惧笇灏旓紝姊﹀涔嬫効
-            if not F.TContains(CellDB["targetedSpellsList"], 418637) then -- 鐙傛€掑啿閿?
+            -- 阿梅达希尔，梦境之愿
+            if not F.TContains(CellDB["targetedSpellsList"], 418637) then -- 狂怒冲锋
                 tinsert(CellDB["targetedSpellsList"], 418637)
             end
         end
@@ -2687,7 +2687,7 @@ function F.Revise()
     -- r223-release
     if CellDB["revise"] and dbRevision < 223 then
         -- debuffBlacklist
-        if not F.TContains(CellDB["debuffBlacklist"], 89798) then -- 澶у啋闄╁濂栧姳
+        if not F.TContains(CellDB["debuffBlacklist"], 89798) then -- 大冒险家奖励
             tinsert(CellDB["debuffBlacklist"], 89798)
             Cell.vars.debuffBlacklist = F.ConvertTable(CellDB["debuffBlacklist"])
         end
@@ -3156,29 +3156,29 @@ function F.Revise()
     if CellDB["revise"] and dbRevision < 243 then
         if Cell.isRetail then
             local spells = {
-                439506, -- 閽诲湴鍐插嚮
-                429545, -- 鍣ゅ０榻胯疆
-                424888, -- 闇囧湴鐚涘嚮
-                463248, -- 鎺掓枼
-                321828, -- 鎷嶆墜鎵?
-                323057, -- 鐏甸瓊涔嬬
-                333479, -- 鍚愮柅
-                454438, -- 鑹炬辰閲岀壒鐐歌嵂
-                272571, -- 绐掓伅涔嬫按
-                257063, -- 鐩愭笉椋炲脊
-                431491, -- 姹￠偑鏂╁嚮
-                451119, -- 娣辨笂杞板嚮
-                428711, -- 鐏垚宀╅敜
-                459210, -- 鏆楀奖鐖嚮
-                256709, -- 閽㈠垉涔嬫瓕
-                434786, -- 铔涚綉绠?
-                451971, -- 鐔斿博涔嬫嫵
-                451224, -- 鏆楀奖鐑堢劙绗肩僵
-                451364, -- 娈嬪繊鎵撳嚮
-                451261, -- 澶у湴涔嬬
-                449444, -- 鐔旂伀涔辫垶
-                450100, -- 纰剧
-                463217, -- 蹇冭兘鎸ョ爫
+                439506, -- 钻地冲击
+                429545, -- 噤声齿轮
+                424888, -- 震地猛击
+                463248, -- 排斥
+                321828, -- 拍手手
+                323057, -- 灵魂之箭
+                333479, -- 吐疫
+                454438, -- 艾泽里特炸药
+                272571, -- 窒息之水
+                257063, -- 盐渍飞弹
+                431491, -- 污邪斩击
+                451119, -- 深渊轰击
+                428711, -- 火成岩锤
+                459210, -- 暗影爪击
+                256709, -- 钢刃之歌
+                434786, -- 蛛网箭
+                451971, -- 熔岩之拳
+                451224, -- 暗影烈焰笼罩
+                451364, -- 残忍打击
+                451261, -- 大地之箭
+                449444, -- 熔火乱舞
+                450100, -- 碾碎
+                463217, -- 心能挥砍
             }
             for _, spell in pairs(spells) do
                 if not F.TContains(CellDB["targetedSpellsList"], spell) then
@@ -3413,7 +3413,7 @@ function F.Revise()
         end
     end
 
-    -- Migration for CellD r275 (Midnight 12.0.0 compatibility)
+    -- Migration for Cell r275 (Midnight 12.0.0 compatibility)
     if not CellDB["revise"] or dbRevision < 275 then
         -- Remove useCleuHealthUpdater setting (CLEU-based health updater removed in 12.0.0)
         if CellDB["general"] then

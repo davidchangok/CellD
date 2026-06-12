@@ -87,7 +87,7 @@ for i, playerButton in ipairs(header) do
     Cell.unitButtons.party["pet"..i] = petButton
 
     -- OmniCD
-    _G["CellDPartyFrameMember"..i] = playerButton
+    _G["CellPartyFrameMember"..i] = playerButton
 end
 
 local function PartyFrame_UpdateLayout(layout, which)
@@ -267,7 +267,7 @@ Cell.RegisterCallback("UpdateLayout", "PartyFrame_UpdateLayout", PartyFrame_Upda
 -- end
 -- Cell.RegisterCallback("UpdateVisibility", "PartyFrame_UpdateVisibility", PartyFrame_UpdateVisibility)
 
--- local f = CreateFrame("Frame", nil, CellDParent, "SecureFrameTemplate")
+-- local f = CreateFrame("Frame", nil, CellParent, "SecureFrameTemplate")
 -- RegisterAttributeDriver(f, "state-group", "[@raid1,exists] raid;[@party1,exists] party; solo")
 -- SecureHandlerWrapScript(f, "OnAttributeChanged", f, [[
 --     print(name, value)

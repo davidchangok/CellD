@@ -6,59 +6,84 @@ local F = Cell.funcs
 ---@type CellIndicatorFuncs
 local I = Cell.iFuncs
 
--- 12.0.5: UnitFactionGroup removed, use C_UnitInfo
-local playerFaction = "Neutral"
-if C_UnitInfo and C_UnitInfo.GetFactionGroup then
-    playerFaction = C_UnitInfo.GetFactionGroup("player") or "Neutral"
-end
-Cell.vars.playerFaction = playerFaction
+local ok, faction = pcall(UnitFactionGroup, "player")
+if not ok then ok, faction = pcall(C_UnitInfo.GetFactionGroup, "player") end
+Cell.vars.playerFaction = ok and faction or "Neutral"
 
---[[
-    娓告垙鐗堟湰妫€娴?    CellD 浠呮敮鎸侀瓟鍏戒笘鐣屾寮忔湇 12.0.5+ (Midnight)
-    Cell.isRetail 濮嬬粓涓?true
-    Cell.isMidnight 濮嬬粓涓?true (Build >= 120000)
-    Cell.isAsian 鍦ㄧ畝浣撲腑鏂?绻佷綋涓枃/闊╂枃瀹㈡埛绔负 true
-    Cell.flavor = "retail" (鍥哄畾鍊?
---]]
 -------------------------------------------------
 -- game version
 -------------------------------------------------
 Cell.isAsian = LOCALE_zhCN or LOCALE_zhTW or LOCALE_koKR
 
--- CellD: Retail 12.0.5+ only
-Cell.isRetail = true
-Cell.isMidnight = true
-Cell.flavor = "retail"
+Cell.isRetail = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE
+Cell.isMidnight = Cell.isRetail and (select(4, GetBuildInfo()) >= 120000)
+Cell.isVanilla = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC
+Cell.isTBC = WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC
+Cell.isWrath = WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC
+Cell.isCata = WOW_PROJECT_ID == WOW_PROJECT_CATACLYSM_CLASSIC
+Cell.isMists = WOW_PROJECT_ID == WOW_PROJECT_MISTS_CLASSIC
+Cell.isTWW = LE_EXPANSION_LEVEL_CURRENT == LE_EXPANSION_WAR_WITHIN
 
---[[
-    鑱屼笟绯荤粺
-    浣跨敤 LocalizedClassList() 鑾峰彇鏈湴鍖栫殑鑱屼笟鍚嶇О
-    鎻愪緵 F.GetClassID() / F.GetLocalizedClassName() / F.IterateClasses() 绛夎亴涓氬伐鍏峰嚱鏁?--]]
+if Cell.isRetail then
+    Cell.flavor = "retail"
+elseif Cell.isMists then
+    Cell.flavor = "mists"
+elseif Cell.isCata then
+    Cell.flavor = "cata"
+elseif Cell.isWrath then
+    Cell.flavor = "wrath"
+elseif Cell.isTBC then
+    Cell.flavor = "tbc"
+elseif Cell.isVanilla then
+    Cell.flavor = "vanilla"
+end
+
 -------------------------------------------------
 -- class
 -------------------------------------------------
 local localizedClass = {}
-local sortedClasses = {}
-local classFileToID = {}
-local classIDToFile = {}
 
-local ok, classInitErr = pcall(function()
-    localizedClass = LocalizedClassList() or {}
-
-    -- WARRIOR = 1, PALADIN = 2, HUNTER = 3, ROGUE = 4, PRIEST = 5,
-    -- DEATHKNIGHT = 6, SHAMAN = 7, MAGE = 8, WARLOCK = 9, MONK = 10,
-    -- DRUID = 11, DEMONHUNTER = 12, EVOKER = 13
-    local highestClassID = C_ClassInfo.GetNumClasses()
-    for i = 1, highestClassID do
-        local className, classFile, classID = C_ClassInfo.GetClassInfo(i)
-        if classFile and classID == i then
-            tinsert(sortedClasses, classFile)
-            classFileToID[classFile] = i
-            classIDToFile[i] = classFile
+-- 12.0.5: Build localizedClass from C_ClassInfo
+do
+    local ok = pcall(function()
+        for i = 1, C_ClassInfo.GetNumClasses() do
+            local className, classFile = C_ClassInfo.GetClassInfo(i)
+            if classFile then
+                localizedClass[classFile] = className or classFile
+            end
+        end
+    end)
+    if not ok then
+        local ok2 = pcall(function()
+            localizedClass = LocalizedClassList()
+        end)
+        if not ok2 then
+            FillLocalizedClassList(localizedClass)
         end
     end
-    sort(sortedClasses)
-end)
+end
+
+local sortedClasses, classFileToID, classIDToFile = {}, {}, {}
+
+do
+    local ok2 = pcall(function()
+        for i = 1, C_ClassInfo.GetNumClasses() do
+            local className, classFile, classID = C_ClassInfo.GetClassInfo(i)
+            if classFile then
+                tinsert(sortedClasses, classFile)
+                classFileToID[classFile] = classID or i
+                classIDToFile[classID or i] = classFile
+            end
+        end
+        sort(sortedClasses)
+    end)
+    if not ok2 then
+        sortedClasses = {"DEATHKNIGHT","DEMONHUNTER","DRUID","EVOKER","HUNTER","MAGE","MONK","PALADIN","PRIEST","ROGUE","SHAMAN","WARLOCK","WARRIOR"}
+        classFileToID = {DEATHKNIGHT=6,DEMONHUNTER=12,DRUID=11,EVOKER=13,HUNTER=3,MAGE=8,MONK=10,PALADIN=2,PRIEST=5,ROGUE=4,SHAMAN=7,WARLOCK=9,WARRIOR=1}
+        local t = {"WARRIOR","PALADIN","HUNTER","ROGUE","PRIEST","DEATHKNIGHT","SHAMAN","MAGE","WARLOCK","MONK","DRUID","DEMONHUNTER","EVOKER"}
+        for i, f in ipairs(t) do classIDToFile[i] = f end
+    end
+end
 
 function F.GetClassID(classFile)
     return classFileToID[classFile]
@@ -88,8 +113,35 @@ function F.GetSortedClasses()
 end
 
 -------------------------------------------------
--- Classic: Not applicable to CellD (Retail only)
+-- Classic
 -------------------------------------------------
+if Cell.isCata then
+    function F.GetActiveTalentInfo()
+        local which = GetActiveTalentGroup() == 1 and L["Primary Talents"] or L["Secondary Talents"]
+        return which, Cell.vars.playerSpecIcon, Cell.vars.playerSpecName
+    end
+
+elseif Cell.isWrath or Cell.isTBC or Cell.isVanilla then
+    function F.GetActiveTalentInfo()
+        local which = GetActiveTalentGroup() == 1 and L["Primary Talents"] or L["Secondary Talents"]
+
+        local maxPoints = 0
+        local specName, specIcon, specFileName
+
+        for i = 1, GetNumTalentTabs() do
+            local id, name, description, icon, pointsSpent, background = GetTalentTabInfo(i)
+            if pointsSpent > maxPoints then
+                maxPoints = pointsSpent
+                specIcon = icon
+                specName = name
+            -- elseif pointsSpent == maxPoints then
+            --     specIcon = 132148
+            end
+        end
+
+        return which, specIcon or 134400, specName or L["No Spec"]
+    end
+end
 
 -- local specRoles = {
 --     ["DeathKnightBlood"] = "DAMAGER",
@@ -372,11 +424,11 @@ end
 
 local symbol_1K, symbol_10K, symbol_1B
 if LOCALE_zhCN then
-    symbol_1K, symbol_10K, symbol_1B = "闂?, "婵?, "婵?
+    symbol_1K, symbol_10K, symbol_1B = "千", "万", "亿"
 elseif LOCALE_zhTW then
-    symbol_1K, symbol_10K, symbol_1B = "闂?, "闂佽В鍋?, "闂?
+    symbol_1K, symbol_10K, symbol_1B = "千", "萬", "億"
 elseif LOCALE_koKR then
-    symbol_1K, symbol_10K, symbol_1B = "閻?, "婵?, "闂?
+    symbol_1K, symbol_10K, symbol_1B = "천", "만", "억"
 end
 
 local abs = math.abs
@@ -830,8 +882,8 @@ end
 -------------------------------------------------
 -- unit buttons
 -------------------------------------------------
-local combinedHeader = "CellDRaidFrameHeader0"
-local separatedHeaders = {"CellDRaidFrameHeader1", "CellDRaidFrameHeader2", "CellDRaidFrameHeader3", "CellDRaidFrameHeader4", "CellDRaidFrameHeader5", "CellDRaidFrameHeader6", "CellDRaidFrameHeader7", "CellDRaidFrameHeader8"}
+local combinedHeader = "CellRaidFrameHeader0"
+local separatedHeaders = {"CellRaidFrameHeader1", "CellRaidFrameHeader2", "CellRaidFrameHeader3", "CellRaidFrameHeader4", "CellRaidFrameHeader5", "CellRaidFrameHeader6", "CellRaidFrameHeader7", "CellRaidFrameHeader8"}
 
 -- REVIEW:
 -- Cell.clickCastFrames = {}
@@ -1507,10 +1559,8 @@ Cell.vars.emptyTexture = "Interface\\AddOns\\CellD\\Media\\empty.tga"
 Cell.vars.whiteTexture = "Interface\\AddOns\\CellD\\Media\\white.tga"
 
 local LSM = LibStub("LibSharedMedia-3.0", true)
-if LSM then
-    LSM:Register("statusbar", "Cell "..(_G.DEFAULT or "Default"), Cell.vars.texture)
-    LSM:Register("font", "Visitor", [[Interface\AddOns\CellD\Media\Fonts\visitor.ttf]], 255)
-end
+LSM:Register("statusbar", "Cell ".._G.DEFAULT, Cell.vars.texture)
+LSM:Register("font", "Visitor", [[Interface\Addons\Cell\Media\Fonts\visitor.ttf]], 255)
 
 function F.GetBarTexture()
     --! update Cell.vars.texture for further use in UnitButton_OnLoad
@@ -1791,18 +1841,106 @@ function F.GetSpellTooltipInfo(spellId)
     return name, icon, table.concat(lines, "\n")
 end
 
-local GetSpellInfo_C = C_Spell.GetSpellInfo
-local GetSpellTexture = C_Spell.GetSpellTexture
-function F.GetSpellInfo(spellId)
-    if not spellId then return end
-    local info = GetSpellInfo_C(spellId)
-    if not info then return end
+if Cell.isRetail or Cell.isMists then
+    local GetSpellInfo = C_Spell.GetSpellInfo
+    local GetSpellTexture = C_Spell.GetSpellTexture
+    function F.GetSpellInfo(spellId)
+        if not spellId then return end
+        local info = GetSpellInfo(spellId)
+        if not info then return end
 
-    if not info.iconID then -- when?
-        info.iconID = GetSpellTexture(spellId)
+        if not info.iconID then -- when?
+            info.iconID = GetSpellTexture(spellId)
+        end
+
+        return info.name, info.iconID
+    end
+else
+    local GetSpellInfo = GetSpellInfo
+    function F.GetSpellInfo(spellId)
+        if not spellId then return end
+        local rank
+        spellId, rank = strsplit(":", spellId)
+        local name, _, icon = GetSpellInfo(spellId)
+        return name, icon, tonumber(rank)
+    end
+end
+
+if Cell.isWrath or Cell.isTBC or Cell.isVanilla then
+    local GetSpellInfo = GetSpellInfo
+    local GetNumSpellTabs = GetNumSpellTabs
+    local GetSpellTabInfo = GetSpellTabInfo
+    local GetSpellBookItemName = GetSpellBookItemName
+
+    local MATCH_PATTERN, FORMAT_PATTERN = "Rank (%d+)", "Rank %d"
+    if LOCALE_deDE or LOCALE_frFR then
+        MATCH_PATTERN = "Rang (%d+)"
+        FORMAT_PATTERN = "Rang %d"
+    elseif LOCALE_esES or LOCALE_esMX then
+        MATCH_PATTERN = "Rango (%d+)"
+        FORMAT_PATTERN = "Rango %d"
+    -- elseif LOCALE_itIT then -- not supported in classic
+    --     MATCH_PATTERN = "Grado (%d+)"
+    --     FORMAT_PATTERN = "Grado %d"
+    elseif LOCALE_koKR then
+        MATCH_PATTERN = "(%d+) 레벨"
+        FORMAT_PATTERN = "%d 레벨"
+    elseif LOCALE_ptBR then
+        MATCH_PATTERN = "Grau (%d+)"
+        FORMAT_PATTERN = "Grau %d"
+    elseif LOCALE_ruRU then
+        MATCH_PATTERN = "Уровень (%d+)"
+        FORMAT_PATTERN = "Уровень %d"
+    elseif LOCALE_zhCN then
+        MATCH_PATTERN = "等级 (%d+)"
+        FORMAT_PATTERN = "等级 %d"
+    elseif LOCALE_zhTW then
+        MATCH_PATTERN = "等級 (%d+)"
+        FORMAT_PATTERN = "等級 %d"
     end
 
-    return info.name, info.iconID
+    FORMAT_PATTERN = "(" .. FORMAT_PATTERN .. ")"
+
+    function F.GetRankSuffix(rank)
+        return FORMAT_PATTERN:format(rank)
+    end
+
+    function F.GetMaxSpellRank(spellId)
+        local spellName = select(1, GetSpellInfo(spellId))
+        if not spellName then return end
+
+        local maxRank = 0
+        local bookType = BOOKTYPE_SPELL
+
+        local totalSpells = 0
+        for tab = 1, GetNumSpellTabs() do
+            local name, texture, offset, numSpells = GetSpellTabInfo(tab)
+            totalSpells = totalSpells + numSpells
+        end
+
+        -- local spellSubText
+        for i = 1, totalSpells do
+            local name, subText = GetSpellBookItemName(i, bookType)
+            if name == spellName and subText then
+                local rank = tonumber(subText:match(MATCH_PATTERN))
+                -- spellSubText = subText
+                if rank and rank > maxRank then
+                    maxRank = rank
+                end
+            end
+        end
+
+        -- if spellSubText then
+        --     print("----------------------------------------------")
+        --     print(spellSubText, MATCH_PATTERN, tonumber(spellSubText:match(MATCH_PATTERN)))
+        --     print("Max Rank of " .. spellName .. ": " .. maxRank)
+        --     print("----------------------------------------------")
+        -- else
+        --     print("Rank info not found: " .. spellName)
+        -- end
+
+        return maxRank
+    end
 end
 
 if C_Spell.GetSpellCooldown then
@@ -1964,12 +2102,12 @@ function F.UpdateFramePriority()
     for i, t  in pairs(CellDB["general"]["framePriority"]) do
         if t[2] then
             if t[1] == "Main" then
-                tinsert(frame_priorities, i, "^CellDNormalUnitFrame$")
+                tinsert(frame_priorities, i, "^CellNormalUnitFrame$")
             elseif t[1] == "Spotlight" then
-                tinsert(frame_priorities, i, "^CellDSpotlightUnitFrame$")
+                tinsert(frame_priorities, i, "^CellSpotlightUnitFrame$")
                 spotlightPriorityEnabled = true
             else
-                tinsert(frame_priorities, i, "^CellDQuickAssistUnitFrame$")
+                tinsert(frame_priorities, i, "^CellQuickAssistUnitFrame$")
                 quickAssistPriorityEnabled = true
             end
         else
@@ -1986,24 +2124,24 @@ function Cell.GetUnitFramesForLGF(unit, frames, priorities)
     local normal, spotlights, quickAssist = F.GetUnitButtonByUnit(unit, spotlightPriorityEnabled, quickAssistPriorityEnabled)
 
     if normal then
-        frames[normal.widgets.highLevelFrame] = "CellDNormalUnitFrame"
+        frames[normal.widgets.highLevelFrame] = "CellNormalUnitFrame"
     end
 
     if spotlights then
         -- for _, spotlight in pairs(spotlights) do
         --     if not strfind(spotlight.unit, "target$") and spotlight.widgets and spotlight.widgets.highLevelFrame then
-        --         frames[spotlight.widgets.highLevelFrame] = "CellDSpotlightUnitFrame"
+        --         frames[spotlight.widgets.highLevelFrame] = "CellSpotlightUnitFrame"
         --         break
         --     end
         -- end
         --! just use the first (can be "XXtarget", whatever)
         if spotlights[1] then
-            frames[spotlights[1].widgets.highLevelFrame] = "CellDSpotlightUnitFrame"
+            frames[spotlights[1].widgets.highLevelFrame] = "CellSpotlightUnitFrame"
         end
     end
 
     if quickAssist then
-        frames[quickAssist] = "CellDQuickAssistUnitFrame"
+        frames[quickAssist] = "CellQuickAssistUnitFrame"
     end
 
     if not inited_priorities[priorities] then
@@ -2023,13 +2161,6 @@ function Cell.GetUnitFramesForLGF(unit, frames, priorities)
     return frames
 end
 
---[[
-    璺濈妫€鏌ョ郴缁?    浣跨敤澶氱鏂规硶妫€鏌ュ崟浣嶆槸鍚﹀湪鏂芥硶鑼冨洿鍐?
-    1. UnitInRange() - 浠呭闃熶紞鎴愬憳鏈夋晥, Midnight 涓彲鑳借繑鍥?secret boolean
-    2. IsSpellInRange() - 浣跨敤鑱屼笟娌荤枟/浼ゅ娉曟湳妫€鏌ヨ窛绂?    3. IsItemInRange() - 浣跨敤鐗╁搧妫€鏌ユ晫瀵瑰崟浣嶈窛绂?    4. CheckInteractDistance() - 28鐮佷氦浜掕窛绂绘鏌?(浠呭湪闈炴垬鏂楁椂)
-
-    Midnight 瀹夊叏澶勭悊: 
-    - F.IsInRange() 鍐呴儴浣跨敤 issecretvalue() 妫€鏌?UnitInRange 鐨勮繑鍥炲€?    - 濡傛灉杩斿洖鍊兼槸 secret, 鑷姩鍥為€€鍒版硶鏈窛绂绘鏌?--]]
 -------------------------------------------------
 -- range check
 -------------------------------------------------
@@ -2053,8 +2184,13 @@ local function IsSpellKnown(spellId)
     return IsSpellKnownOrOverridesKnown(spellId) or IsSpellBookKnown(spellId)
 end
 
-local UnitInSamePhase = function(unit)
-    return not UnitPhaseReason(unit)
+local UnitInSamePhase
+if Cell.isRetail then
+    UnitInSamePhase = function(unit)
+        return not UnitPhaseReason(unit)
+    end
+else
+    UnitInSamePhase = UnitInPhase
 end
 
 local playerClass = UnitClassBase("player")
@@ -2062,19 +2198,19 @@ local playerClass = UnitClassBase("player")
 local friendSpells = {
     -- ["DEATHKNIGHT"] = 47541,
     -- ["DEMONHUNTER"] = ,
-    ["DRUID"] = 8936, -- 濞岃崵鏋熸稊瀣?/ 閹板牆鎮?
-    -- FIXME: [361469 濞茶瀵查悜鍫㈠姍] 娴兼俺顫﹂懟閬嶆碂婢垛晞绁?[431443 閺冭泛绨悜鍫㈠姍] 閺囧じ鍞敍灞肩稻鐎瑰啳鈧奔绗栭張澶愭６妫?
-    -- IsSpellInRange 婵绮撴潻鏂挎礀 nil
-    ["EVOKER"] = 355913, -- 缂堬紕绻濇稊瀣С
+    ["DRUID"] = (Cell.isWrath or Cell.isTBC or Cell.isVanilla) and 5185 or 8936, -- 治疗之触 / 愈合
+    -- FIXME: [361469 活化烈焰] 会被英雄天赋 [431443 时序烈焰] 替代，但它而且有问题
+    -- IsSpellInRange 始终返回 nil
+    ["EVOKER"] = 355913, -- 翡翠之花
     -- ["HUNTER"] = 136,
-    ["MAGE"] = 1459, -- 婵傘儲婀抽弲鐑樺弾 / 婵傘儲婀抽崗澶庣罚
-    ["MONK"] = 116670, -- 濞叉槒顢呴張?
-    ["PALADIN"] = 19750, -- 閸︼絽鍘滈梻顏嗗箛
-    ["PRIEST"] = 2061, -- 韫囶偊鈧喐涓嶉悿?
+    ["MAGE"] = 1459, -- 奥术智慧 / 奥术光辉
+    ["MONK"] = 116670, -- 活血术
+    ["PALADIN"] = Cell.isRetail and 19750 or 635, -- 圣光闪现 / 圣光术
+    ["PRIEST"] = (Cell.isWrath or Cell.isTBC or Cell.isVanilla) and 2050 or 2061, -- 次级治疗术 / 快速治疗
     -- ["ROGUE"] = Cell.isWrath and 57934,
-    ["SHAMAN"] = Cell.isRetail and 8004 or 331, -- 濠电偛鐭佸畷鐢稿几閻斿摜鈻曢悗锝庡亞闉?/ 濠电偛鐭佸畷鐢稿几閻斿皝鏋?
-    ["WARLOCK"] = 5697, -- 闂佸搫鍟版慨鎾极閺嶎厼宸濋柣鎾冲閸?
-    -- ["WARRIOR"] = 3411, -- 闂佺顕ч悺銊︽叏?
+    ["SHAMAN"] = Cell.isRetail and 8004 or 331, -- 治疗之涌 / 治疗波
+    ["WARLOCK"] = 5697, -- 无尽呼吸
+    -- ["WARRIOR"] = 3411, -- 援护
 }
 
 local deadSpells = {
@@ -2086,21 +2222,21 @@ local petSpells = {
 }
 
 local harmSpells = {
-    ["DEATHKNIGHT"] = 47541, -- 闂佸憡鍨甸澶娒归崒婊呯＝闁绘鏁搁幖?
-    ["DEMONHUNTER"] = 185123, -- 闂佺鍩栧ú姗€鐛箛娑樼闁宠桨绀侀悗?
-    ["DRUID"] = 5176, -- 闂佺鍩囬崐鏍焵?
-    -- FIXME: [361469 濠电偠灏褏鈧灚鐓￠幃婊堝醇閵忕姴顫抅 婵炴潙鍚嬫穱娲綖閿曞倹鍤愰梺顒€绉电喊鍌氼熆閸ㄦ稒娅堢紒?[431443 闂佸搫鍟冲▔娑氳姳椤撱垺鍊婚柛顐犲灩婵硶 闂佸搫娲ら妵姗€宕鍕櫖閻忕偠鍋愮粙濠氭倵閻熸澘鏆㈤柍褜鍓欐總鏃傜箔閺嶎厼瀚夊鑸靛姈閿涙牕螞?
-    -- IsSpellInRange 婵犳鍠栭鍥╁垝閹惧瓨浜ら柡鍌涘缁€鈧?nil
-    ["EVOKER"] = 362969, -- 缂佺偓濡搁崱妯诲暠闂佺懓鐏氶幐鎼佸吹?
-    ["HUNTER"] = 75, -- 闂佺厧顨庢禍婊勬叏閳哄啩鐒婇柛鏇ㄥ亜濮?
-    ["MAGE"] = 116, -- 鐎垫帒鍟虹粻?
-    ["MONK"] = 117952, -- 绾板海甯€闂傤亞鏁?
-    ["PALADIN"] = 20271, -- 鐎光€冲灲
-    ["PRIEST"] = 589, -- 閺嗘鈻堥張顖ょ窗閻?
-    ["ROGUE"] = 1752, -- 瑜拌精顫?
-    ["SHAMAN"] = 188196, -- 闂傤亞鏁哥粻?
-    ["WARLOCK"] = 234153, -- 閸氱褰囬悽鐔锋嚒
-    ["WARRIOR"] = 355, -- 闂佹悶鍨肩亸顏堫敊?
+    ["DEATHKNIGHT"] = 47541, -- 凋零缠绕
+    ["DEMONHUNTER"] = 185123, -- 投掷利刃
+    ["DRUID"] = 5176, -- 愤怒
+    -- FIXME: [361469 活化烈焰] 会被英雄天赋 [431443 时序烈焰] 替代，但它而且有问题
+    -- IsSpellInRange 始终返回 nil
+    ["EVOKER"] = 362969, -- 碧蓝打击
+    ["HUNTER"] = 75, -- 自动射击
+    ["MAGE"] = Cell.isRetail and 116 or 133, -- 寒冰箭 / 火球术
+    ["MONK"] = 117952, -- 碎玉闪电
+    ["PALADIN"] = 20271, -- 审判
+    ["PRIEST"] = Cell.isRetail and 589 or 585, -- 暗言术：痛 / 惩击
+    ["ROGUE"] = 1752, -- 影袭
+    ["SHAMAN"] = Cell.isRetail and 188196 or 403, -- 闪电箭
+    ["WARLOCK"] = 234153, -- 吸取生命
+    ["WARRIOR"] = 355, -- 嘲讽
 }
 
 -- local friendItems = {
@@ -2286,7 +2422,7 @@ end
 -------------------------------------------------
 -- RangeCheck debug
 -------------------------------------------------
-local debug = CreateFrame("Frame", "CellDRangeCheckDebug", CellDParent, "BackdropTemplate")
+local debug = CreateFrame("Frame", "CellRangeCheckDebug", CellParent, "BackdropTemplate")
 debug:SetBackdrop({bgFile = Cell.vars.whiteTexture})
 debug:SetBackdropColor(0.1, 0.1, 0.1, 0.9)
 debug:SetBackdropBorderColor(0, 0, 0, 1)
@@ -2341,7 +2477,7 @@ debug:SetScript("OnUpdate", function(self, elapsed)
         result = string.gsub(result, " checked", " |cff00ff00checked|r")
         result = string.gsub(result, "unchecked", "|cffff0000unchecked|r")
 
-        debug.text:SetText("|cffff0066CellD Range Check (Target)|r\n\n" .. result)
+        debug.text:SetText("|cffff0066Cell Range Check (Target)|r\n\n" .. result)
 
         debug:SetSize(debug.text:GetStringWidth() + 10, debug.text:GetStringHeight() + 20)
     end
@@ -2356,8 +2492,8 @@ debug:SetScript("OnEvent", function()
     debug:Show()
 end)
 
-SLASH_CELLDRC1 = "/celldrc"
-function SlashCmdList.CELLDRC()
+SLASH_CELLRC1 = "/cellrc"
+function SlashCmdList.CELLRC()
     if debug:IsEventRegistered("PLAYER_TARGET_CHANGED") then
         debug:UnregisterEvent("PLAYER_TARGET_CHANGED")
         debug:Hide()
@@ -2369,37 +2505,13 @@ function SlashCmdList.CELLDRC()
     end
 end
 
---[[
-    鈺斺晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晽
-    鈺?          Secret Value / Opaque Types 瀹夊叏鍖呰鍣?           鈺?    鈺?                (Patch 12.0.0+ / Midnight)                  鈺?    鈺氣晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨暆
+---------------------------------------------------------------------
+-- spec data
+---------------------------------------------------------------------
+if Cell.isMists then
 
-    鏆撮洩鍦?12.0.0 寮€濮嬪疄鏂?绉樺瘑鏁板€?鏈哄埗銆傚湪鎴樻枟/棣栭鎴?PvP/鎸戞垬妯″紡绛?    鍙楅檺涓婁笅鏂囦腑锛屼互涓?API 鐨勮繑鍥炲€间細琚寘瑁呬负 opaque type:
+end
 
-    鍙楅檺鐨?API:
-    - UnitHealth(), UnitHealthMax()        -- 鐢熷懡鍊肩浉鍏?    - UnitPower(), UnitPowerMax()          -- 鑳介噺鍊肩浉鍏?    - UnitGetTotalAbsorbs()               -- 鍚告敹鐩炬€婚噺
-    - UnitGetTotalHealAbsorbs()           -- 娌荤枟鍚告敹閲?    - UnitGetIncomingHeals()              -- 鍗冲皢鍒版潵鐨勬不鐤?    - GetUnitSpeed()                      -- 鍗曚綅绉诲姩閫熷害
-    - UnitAura() 鐨勫厜鐜暟鎹?(spellId, duration, expirationTime, applications)
-    - UnitInRange() 鐨勭浜屼釜杩斿洖鍊?(checked)
-    - COMBAT_LOG_EVENT_UNFILTERED         -- 鎴樻枟涓畬鍏ㄤ笉鍙敤
-
-    瀹夊叏 API (濮嬬粓杩斿洖闈?secret 鍊?:
-    - issecretvalue(val)                  -- 妫€鏌ュ€兼槸鍚︿负 secret
-    - GetRestrictedActionStatus(type)     -- 鏌ヨ褰撳墠闄愬埗鐘舵€?    - C_Secrets.ShouldSpellAuraBeSecret() -- 涓诲姩鏌ヨ鎶€鑳藉厜鐜槸鍚︿細鍔犲瘑
-    - UnitIsDeadOrGhost()                 -- 濮嬬粓闈?secret boolean
-    - CreateUnitHealPredictionCalculator()-- 鍒涘缓瀹夊叏鐢熷懡鍊艰绠楀櫒
-    - C_CurveUtil.CreateCurve()           -- 鍒涘缓瀹夊叏鏇茬嚎璁＄畻鍣?    - UnitGetDetailedHealPrediction()     -- 鑾峰彇璇︾粏娌荤枟棰勬祴(瀹夊叏)
-    - C_UnitAuras.GetAuraSlots()          -- 瀹夊叏鐨勫厜鐜Ы浣嶈幏鍙?    - C_UnitAuras.GetAuraDataBySlot()     -- 瀹夊叏鐨勫厜鐜暟鎹幏鍙?
-    閲嶈瑙勫垯:
-    1. 姘歌繙涓嶈瀵瑰彲鑳戒负 secret 鐨勫€艰繘琛岀畻鏈繍绠?+,-,*,/,%)
-    2. 姘歌繙涓嶈瀵瑰彲鑳戒负 secret 鐨勫€艰繘琛屾瘮杈冭繍绠?<,>,<=,>=)
-    3. 浣跨敤 issecretvalue() 妫€鏌ュ悗鍐嶄娇鐢?    4. 浣跨敤 pcall() 鍖呰鎵€鏈夊彲鑳芥姏鍑?secret 閿欒鐨?API 璋冪敤
-    5. StatusBar:SetValue() / SetMinMaxValues() 鍙互瀹夊叏鎺ュ彈 secret 鍊?
-    鏈ā鍧楁彁渚涚殑瀹夊叏鍖呰鍣?
-    - F.IsSecretValue(val)         -- 瀹夊叏鐨?issecretvalue 鍖呰
-    - F.IsAuraRestricted()         -- 妫€鏌ュ厜鐜暟鎹槸鍚﹀彈闄?    - F.IsCooldownRestricted()     -- 妫€鏌ュ喎鍗存暟鎹槸鍚﹀彈闄?    - F.IsAuraNonSecret(auraInfo)  -- 妫€鏌ュ崟涓厜鐜暟鎹槸鍚﹀彲璇?    - F.IsValueNonSecret(val)      -- 閫氱敤闈?secret 鍊兼鏌?    - F.IsSpellAuraNonSecret(id)   -- 涓诲姩鏌ヨ鎶€鑳藉厜鐜槸鍚︿細鍔犲瘑
-    - F.SafeUnitHealth(unit)       -- 瀹夊叏鑾峰彇鍗曚綅鐢熷懡鍊?    - F.SafeUnitHealthMax(unit)    -- 瀹夊叏鑾峰彇鍗曚綅鏈€澶х敓鍛藉€?    - F.SafeUnitPower(unit)        -- 瀹夊叏鑾峰彇鍗曚綅鑳介噺鍊?    - F.SafeUnitPowerMax(unit)     -- 瀹夊叏鑾峰彇鍗曚綅鏈€澶ц兘閲忓€?    - F.SafeUnitGetTotalAbsorbs()  -- 瀹夊叏鑾峰彇鍚告敹閲?    - F.SafeUnitGetTotalHealAbsorbs() -- 瀹夊叏鑾峰彇娌荤枟鍚告敹閲?    - F.SafeUnitGetIncomingHeals() -- 瀹夊叏鑾峰彇鍗冲皢鍒版潵鐨勬不鐤?    - F.SafeGetUnitSpeed(unit)     -- 瀹夊叏鑾峰彇鍗曚綅绉诲姩閫熷害
-
-    璇﹁ BlackBox.lua 涓殑 F.RunBlackBoxTests() 榛戠鑷銆?--]]
 -------------------------------------------------
 -- Secret value utilities (Patch 12.0.0+)
 -------------------------------------------------

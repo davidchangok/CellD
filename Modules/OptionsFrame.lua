@@ -7,7 +7,7 @@ local lastShownTab
 
 local optionsFrame = Cell.CreateFrame("CellOptionsFrame", Cell.frames.mainFrame, 432, 401)
 Cell.frames.optionsFrame = optionsFrame
-PixelUtil.SetPoint(optionsFrame, "CENTER", CellDParent, "CENTER", 1, -1)
+PixelUtil.SetPoint(optionsFrame, "CENTER", CellParent, "CENTER", 1, -1)
 optionsFrame:SetFrameStrata("DIALOG")
 optionsFrame:SetFrameLevel(520)
 optionsFrame:SetClampedToScreen(true)
@@ -41,7 +41,7 @@ local function CreateTabButtons()
     debuffsBtn = Cell.CreateButton(optionsFrame, L["Raid Debuffs"], "accent-hover", {120, 20}, false, false, "CELL_FONT_WIDGET_TITLE", "CELL_FONT_WIDGET_TITLE_DISABLE")
     utilitiesBtn = Cell.CreateButton(optionsFrame, L["Utilities"], "accent-hover", {105, 20}, false, false, "CELL_FONT_WIDGET_TITLE", "CELL_FONT_WIDGET_TITLE_DISABLE")
     aboutBtn = Cell.CreateButton(optionsFrame, L["About"], "accent-hover", {86, 20}, false, false, "CELL_FONT_WIDGET_TITLE", "CELL_FONT_WIDGET_TITLE_DISABLE")
-    closeBtn = Cell.CreateButton(optionsFrame, "脳", "red", {20, 20}, false, false, "CELL_FONT_SPECIAL", "CELL_FONT_SPECIAL")
+    closeBtn = Cell.CreateButton(optionsFrame, "×", "red", {20, 20}, false, false, "CELL_FONT_SPECIAL", "CELL_FONT_SPECIAL")
     closeBtn:SetScript("OnClick", function()
         optionsFrame:Hide()
     end)

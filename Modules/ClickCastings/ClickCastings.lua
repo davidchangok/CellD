@@ -40,7 +40,7 @@ end
 -- db
 -------------------------------------------------
 -- https://wow.gamepedia.com/SecureActionButtonTemplate
--- {"shift-type1", "macro", "shift-macrotext1", "/cast [@mouseover] 鍥炴槬鏈?}
+-- {"shift-type1", "macro", "shift-macrotext1", "/cast [@mouseover] 回春术"}
 
 local slotNames = {
     [1] = _G.INVTYPE_HEAD,
@@ -243,7 +243,7 @@ if Cell.isRetail then
             self:Run(self:GetAttribute("snippet"))
 
             -- self:SetBindingClick(true, "SHIFT-MOUSEWHEELUP", self, "shiftSCROLLUP")
-            -- FIXME: --! 濡傛灉娓告垙鎸夐敭璁剧疆锛堟瘮濡傗€滆瑙掆€濃€滆浇鍏锋帶鍒垛€濓級涓粦瀹氫簡婊氳疆锛岄偅涔?self:SetBindingClick(true, "MOUSEWHEELUP", self, "SCROLLUP") 浼氬け鏁?
+            -- FIXME: --! 如果游戏按键设置（比如“视角”“载具控制”）中绑定了滚轮，那么 self:SetBindingClick(true, "MOUSEWHEELUP", self, "SCROLLUP") 会失效
             -- self:SetBindingClick(true, "MOUSEWHEELUP", self, "SCROLLUP")
             -- self:SetBindingClick(true, "MOUSEWHEELDOWN", self, "SCROLLDOWN")
 
@@ -272,7 +272,7 @@ if Cell.isRetail then
 
         wrapFrame:WrapScript(b, "OnEnter", [[
             -- print("OnEnter")
-            if mouseoverbutton then mouseoverbutton:ClearBindings() end --! NOTE: 榧犳爣鏀惧湪杩囪繙鍗曚綅涓?>琚尅浣?>绉昏蛋->绉昏嚦鍙敤鍗曚綅鍐嶇Щ鍑猴紝浼氬彂鐜颁箣鍓嶇殑涓嶅彲鐢ㄥ崟浣嶇殑鎸夐敭缁戝畾浠嶆湭鍙栨秷
+            if mouseoverbutton then mouseoverbutton:ClearBindings() end --! NOTE: 鼠标放在过远单位上->被挡住->移走->移至可用单位再移出，会发现之前的不可用单位的按键绑定仍未取消
             mouseoverbutton = self
         ]])
 
@@ -299,7 +299,7 @@ else
             self:Run(self:GetAttribute("snippet"))
 
             -- self:SetBindingClick(true, "SHIFT-MOUSEWHEELUP", self, "shiftSCROLLUP")
-            -- FIXME: --! 濡傛灉娓告垙鎸夐敭璁剧疆锛堟瘮濡傗€滆瑙掆€濃€滆浇鍏锋帶鍒垛€濓級涓粦瀹氫簡婊氳疆锛岄偅涔?self:SetBindingClick(true, "MOUSEWHEELUP", self, "SCROLLUP") 浼氬け鏁?
+            -- FIXME: --! 如果游戏按键设置（比如“视角”“载具控制”）中绑定了滚轮，那么 self:SetBindingClick(true, "MOUSEWHEELUP", self, "SCROLLUP") 会失效
             -- self:SetBindingClick(true, "MOUSEWHEELUP", self, "SCROLLUP")
             -- self:SetBindingClick(true, "MOUSEWHEELDOWN", self, "SCROLLDOWN")
 
@@ -344,7 +344,7 @@ else
         wrapFrame:WrapScript(b, "OnEnter", [[
             -- print("OnEnter")
             if mouseoverbutton then
-                --! NOTE: 榧犳爣鏀惧湪杩囪繙鍗曚綅涓?>琚尅浣?>绉昏蛋->绉昏嚦鍙敤鍗曚綅鍐嶇Щ鍑猴紝浼氬彂鐜颁箣鍓嶇殑涓嶅彲鐢ㄥ崟浣嶇殑鎸夐敭缁戝畾浠嶆湭鍙栨秷
+                --! NOTE: 鼠标放在过远单位上->被挡住->移走->移至可用单位再移出，会发现之前的不可用单位的按键绑定仍未取消
                 mouseoverbutton:ClearBindings()
 
                 --! vehicle (previous button)
@@ -472,8 +472,8 @@ local function ClearClickCastings(b)
 end
 
 --! store attribute keys, update them in _onenter
---! NOTE: 灏濊瘯鐢ㄤ簬淇璺濈杩囪繙鐩爣鐨勭偣鍑绘柦娉曢棶棰橈紝浣嗘病鏈夊嵉鐢紝纭鏄父鎴忛棶棰樸€?
---! NOTE: 褰撶洰鏍囦负鏁屽鏃讹紝@鑼冨洿鍐?璺濈绋嶅井瓒呭嚭涓€鐐瑰効鐨?> 鑷姩鑷垜鏂芥硶鐨勪紭鍏堢骇 > @璺濈杩囪繙鐨?
+--! NOTE: 尝试用于修复距离过远目标的点击施法问题，但没有卵用，确认是游戏问题。
+--! NOTE: 当目标为敌对时，@范围内/距离稍微超出一点儿的 > 自动自我施法的优先级 > @距离过远的
 local function UpdatePlaceholder(b, attr)
     if not b:GetAttribute("cell") then
         b:SetAttribute("cell", attr)
@@ -507,7 +507,7 @@ local function ApplyClickCastings(b)
         if t[2] == "togglemenu_nocombat" then
             b:SetAttribute("menu", bindKey)
         ------------------------------------------------------------------
-        --* 宸蹭慨澶嶏細瀹為檯涓婅浇鍏凤紙瀹犵墿鎸夐挳锛夋棤娉曢€変腑鐨勫師鍥犳槸娌℃湁 SetAttribute("toggleForVehicle", false)
+        --* 已修复：实际上载具（宠物按钮）无法选中的原因是没有 SetAttribute("toggleForVehicle", false)
         -- elseif Cell.isCata and t[2] == "target" then
         --     b:SetAttribute(bindKey, "macro")
         --     local attr = string.gsub(bindKey, "type", "macrotext")
@@ -572,7 +572,7 @@ local function ApplyClickCastings(b)
                 b:SetAttribute(attr, "/tar ["..unit.."]\n/cast ["..unit..condition.."] "..spellName..sMaRt..fix)
                 if not Cell.isRetail then UpdatePlaceholder(b, attr) end
             else
-                -- NOTE: "spell" is not ideal, 鍦ㄦ棤鏁?杩囪繙鐨勭洰鏍囦笂浼氬浜庘€滅瓑寰呴€変腑鐩爣鈥濈殑鐘舵€侊紝鍗抽紶鏍囨寚閽堟湁涓€鍦堢伆/钃濊壊鏉愯川
+                -- NOTE: "spell" is not ideal, 在无效/过远的目标上会处于“等待选中目标”的状态，即鼠标指针有一圈灰/蓝色材质
                 -- local attr = string.gsub(bindKey, "type", "spell")
                 -- b:SetAttribute(attr, spellName)
                 b:SetAttribute(bindKey, "macro")

@@ -69,7 +69,7 @@ function P.PixelPerfectPoint(frame)
     local top = frame:GetTop()
 
     frame:ClearAllPoints()
-    frame:SetPoint("TOPLEFT", CellDParent, "BOTTOMLEFT", math.floor(left + 0.5), math.floor(top + 0.5))
+    frame:SetPoint("TOPLEFT", CellParent, "BOTTOMLEFT", math.floor(left + 0.5), math.floor(top + 0.5))
 end
 
 --------------------------------------------
@@ -153,7 +153,7 @@ end
 local GetNearestPixelSize = PixelUtil.GetNearestPixelSize
 
 function P.Scale(desiredPixels)
-    return GetNearestPixelSize(desiredPixels, CellDParent:GetEffectiveScale())
+    return GetNearestPixelSize(desiredPixels, CellParent:GetEffectiveScale())
 end
 
 function P.Size(frame, width, height)
@@ -296,20 +296,20 @@ function P.LoadPosition(frame, positionTable)
         return true
     elseif #positionTable == 3 then
         P.ClearPoints(frame)
-        frame:SetPoint(positionTable[1], CellDParent, positionTable[2], positionTable[3])
+        frame:SetPoint(positionTable[1], CellParent, positionTable[2], positionTable[3])
         return true
     end
 end
 
 function P.CalcPoint(frame)
     local point, x, y
-    local centerX, centerY = CellDParent:GetCenter()
-    local width = CellDParent:GetRight()
+    local centerX, centerY = CellParent:GetCenter()
+    local width = CellParent:GetRight()
     x, y = frame:GetCenter()
 
     if y >= centerY then
         point = "TOP"
-            y = -(CellDParent:GetTop() - frame:GetTop())
+            y = -(CellParent:GetTop() - frame:GetTop())
     else
         point = "BOTTOM"
             y = frame:GetBottom()

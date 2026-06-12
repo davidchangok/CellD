@@ -81,7 +81,7 @@ select(2, ...).L = setmetatable({
     ["raidRosterTips"] = "[Right-Click] promote/demote (assistant). [Alt+Right-Click] uninvite.",
 
     ["RAID_DEBUFFS_TIPS"] = "Tips: [Drag & Drop] to change debuff order. [Double-Click] on instance name to open Encounter Journal. [Shift+Left Click] on instance/boss name to share debuffs. [Alt+Left Click] on instance/boss name to reset debuffs. The priority of General Debuffs is higher than Boss Debuffs.",
-    ["SNIPPETS_TIPS"] = "[Double-Click] to rename. [Shift-Click] to delete. All checked snippets will be automatically invoked at the end of CellD initialization process (in ADDON_LOADED event).",
+    ["SNIPPETS_TIPS"] = "[Double-Click] to rename. [Shift-Click] to delete. All checked snippets will be automatically invoked at the end of Cell initialization process (in ADDON_LOADED event).",
     ["BACKUP_TIPS"] = "Backups are not always reliable, especially when they are too old. It is recommended to backup often. When sharing profiles, backups are not included.",
     ["BACKUP_TIPS2"] = "Note for Classic players: Backups do not include Click-Castings and Layout Auto Switch of other characters",
 
@@ -90,13 +90,13 @@ select(2, ...).L = setmetatable({
         <br/>
 
         <h1>Hello to all Cell users, and thank you for your continued support!</h1>
-        <p>Although it's already far too late to say this, I still want to offer my apologies. I wasn't able to deliver the new version of CellD for the retail servers as promised last month.</p>
+        <p>Although it's already far too late to say this, I still want to offer my apologies. I wasn't able to deliver the new version of Cell for the retail servers as promised last month.</p>
         <p>Since the end of February, work has kept me completely occupied, leaving me with no time or energy to continue the project's refactor.</p>
         <p>Fortunately, our amazing contributors stepped in and fixed Cell, giving the project a bit more life. I'm truly grateful for their help.</p>
         <p>I hope to return as soon as possible and bring you even better work.</p>
         <p>Thank you all for your support and encouragement.</p>
         <p>For Azeroth!</p>
-        <p>閳?enderneko</p>
+        <p>— enderneko</p>
         <br/>
 
         <p><a href="older">Click to view older changelogs</a></p>
@@ -194,7 +194,7 @@ select(2, ...).L = setmetatable({
         <br/>
 
         <h1>r259-release (Aug 6, 2025, 16:27 GMT+8)</h1>
-        <p>* Updated TWW debuffs (thanks 闁芥盯鏁?and 閺嬵偄鐭?.</p>
+        <p>* Updated TWW debuffs (thanks 钛锬 and 枫岚).</p>
         <p>* Updated MoP debuffs.</p>
         <br/>
 
@@ -281,8 +281,8 @@ select(2, ...).L = setmetatable({
         <br/>
 
         <h1>r247-release (Mar 4, 2025, 17:50 GMT+8)</h1>
-        <p>! Due to changes in scaling behavior, you might need to readjust the size and position of CellD.</p>
-        <p>* Updated TWW season 2 debuffs (Thanks 闁芥盯鏁?.</p>
+        <p>! Due to changes in scaling behavior, you might need to readjust the size and position of Cell.</p>
+        <p>* Updated TWW season 2 debuffs (Thanks 钛锬).</p>
         <p>* Fixed scaling issue.</p>
         <p>* Fixed positioning issue.</p>
         <p>* Fixed Glow indicator.</p>
@@ -318,7 +318,7 @@ select(2, ...).L = setmetatable({
         <p>* Updated Dispel Request text flipbook animation.</p>
         <p>* Refactored HealthText indicator.</p>
         <p>+ (Classic) Updated RaidDebuffs to include the Naxxramas raid (#294).</p>
-        <p>+ (TWW) Updated debuffs for season 2 (Thanks 闁芥盯鏁?.</p>
+        <p>+ (TWW) Updated debuffs for season 2 (Thanks 钛锬).</p>
         <p>+ (TWW) Updated Liberation of Undermine debuffs (Thanks Reat).</p>
         <p>+ (Classic) Updated RoleIcon indicator and PowerBarFilters.</p>
         <p>+ Implemented CombatIcon indicator.</p>
@@ -651,7 +651,7 @@ select(2, ...).L = setmetatable({
         <br/>
 
         <h1>r206-release (Dec 9, 2023, 00:50 GMT+8)</h1>
-        <p>+ (Retail) New utility: Quick Assist. Thanks 闁芥盯鏁?NGA) for offensive spells and testing.</p>
+        <p>+ (Retail) New utility: Quick Assist. Thanks 钛锬(NGA) for offensive spells and testing.</p>
         <p>* Updated raid debuffs.</p>
         <p>* Updated Cell.GetUnitFrame.</p>
         <p>* (Retail) Updated dispel checker for Shaman.</p>
@@ -661,7 +661,7 @@ select(2, ...).L = setmetatable({
         <br/>
 
         <h1>r205-release (Nov 27, 2023, 12:27 GMT+8)</h1>
-        <p>* Updated raid debuffs, thanks to 闁芥盯鏁?NGA) and Ulu2005(GitHub) for collecting and providing debuffs.</p>
+        <p>* Updated raid debuffs, thanks to 钛锬(NGA) and Ulu2005(GitHub) for collecting and providing debuffs.</p>
         <p>+ New custom indicator type: Glow.</p>
         <p>+ (Retail) Added "Track by name" option for custom buff indicator.</p>
         <p>+ Added "Hide Placeholder Frames" for Spotlights.</p>
@@ -713,7 +713,7 @@ select(2, ...).L = setmetatable({
         <h1>r197-release (Sep 20, 2023, 08:08 GMT+8)</h1>
         <p>* Added a "Show Solo" option for Marks Bar.</p>
         <p>* Added Ice Cold to Defensive CDs indicator.</p>
-        <p>* Updated ICC debuffs, thanks to 婢堆嗗劉鐎?</p>
+        <p>* Updated ICC debuffs, thanks to 大胖宝.</p>
         <p>* Updated zhTW.</p>
         <br/>
 
@@ -803,7 +803,7 @@ select(2, ...).L = setmetatable({
 
         <h1>r182-release (Jul 18, 2023, 05:07 GMT+8)</h1>
         <p>* Refactored Layouts.</p>
-        <p>* Updated debuffs for Dawn of the Infinite, thanks to 闁芥盯鏁?NGA).</p>
+        <p>* Updated debuffs for Dawn of the Infinite, thanks to 钛锬(NGA).</p>
         <p>+ Implemented import &amp; export for Click-Castings.</p>
         <br/>
 
@@ -871,8 +871,8 @@ select(2, ...).L = setmetatable({
         <br/>
 
         <h1>r170-release (May 26, 2023, 00:21 GMT+8)</h1>
-        <p>* Updated raid debuffs: Aberrus and M+. (Thanks to 闁芥盯鏁?</p>
-        <p>* Updated raid debuffs: ToC. (Thanks to 濮楁ê鐡欓崨铏煻濮?</p>
+        <p>* Updated raid debuffs: Aberrus and M+. (Thanks to 钛锬)</p>
+        <p>* Updated raid debuffs: ToC. (Thanks to 橘子味橙汁)</p>
         <p>* Added support for NickTag. To display nicknames from Details!, set CELL_NICKTAG_ENABLED to true in Code Snippets.</p>
         <p>* Updated Missing Buffs indicator and brought it to Wrath.</p>
         <p>* Updated zhTW.</p>
@@ -1648,8 +1648,8 @@ select(2, ...).L = setmetatable({
         <h2>Layouts</h2>
         <p>+ Added pets for arena layout.</p>
         <h2>Misc</h2>
-        <p>* OmniCD should work well, even though the author of OmniCD doesn't add support for CellD.</p>
-        <p>! Use /celld to reset CellD. It can be useful when CellD goes wrong.</p>
+        <p>* OmniCD should work well, even though the author of OmniCD doesn't add support for Cell.</p>
+        <p>! Use /cell to reset Cell. It can be useful when Cell goes wrong.</p>
         <br/>
 
         <h1>r37-release (Jan 4, 2021, 10:10 GMT+8)</h1>
@@ -1703,7 +1703,7 @@ select(2, ...).L = setmetatable({
         <p>! To adjust alpha, use the alpha slider in "Indicators", it can be found at the top right corner.</p>
         <h2>Frame Position</h2>
         <p>+ Every layout has its own position setting now.</p>
-        <p>! The positions of CellD Main Frame, Marks, Ready &amp; Pull have been reset.</p>
+        <p>! The positions of Cell Main Frame, Marks, Ready &amp; Pull have been reset.</p>
         <h2>Misc</h2>
         <p>+ Party/Raid Preview Mode will help you adjust layouts.</p>
         <p>+ Group Anchor Point comes, go check it out in Layouts -&gt; Group Arrangement.</p>

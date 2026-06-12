@@ -298,9 +298,7 @@ local function SR_UpdateRequests(which)
                 SR:UnregisterEvent("CHAT_MSG_WHISPER")
             end
 
-            if not Cell.isMidnight then
-                SR:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-            end
+            SR:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
         else
             SR:UnregisterAllEvents()
         end
@@ -424,9 +422,7 @@ local function DR_UpdateRequests(which)
             drDebuffs = F.ConvertTable(CellDB["dispelRequest"]["debuffs"])
             drDisplayType = CellDB["dispelRequest"]["type"]
 
-            if not Cell.isMidnight then
-                DR:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-            end
+            DR:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
             DR:RegisterEvent("ENCOUNTER_START")
             DR:RegisterEvent("ENCOUNTER_END")
         else

@@ -1735,7 +1735,7 @@ end
 -------------------------------------------------
 -- power text
 -------------------------------------------------
--- Power values come back secret from within CellD's tainted execution context (no
+-- Power values come back secret from within Cell's tainted execution context (no
 -- power-side calculator exists). hideIfEmptyOrFull is a no-op in the secret path
 -- because it needs comparisons. The non-secret paths use SafeTextWidth because a
 -- FontString that ever held secret text returns a secret GetStringWidth thereafter.
@@ -2052,7 +2052,7 @@ end
 -- READY_CHECK_READY_TEXTURE = "Interface\\RaidFrame\\ReadyCheck-Ready"
 -- READY_CHECK_NOT_READY_TEXTURE = "Interface\\RaidFrame\\ReadyCheck-NotReady"
 -- READY_CHECK_AFK_TEXTURE = "Interface\\RaidFrame\\ReadyCheck-NotReady"
--- 閳挴鍟岄埆?since 10.1.5
+-- ↓↓↓ since 10.1.5
 -- READY_CHECK_WAITING_TEXTURE = "UI-LFG-PendingMark"
 -- READY_CHECK_READY_TEXTURE = "UI-LFG-ReadyMark"
 -- READY_CHECK_NOT_READY_TEXTURE = "UI-LFG-DeclineMark"
@@ -2190,35 +2190,25 @@ end
 -- shield bar
 -------------------------------------------------
 local function ShieldBar_SetHorizontalValue(bar, percent)
-    if not percent then bar:Hide(); return end
-    local ok, maxWidth = pcall(bar.parentHealthBar.GetWidth, bar.parentHealthBar)
-    if not ok then bar:Hide(); return end
+    local maxWidth = bar.parentHealthBar:GetWidth()
     local barWidth
-    ok, barWidth = pcall(function()
-        if percent >= 1 then
-            return maxWidth
-        else
-            return maxWidth * percent
-        end
-    end)
-    if not ok then bar:Hide(); return end
-    bar:SetWidth(max(barWidth or 3, 3))
+    if percent >= 1 then
+        barWidth = maxWidth
+    else
+        barWidth = maxWidth * percent
+    end
+    bar:SetWidth(max(barWidth, 3))
 end
 
 local function ShieldBar_SetVerticalValue(bar, percent)
-    if not percent then bar:Hide(); return end
-    local ok, maxHeight = pcall(bar.parentHealthBar.GetHeight, bar.parentHealthBar)
-    if not ok then bar:Hide(); return end
+    local maxHeight = bar.parentHealthBar:GetHeight()
     local barHeight
-    ok, barHeight = pcall(function()
-        if percent >= 1 then
-            return maxHeight
-        else
-            return maxHeight * percent
-        end
-    end)
-    if not ok then bar:Hide(); return end
-    bar:SetHeight(max(barHeight or 3, 3))
+    if percent >= 1 then
+        barHeight = maxHeight
+    else
+        barHeight = maxHeight * percent
+    end
+    bar:SetHeight(max(barHeight, 3))
 end
 
 local function ShieldBar_SetPoint(bar, point, anchorTo, anchorPoint, x, y)
@@ -2355,20 +2345,20 @@ function I.UpdateHealthThresholds()
 end
 
 -------------------------------------------------
--- power word : shield 閹偓閺冄勬箛API婢额亣鎯ら崥搴礉閾斿鏌ら敍?
+-- power word : shield 怀旧服API太落后，蛋疼！
 -------------------------------------------------
 function I.CreatePowerWordShield(parent)
     local powerWordShield = CreateFrame("Frame", parent:GetName().."PowerWordShield", parent.widgets.indicatorFrame, "BackdropTemplate")
     parent.indicators.powerWordShield = powerWordShield
     powerWordShield:Hide()
 
-    powerWordShield:SetBackdrop({bgFile = [[Interface\\AddOns\\CellD\\Media\Shapes\circle_filled.tga]]})
+    powerWordShield:SetBackdrop({bgFile = [[Interface\AddOns\CellD\Media\Shapes\circle_filled.tga]]})
     powerWordShield:SetBackdropColor(0, 0, 0, 0.75)
 
     --! shield amount
     local shieldAmount = CreateFrame("Cooldown", parent:GetName().."PowerWordShieldAmount", powerWordShield)
     -- shieldAmount:SetAllPoints(powerWordShield)
-    shieldAmount:SetSwipeTexture([[Interface\\AddOns\\CellD\\Media\Shapes\circle_filled.tga]])
+    shieldAmount:SetSwipeTexture([[Interface\AddOns\CellD\Media\Shapes\circle_filled.tga]])
     -- shieldAmount:SetSwipeTexture(Cell.vars.whiteTexture)
     shieldAmount:SetSwipeColor(1, 1, 0)
     shieldAmount.noCooldownCount = true -- disable omnicc
@@ -2377,7 +2367,7 @@ function I.CreatePowerWordShield(parent)
     --! innerBG
     local innerBG = shieldAmount:CreateTexture(nil, "OVERLAY")
     innerBG:SetPoint("CENTER")
-    innerBG:SetTexture([[Interface\\AddOns\\CellD\\Media\Shapes\circle_filled.tga]], "CLAMP", "CLAMP", "TRILINEAR")
+    innerBG:SetTexture([[Interface\AddOns\CellD\Media\Shapes\circle_filled.tga]], "CLAMP", "CLAMP", "TRILINEAR")
     innerBG:SetVertexColor(0, 0, 0, 1)
 
     --! shield duration
@@ -2386,7 +2376,7 @@ function I.CreatePowerWordShield(parent)
     -- shieldCooldown:SetPoint("CENTER")
     shieldCooldown:SetPoint("TOPLEFT", P.Scale(1), P.Scale(-1))
     shieldCooldown:SetPoint("BOTTOMRIGHT", P.Scale(-1), P.Scale(1))
-    shieldCooldown:SetSwipeTexture([[Interface\\AddOns\\CellD\\Media\Shapes\circle_filled.tga]])
+    shieldCooldown:SetSwipeTexture([[Interface\AddOns\CellD\Media\Shapes\circle_filled.tga]])
     shieldCooldown:SetSwipeColor(0, 1, 0)
     shieldCooldown.noCooldownCount = true -- disable omnicc
     shieldCooldown:SetHideCountdownNumbers(true)
@@ -2401,7 +2391,7 @@ function I.CreatePowerWordShield(parent)
     -- weakendedSoulCooldown:SetPoint("CENTER")
     weakendedSoulCooldown:SetPoint("TOPLEFT", P.Scale(1), P.Scale(-1))
     weakendedSoulCooldown:SetPoint("BOTTOMRIGHT", P.Scale(-1), P.Scale(1))
-    weakendedSoulCooldown:SetSwipeTexture([[Interface\\AddOns\\CellD\\Media\Shapes\circle_filled.tga]])
+    weakendedSoulCooldown:SetSwipeTexture([[Interface\AddOns\CellD\Media\Shapes\circle_filled.tga]])
     weakendedSoulCooldown:SetSwipeColor(1, 0, 0)
     weakendedSoulCooldown.noCooldownCount = true -- disable omnicc
     weakendedSoulCooldown:SetHideCountdownNumbers(true)

@@ -17,7 +17,7 @@ local UpdateFont
 -------------------------------------------------
 local descriptionPane
 local function CreateDescriptionPane()
-    descriptionPane = Cell.CreateTitledPane(aboutTab, "CellD", 422, 120)
+    descriptionPane = Cell.CreateTitledPane(aboutTab, "Cell", 422, 120)
     descriptionPane:SetPoint("TOPLEFT", aboutTab, "TOPLEFT", 5, -5)
 
     local changelogsBtn = Cell.CreateButton(descriptionPane, L["Changelogs"], "accent", {100, 17})
@@ -55,7 +55,7 @@ local function CreateAuthorPane()
     authorText.size = 12
     UpdateFont(authorText)
 
-    authorText:SetText("缁＄姴纾?瑜板彉绠ｉ崫鈧导?(CN)")
+    authorText:SetText("篠崎-影之哀伤 (CN)")
 end
 
 -------------------------------------------------
@@ -67,7 +67,7 @@ local function CreateSlashPane()
 
     local commandText = slashPane:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
     commandText:SetPoint("TOPLEFT", 5, -27)
-    commandText:SetText("/celld")
+    commandText:SetText("/cell")
 end
 
 -------------------------------------------------
@@ -183,7 +183,7 @@ local function CreateSpecialThanksPane()
     specialThanksText:SetSpacing(5)
     specialThanksText:SetJustifyH("LEFT")
     specialThanksText:SetText(
-        "|cfffb6f92闂囨煡婀剁紓鍥р枍, Reat TV, 闁芥盯鏁? Floofe, warbaby|r\n"..
+        "|cfffb6f92露露缇娅, Reat TV, 钛锬, Floofe, warbaby|r\n"..
         "|cffff0000Wago:|r Ora\n"..
         "|cffff3333YouTube:|r AutomaticJak, JFunkGaming, yumytv\n"..
         "|cff5662f6Discord:|r |cff7fff00clankz.|r, |cff7fff00DreadMesh|r, |cff7fff00Missgunst|r, |cff00ffffVollmerino|r, aba, BinarySunshine, Bruds, Gharr, honeyhoney, leaKsi, Serghei, swirl, Xepheris"
@@ -355,7 +355,7 @@ local function CreateSupportersPane()
     end)
 
     -- button
-    local supportersBtn1 = CreateButton(17, 157, [[Interface\\AddOns\\CellD\\Media\Icons\right]])
+    local supportersBtn1 = CreateButton(17, 157, [[Interface\AddOns\CellD\Media\Icons\right]])
     supportersBtn1:SetPoint("TOPLEFT", aboutTab, "TOPRIGHT", 1, -5)
 
     local label = supportersBtn1:GetFontString()
@@ -373,7 +373,7 @@ local function CreateSupportersPane()
     --     Cell.StartRainbowText(label)
     -- end
 
-    local supportersBtn2 = CreateButton(17, 17, [[Interface\\AddOns\\CellD\\Media\Icons\left]])
+    local supportersBtn2 = CreateButton(17, 17, [[Interface\AddOns\CellD\Media\Icons\left]])
     -- supportersBtn2:SetPoint("TOPLEFT", aboutTab, "TOPRIGHT", 6, -5)
     supportersBtn2:SetPoint("TOPLEFT", supportersPane)
     supportersBtn2:SetPoint("TOPRIGHT", supportersPane, P.Scale(-20), 0)
@@ -450,7 +450,7 @@ local function CreateLinksPane()
 
     --! github
     local github = CreateLink(linksPane, "github", "Interface\\AddOns\\CellD\\Media\\Links\\github.tga", function()
-        current = "https://github.com/davidchangok/CellD"
+        current = "https://github.com/enderneko/Cell"
         linksEB:SetText(current)
         linksEB:ClearFocus()
     end)
@@ -462,7 +462,7 @@ local function CreateLinksPane()
 
     --! curseforge
     local curseforge = CreateLink(linksPane, "curseforge", "Interface\\AddOns\\CellD\\Media\\Links\\curseforge.tga", function()
-        current = "https://github.com/davidchangok/CellD"
+        current = "https://www.curseforge.com/wow/addons/cell"
         linksEB:SetText(current)
         linksEB:ClearFocus()
     end)
@@ -470,7 +470,7 @@ local function CreateLinksPane()
 
     --! wago
     local wago = CreateLink(linksPane, "wago", "Interface\\AddOns\\CellD\\Media\\Links\\wago.tga", function()
-        current = "https://github.com/davidchangok/CellD"
+        current = "https://addons.wago.io/addons/cell"
         linksEB:SetText(current)
         linksEB:ClearFocus()
     end)
@@ -558,7 +558,7 @@ local function ShowTab(tab)
             CreateSupportersPane()
         end
         aboutTab:Show()
-        descriptionPane:SetTitle("CellD "..Cell.version)
+        descriptionPane:SetTitle("Cell "..Cell.version)
     else
         aboutTab:Hide()
     end

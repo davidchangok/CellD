@@ -692,7 +692,6 @@ local function LoadSpellButton(b, value)
 end
 
 local function LoadDB()
-    if not quickCastTable then return end
     qcEnabledCB:SetChecked(quickCastTable["enabled"])
     qcNameDD:SetSelectedValue(quickCastTable["namePosition"])
     qcButtonsSlider:SetValue(quickCastTable["num"])
@@ -801,7 +800,7 @@ local outerBuff, innerBuff
 local borderSize, glowBuffsColor, glowCastsColor
 
 local quickCastFrame = CreateFrame("Frame", "CellQuickCastFrame", Cell.frames.mainFrame, "SecureHandlerAttributeTemplate")
-PixelUtil.SetPoint(quickCastFrame, "TOPLEFT", CellDParent, "CENTER", -1, -1)
+PixelUtil.SetPoint(quickCastFrame, "TOPLEFT", CellParent, "CENTER", -1, -1)
 quickCastFrame:SetSize(16, 16)
 quickCastFrame:SetClampedToScreen(true)
 quickCastFrame:SetMovable(true)
@@ -838,7 +837,7 @@ function targetFrame:StartMoving()
     local scale = targetFrame:GetEffectiveScale()
     targetFrame:SetScript("OnUpdate", function()
         local x, y = GetCursorPosition()
-        targetFrame:SetPoint("BOTTOMLEFT", CellDParent, x/scale, y/scale)
+        targetFrame:SetPoint("BOTTOMLEFT", CellParent, x/scale, y/scale)
         targetFrame:SetWidth(targetFrame.label:GetWidth() + 10)
     end)
 end
@@ -898,35 +897,23 @@ local function QuickCast_UpdateAuras(self)
     local glowBuffFound, outerBuffFound, innerBuffFound
 
     AuraUtil.ForEachAura(self.unit, "HELPFUL", nil, function(name, icon, count, debuffType, duration, expirationTime, source, isStealable, nameplateShowPersonal, spellId)
-        -- Midnight 12.0.0+: 璺宠繃 spellId 涓?secret 鐨勫厜鐜?
+        -- Midnight 12.0.0+: skip auras whose fields are secret; non-secret auras (e.g. raid buffs) are safe to read
         if Cell.isMidnight and issecretvalue and issecretvalue(spellId) then return end
-        -- Midnight 12.0.0+: 鍗充娇 spellId 鍙, temporal 瀛楁浠嶅彲鑳戒负 secret
-        -- 瀵?secret 瀛楁杩涜绠楁湳杩愮畻浼氭姏鍑?Lua 閿欒, 闇€瑕?pcall 淇濇姢
-        local start, dur = 0, 0
-        if Cell.isMidnight then
-            if not issecretvalue or (not issecretvalue(expirationTime) and not issecretvalue(duration)) then
-                start = expirationTime - duration
-                dur = duration
-            end
-        else
-            start = expirationTime - duration
-            dur = duration
-        end
 
         if glowBuffs[name] then
             glowBuffFound = true
-            self:SetGlowBuffCooldown(start, dur)
+            self:SetGlowBuffCooldown(expirationTime - duration, duration)
         end
 
         if source == "player" then
             if name == outerBuff then
                 outerBuffFound = true
-                self:SetOuterCooldown(start, dur)
+                self:SetOuterCooldown(expirationTime - duration, duration)
             end
 
             if name == innerBuff then
                 innerBuffFound = true
-                self:SetInnerCooldown(start, dur)
+                self:SetInnerCooldown(expirationTime - duration, duration)
             end
         end
     end)
@@ -1311,11 +1298,9 @@ CreateQuickCastButton = function(parent, name, isPreview)
             b:RegisterEvent("UNIT_NAME_UPDATE")
             QuickCast_UpdateName(b)
 
-            --! check range now (Midnight: UnitInRange second杩斿洖鍊煎彲鑳戒负secret)
+            --! check range now
             b:RegisterUnitEvent("UNIT_IN_RANGE_UPDATE", unit)
-            local inRange = F.IsInRange(unit)
-            if inRange == nil then inRange = true end
-            QuickCast_UpdateInRange(b, inRange)
+            QuickCast_UpdateInRange(b, UnitInRange(unit))
 
             --! check buffs now
             b:RegisterEvent("UNIT_AURA")

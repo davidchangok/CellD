@@ -22,7 +22,7 @@ Cell.frames.spotlightFrame = spotlightFrame
 
 local anchorFrame = CreateFrame("Frame", "CellSpotlightAnchorFrame", spotlightFrame)
 Cell.frames.spotlightFrameAnchor = anchorFrame
-PixelUtil.SetPoint(anchorFrame, "TOPLEFT", CellDParent, "CENTER", 1, -1)
+PixelUtil.SetPoint(anchorFrame, "TOPLEFT", CellParent, "CENTER", 1, -1)
 anchorFrame:SetMovable(true)
 anchorFrame:SetClampedToScreen(true)
 
@@ -95,7 +95,7 @@ function targetFrame:StartMoving()
     local scale = targetFrame:GetEffectiveScale()
     targetFrame:SetScript("OnUpdate", function()
         local x, y = GetCursorPosition()
-        targetFrame:SetPoint("BOTTOMLEFT", CellDParent, x/scale, y/scale)
+        targetFrame:SetPoint("BOTTOMLEFT", CellParent, x/scale, y/scale)
         targetFrame:SetWidth(targetFrame.label:GetWidth() + 10)
     end)
 end
@@ -254,7 +254,7 @@ for i = 1, 15 do
     b:SetAllPoints(placeholders[i])
     b.isSpotlight = true --! NOTE: prevent overwrite Cell.vars.guids and Cell.vars.names
 
-    --! 澶╂潃鐨?Secure Codes
+    --! 天杀的 Secure Codes
     SecureHandlerSetFrameRef(b, "placeholder", placeholders[i])
     wrapFrame:WrapScript(b, "OnShow", [[
         self:GetFrameRef("placeholder"):Hide()
@@ -327,7 +327,7 @@ target:SetAttribute("_onclick", [[
     menu:CallMethod("Save", index, "target")
 ]])
 
--- NOTE: no EVENT for this kind of targets锛?use OnUpdate
+-- NOTE: no EVENT for this kind of targets， use OnUpdate
 targettarget = Cell.CreateButton(menu, L["Target of Target"], "transparent-accent", {20, 20}, true, false, nil, nil, "SecureHandlerAttributeTemplate,SecureHandlerClickTemplate")
 P.Point(targettarget, "TOPLEFT", target, "BOTTOMLEFT")
 P.Point(targettarget, "TOPRIGHT", target, "BOTTOMRIGHT")
@@ -479,7 +479,7 @@ function unittarget:SetUnit(index, target)
             Cell.unitButtons.spotlight[index]:SetAttribute("updateOnTargetChanged", true)
         else
             unitId = unitId.."target"
-            -- NOTE: no EVENT for this kind of targets锛?use OnUpdate
+            -- NOTE: no EVENT for this kind of targets， use OnUpdate
             Cell.unitButtons.spotlight[index]:SetAttribute("refreshOnUpdate", true)
             Cell.unitButtons.spotlight[index]:SetAttribute("updateOnTargetChanged", nil)
         end
@@ -1031,7 +1031,7 @@ local function UpdateLayout(layout, which)
     if not P.LoadPosition(anchorFrame, layout["spotlight"]["position"]) then
         P.ClearPoints(anchorFrame)
         -- no position, use default
-        anchorFrame:SetPoint("TOPLEFT", CellDParent, "CENTER")
+        anchorFrame:SetPoint("TOPLEFT", CellParent, "CENTER")
     end
 end
 Cell.RegisterCallback("UpdateLayout", "SpotlightFrame_UpdateLayout", UpdateLayout)

@@ -37,7 +37,7 @@ if Cell.isRetail then
             icon = 135987,
             order = 1,
             provider = {
-                PRIEST = {id = 21562, level = 6}, -- Power Word: Fortitude - 鐪熻█鏈細闊?
+                PRIEST = {id = 21562, level = 6}, -- Power Word: Fortitude - 真言术：韧
             }
         },
         versatility = {
@@ -45,7 +45,7 @@ if Cell.isRetail then
             icon = 136078,
             order = 2,
             provider = {
-                DRUID = {id = 1126, level = 9}, -- Mark of the Wild - 閲庢€у嵃璁?
+                DRUID = {id = 1126, level = 9}, -- Mark of the Wild - 野性印记
             }
         },
         mastery = {
@@ -53,7 +53,7 @@ if Cell.isRetail then
             icon = 4630367,
             order = 3,
             provider = {
-                SHAMAN = {id = 462854, level = 16}, -- Skyfury - 澶╂€?
+                SHAMAN = {id = 462854, level = 16}, -- Skyfury - 天怒
             }
         },
         intellect = {
@@ -61,7 +61,7 @@ if Cell.isRetail then
             icon = 135932,
             order = 4,
             provider = {
-                MAGE = {id = 1459, level = 8}, -- Arcane Brilliance - 濂ユ湳鏅烘収
+                MAGE = {id = 1459, level = 8}, -- Arcane Brilliance - 奥术智慧
             }
         },
         attackPower = {
@@ -69,7 +69,7 @@ if Cell.isRetail then
             icon = 132333,
             order = 5,
             provider = {
-                WARRIOR = {id = 6673, level = 10}, -- Battle Shout - 鎴樻枟鎬掑惣
+                WARRIOR = {id = 6673, level = 10}, -- Battle Shout - 战斗怒吼
             }
         },
         movement = {
@@ -77,7 +77,7 @@ if Cell.isRetail then
             icon = 4622448,
             order = 6,
             provider = {
-                EVOKER = {id = 364342, level = 30}, -- Blessing of the Bronze - 闈掗摐榫欑殑绁濈
+                EVOKER = {id = 364342, level = 30}, -- Blessing of the Bronze - 青铜龙的祝福
             }
         }
     }
@@ -389,7 +389,7 @@ end
 local buffTrackerFrame = CreateFrame("Frame", "CellBuffTrackerFrame", Cell.frames.mainFrame, "BackdropTemplate")
 Cell.frames.buffTrackerFrame = buffTrackerFrame
 P.Size(buffTrackerFrame, 102, 50)
-PixelUtil.SetPoint(buffTrackerFrame, "BOTTOMLEFT", CellDParent, "CENTER", 1, 1)
+PixelUtil.SetPoint(buffTrackerFrame, "BOTTOMLEFT", CellParent, "CENTER", 1, 1)
 buffTrackerFrame:SetClampedToScreen(true)
 -- buffTrackerFrame:SetClampRectInsets(0, 0, -20, 0)
 buffTrackerFrame:SetMovable(true)

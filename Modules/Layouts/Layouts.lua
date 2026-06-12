@@ -129,7 +129,7 @@ local function CreateLayoutPreview()
     layoutPreview:Hide()
 
     layoutPreviewAnchor = CreateFrame("Frame", "CellLayoutPreviewAnchorFrame", layoutPreview, "BackdropTemplate")
-    -- layoutPreviewAnchor:SetPoint("TOPLEFT", CellDParent, "CENTER")
+    -- layoutPreviewAnchor:SetPoint("TOPLEFT", CellParent, "CENTER")
     P.Size(layoutPreviewAnchor, 20, 10)
     layoutPreviewAnchor:SetMovable(true)
     layoutPreviewAnchor:EnableMouse(true)
@@ -293,7 +293,7 @@ local function UpdateLayoutPreview()
     else
         if not P.LoadPosition(layoutPreviewAnchor, selectedLayoutTable["main"]["position"]) then
             layoutPreviewAnchor:ClearAllPoints()
-            layoutPreviewAnchor:SetPoint("TOPLEFT", CellDParent, "CENTER")
+            layoutPreviewAnchor:SetPoint("TOPLEFT", CellParent, "CENTER")
         end
     end
     layoutPreviewName:SetText(L["Layout"]..": "..selectedLayout)
@@ -631,7 +631,7 @@ local function UpdateNPCPreview()
 
     if not P.LoadPosition(npcPreviewAnchor, selectedLayoutTable["npc"]["position"]) then
         npcPreviewAnchor:ClearAllPoints()
-        npcPreviewAnchor:SetPoint("TOPLEFT", CellDParent, "CENTER")
+        npcPreviewAnchor:SetPoint("TOPLEFT", CellParent, "CENTER")
     end
     npcPreviewAnchor:Show()
     npcPreviewName:SetText(L["Layout"]..": "..selectedLayout.." (NPC)")
@@ -882,7 +882,7 @@ local function UpdatePetPreview()
 
     if not P.LoadPosition(petPreviewAnchor, selectedLayoutTable["pet"]["position"]) then
         petPreviewAnchor:ClearAllPoints()
-        petPreviewAnchor:SetPoint("TOPLEFT", CellDParent, "CENTER")
+        petPreviewAnchor:SetPoint("TOPLEFT", CellParent, "CENTER")
     end
     petPreviewAnchor:Show()
     petPreviewName:SetText(L["Layout"]..": "..selectedLayout.." ("..L["Pets"]..")")
@@ -1157,7 +1157,7 @@ local function UpdateSpotlightPreview()
     else
         spotlightPreviewAnchor:EnableMouse(true)
         if not P.LoadPosition(spotlightPreviewAnchor, selectedLayoutTable["spotlight"]["position"]) then
-            spotlightPreviewAnchor:SetPoint("TOPLEFT", CellDParent, "CENTER")
+            spotlightPreviewAnchor:SetPoint("TOPLEFT", CellParent, "CENTER")
         end
     end
     spotlightPreviewAnchor:Show()

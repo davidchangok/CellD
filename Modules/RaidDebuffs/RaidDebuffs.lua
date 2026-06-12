@@ -41,10 +41,10 @@ local encounterJournalList = {
     --     },
     -- },
 }
---[==[@debug@
+--@debug@
 Cell_DevExpansionData = encounterJournalList
 Cell_DevExpansionNames = {}
---@end-debug@]==]
+--@end-debug@
 
 -- used to GetInstanceInfo/GetRealZoneText --> instanceId
 local instanceNameMapping = {
@@ -61,8 +61,8 @@ local bossIdToName = {
 }
 
 local instanceBossOverrides = {
-    [362] = {  -- 闆风數鐜嬪骇
-        [13] = 831,  -- 鑾辩櫥
+    [362] = {  -- 雷电王座
+        [13] = 831,  -- 莱登
     },
 }
 
@@ -116,9 +116,9 @@ local function LoadList()
     for tier = 1, num do
         local name = EJ_GetTierInfo(tier)
         encounterJournalList[name] = {}
-        --[==[@debug@
+        --@debug@
         tinsert(Cell_DevExpansionNames, 1, name)
-        --@end-debug@]==]
+        --@end-debug@
 
         if tier ~= CURRENT_SEASON_INDEX then -- don't load raid for "Current Season"
             LoadInstanceList(tier, "raid", encounterJournalList[name])
@@ -136,11 +136,11 @@ end
 -------------------------------------------------
 --[[
 local CURRENT_SEASON = {
-    1194, -- 濉旀墡缁翠粈
-    860, -- 閲嶈繑鍗℃媺璧?
-    1178, -- 楹﹀崱璐¤鍔?
-    558, -- 閽㈤搧鐮佸ご
-    536, -- 鎭愯建杞︾珯
+    1194, -- 塔扎维什
+    860, -- 重返卡拉赞
+    1178, -- 麦卡贡行动
+    558, -- 钢铁码头
+    536, -- 恐轨车站
     -- 226
 }
 
@@ -313,7 +313,7 @@ local function LoadDebuffs()
         end
     end
 
-    -- texplore(loadedDebuffs[477]) -- 鎮鍫?
+    -- texplore(loadedDebuffs[477]) -- 悬槌堡
 end
 
 local function UpdateRaidDebuffs()
@@ -1354,7 +1354,6 @@ local function CreateDetailsFrame()
 
     -- enable
     enabledCB = Cell.CreateCheckButton(detailsContentFrame, L["Enabled"], function(checked)
-        if not currentBossTable or not loadedInstance then return end
         local newOrder = checked and #currentBossTable["enabled"]+1 or 0
         -- update db, on re-enabled set its order to the last
         if not CellDB["raidDebuffs"][loadedInstance] then CellDB["raidDebuffs"][loadedInstance] = {} end
@@ -1471,7 +1470,7 @@ local function CreateDetailsFrame()
     conditionText:SetText(L["Condition"])
     conditionText:SetPoint("TOPLEFT", useElapsedTimeCB, "BOTTOMLEFT", 0, -10)
 
-    -- conditionDropDown TODO: 鍚屾椂鎸佹湁鍙︿竴涓猟ebuff
+    -- conditionDropDown TODO: 同时持有另一个debuff
     conditionDropDown = Cell.CreateDropdown(detailsContentFrame, 117)
     conditionDropDown:SetPoint("TOPLEFT", conditionText, "BOTTOMLEFT", 0, -1)
     conditionDropDown:SetItems({

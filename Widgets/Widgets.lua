@@ -42,15 +42,15 @@ end
 --     obj:SetFont()
 -- end
 
-local font_title_name = "CELL_FONT_WIDGET_TITLE"
-local font_title_disable_name = "CELL_FONT_WIDGET_TITLE_DISABLE"
-local font_name = "CELL_FONT_WIDGET"
-local font_small_name = "CELL_FONT_WIDGET_SMALL"
-local font_chinese_name = "CELL_FONT_CHINESE"
-local font_disable_name = "CELL_FONT_WIDGET_DISABLE"
-local font_special_name = "CELL_FONT_SPECIAL"
-local font_class_title_name = "CELL_FONT_CLASS_TITLE"
-local font_class_name = "CELL_FONT_CLASS"
+local font_title_name = strupper(addonName).."_FONT_WIDGET_TITLE"
+local font_title_disable_name = strupper(addonName).."_FONT_WIDGET_TITLE_DISABLE"
+local font_name = strupper(addonName).."_FONT_WIDGET"
+local font_small_name = strupper(addonName).."_FONT_WIDGET_SMALL"
+local font_chinese_name = strupper(addonName).."_FONT_CHINESE"
+local font_disable_name = strupper(addonName).."_FONT_WIDGET_DISABLE"
+local font_special_name = strupper(addonName).."_FONT_SPECIAL"
+local font_class_title_name = strupper(addonName).."_FONT_CLASS_TITLE"
+local font_class_name = strupper(addonName).."_FONT_CLASS"
 
 local font_title = CreateFont(font_title_name)
 font_title:SetFont(GameFontNormal:GetFont(), 14, "")
@@ -223,7 +223,7 @@ function Cell.StartRainbowText(fs, reverse)
     fs.updater:SetScript("OnUpdate", function(self, elapsed)
 
         local hue = pos
-        -- NOTE: lua 婵繐绲介崹顖炲礌瑜版帒甯冲☉鎿冨幗閺嬪啴鏁嶇仦鑲╃憹闁活厹鍎垫禍鐐濮橆偆鐟濆ù鍏肩濠€渚€姊婚鈧。?
+        -- NOTE: lua 正则匹配中文，不知道会不会有问题
         str = fs.text:gsub("[%z\1-\127\194-\244][\128-\191]*", function(char)
             colorSelect:SetColorHSV(hue,1,1)
             col = CreateColor(colorSelect:GetColorRGB())
@@ -339,7 +339,7 @@ end
 
 
 function Cell.CreateMovableFrame(title, name, width, height, frameStrata, frameLevel, notUserPlaced)
-    local f = CreateFrame("Frame", name, CellDParent, "BackdropTemplate")
+    local f = CreateFrame("Frame", name, CellParent, "BackdropTemplate")
     f:EnableMouse(true)
     -- f:SetResizable(false)
     f:SetMovable(true)
@@ -822,7 +822,7 @@ function Cell.CreateCheckButton(parent, label, onClick, ...)
 
     cb:SetCheckedTexture(checkedTexture)
     cb:SetHighlightTexture(highlightTexture, "ADD")
-    -- cb:SetDisabledCheckedTexture([[Interface\\AddOns\\CellD\\Media\CheckBox\CheckBox-DisabledChecked-16x16]])
+    -- cb:SetDisabledCheckedTexture([[Interface\AddOns\CellD\Media\CheckBox\CheckBox-DisabledChecked-16x16]])
 
     cb:SetScript("OnEnable", function()
         cb.label:SetTextColor(1, 1, 1)
@@ -2144,7 +2144,7 @@ end
 -----------------------------------------
 -- cascading menu
 -----------------------------------------
-local menu = Cell.CreateFrame(addonName.."CascadingMenu", CellDParent, 100, 20)
+local menu = Cell.CreateFrame(addonName.."CascadingMenu", CellParent, 100, 20)
 Cell.menu = menu
 tinsert(UISpecialFrames, menu:GetName())
 menu:SetClampedToScreen(true)
@@ -2749,7 +2749,7 @@ function Cell.CreateScrollFrame(parent, top, bottom, color, border)
         if button ~= 'LeftButton' then return end
         local offsetY = select(5, scrollThumb:GetPoint(1))
         local mouseY = select(2, GetCursorPosition())
-        local uiScale = CellDParent:GetEffectiveScale() -- https://wowpedia.fandom.com/wiki/API_GetCursorPosition
+        local uiScale = CellParent:GetEffectiveScale() -- https://wowpedia.fandom.com/wiki/API_GetCursorPosition
         local currentScroll = scrollFrame:GetVerticalScroll()
         self:SetScript("OnUpdate", function(self)
             --------------------- y offset before dragging + mouse offset
@@ -2810,7 +2810,7 @@ end
 -- dropdown menu
 ------------------------------------------------
 local listInit, list, highlightTexture
-list = CreateFrame("Frame", addonName.."DropdownList", CellDParent, "BackdropTemplate")
+list = CreateFrame("Frame", addonName.."DropdownList", CellParent, "BackdropTemplate")
 -- list:SetIgnoreParentScale(true)
 list:SetClampedToScreen(true)
 -- Cell.StylizeFrame(list, {0.115, 0.115, 0.115, 1})
@@ -2894,11 +2894,11 @@ function Cell.CreateDropdown(parent, width, dropdownType, isMini, isHorizontal)
         Cell.StylizeFrame(menu.button, {0.115, 0.115, 0.115, 1})
         menu.button:SetPoint("TOPRIGHT")
         menu.button:SetFrameLevel(menu:GetFrameLevel()+1)
-        menu.button:SetNormalTexture([[Interface\\AddOns\\CellD\\Media\Icons\dropdown-normal]])
-        menu.button:SetPushedTexture([[Interface\\AddOns\\CellD\\Media\Icons\dropdown-pushed]])
+        menu.button:SetNormalTexture([[Interface\AddOns\CellD\Media\Icons\dropdown-normal]])
+        menu.button:SetPushedTexture([[Interface\AddOns\CellD\Media\Icons\dropdown-pushed]])
 
         local disabledTexture = menu.button:CreateTexture(nil, "OVERLAY")
-        disabledTexture:SetTexture([[Interface\\AddOns\\CellD\\Media\Icons\dropdown-normal]])
+        disabledTexture:SetTexture([[Interface\AddOns\CellD\Media\Icons\dropdown-normal]])
         disabledTexture:SetVertexColor(0.4, 0.4, 0.4, 1)
         menu.button:SetDisabledTexture(disabledTexture)
         -- selected item
@@ -3464,7 +3464,7 @@ function Cell.CreateReceivingFrame(parent)
     f:SetFrameLevel(277)
     f:SetClampedToScreen(true)
     P.Size(f, 249, 135)
-    f:SetPoint("TOPRIGHT", CellDParent, "CENTER")
+    f:SetPoint("TOPRIGHT", CellParent, "CENTER")
     Cell.StylizeFrame(f)
 
     f:SetScript("OnDragStart", function() f:StartMoving() end)

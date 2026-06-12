@@ -1,4 +1,4 @@
-﻿-- these data will be moved into AbstractFramework when Cell finishes migrating to AbstractFramework
+-- these data will be moved into AbstractFramework when Cell finishes migrating to AbstractFramework
 
 local specData = {
     -- Death Knight
