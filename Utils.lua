@@ -52,8 +52,14 @@ do
     -- DRUID = 11,
     -- DEMONHUNTER = 12,
     -- EVOKER = 13,
-    --! GetNumClasses returns the highest class ID (NOT IN CLASSIC)
-    local highestClassID = GetNumClasses()
+    -- GetNumClasses removed in 11.0, use C_ClassInfo.GetNumClasses or fallback
+    local function GetNumClassesSafe()
+        local ok, num = pcall(C_ClassInfo.GetNumClasses)
+        if ok and num then return num end
+        if GetNumClasses then return GetNumClasses() end
+        return 13 -- retail default
+    end
+    local highestClassID = GetNumClassesSafe()
     if highestClassID < 11 then highestClassID = 11 end
     for i = 1, highestClassID do
         local classFile, classID = select(2, GetClassInfo(i))
@@ -83,7 +89,7 @@ function F.IterateClasses()
     local i = 0
     return function()
         i = i + 1
-        if i <= GetNumClasses() then
+        if i <= #sortedClasses then
             return sortedClasses[i], classFileToID[sortedClasses[i]], i
         end
     end
