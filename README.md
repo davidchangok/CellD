@@ -3,7 +3,7 @@
 [![version](https://img.shields.io/github/v/release/davidchangok/CellD)](https://github.com/davidchangok/CellD/releases)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/davidchangok/CellD/blob/main/LICENSE)
 
-**CellD** 是一款优秀的魔兽世界团队框架插件，继承自 [enderneko 的 Cell](https://github.com/enderneko/Cell)。原作者因工作繁忙停止更新后，由 **David W Zhang** 继续维护，专注于正式服最新版本。
+**CellD** 是一款优秀的魔兽世界团队框架插件，继承自 [enderneko 的 Cell](https://github.com/enderneko/Cell)。原作者因工作繁忙停止更新后，由 **David W Zhang** 继续这个版本，专注于正式服最新版本，此版本仅供 David W Zhang 使用。（当然任何人都可以随便用）
 
 ---
 
