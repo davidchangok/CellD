@@ -56,11 +56,11 @@ do
     local highestClassID = GetNumClassesSafe()
     if highestClassID < 11 then highestClassID = 11 end
     for i = 1, highestClassID do
-        local info = C_ClassInfo.GetClassInfo(i)
-        if info and info.classID == i then
-            tinsert(sortedClasses, info.classFile)
-            classFileToID[info.classFile] = i
-            classIDToFile[i] = info.classFile
+        local className, classFile, classID = C_ClassInfo.GetClassInfo(i)
+        if classFile and classID == i then
+            tinsert(sortedClasses, classFile)
+            classFileToID[classFile] = i
+            classIDToFile[i] = classFile
         end
     end
     sort(sortedClasses)
@@ -1513,8 +1513,10 @@ Cell.vars.emptyTexture = "Interface\\AddOns\\CellD\\Media\\empty.tga"
 Cell.vars.whiteTexture = "Interface\\AddOns\\CellD\\Media\\white.tga"
 
 local LSM = LibStub("LibSharedMedia-3.0", true)
-LSM:Register("statusbar", "Cell ".._G.DEFAULT, Cell.vars.texture)
-LSM:Register("font", "Visitor", [[Interface\\AddOns\\CellD\\Media\Fonts\visitor.ttf]], 255)
+if LSM then
+    LSM:Register("statusbar", "Cell "..(_G.DEFAULT or "Default"), Cell.vars.texture)
+    LSM:Register("font", "Visitor", [[Interface\AddOns\CellD\Media\Fonts\visitor.ttf]], 255)
+end
 
 function F.GetBarTexture()
     --! update Cell.vars.texture for further use in UnitButton_OnLoad
