@@ -1011,7 +1011,6 @@ end)
     斜杠命令处理
     /celld options (opt)  - 打开设置窗口
     /celld healers       - 创建"治疗者"指示器
-    /celld blackbox      - 运行 Secret Value 安全性黑箱自检
     /celld rescale       - 应用推荐缩放比例
     /celld reset <类型>  - 重置各类设置
     /celld report <N>    - 设置团队战死亡通报数量
@@ -1036,9 +1035,6 @@ function SlashCmdList.CELLD(msg, editbox)
 
     elseif command == "healers" then
         F.FirstRun()
-
-    elseif command == "blackbox" then
-        F.RunBlackBoxTests()
 
     elseif command == "rescale" then
         CellDB["appearance"]["scale"] = P.GetRecommendedScale()
@@ -1121,7 +1117,6 @@ function SlashCmdList.CELLD(msg, editbox)
         F.Print(L["Available slash commands"]..":\n"..
             "|cFFFFB5C5/celld options|r, |cFFFFB5C5/celld opt|r: "..L["show Cell options frame"]..".\n"..
             "|cFFFFB5C5/celld healers|r: "..L["create a \"Healers\" indicator"]..".\n"..
-            "|cFFFFB5C5/celld blackbox|r: ".."杩愯 Secret Values 瀹夊叏鎬ч粦绠辫嚜妫€"..".\n"..
             "|cFFFFB5C5/celld rescale|r: "..strlower(L["Apply Recommended Scale"])..".\n"..
             "|cFFFF7777"..L["These \"reset\" commands below affect all your characters in this account"]..".|r\n"..
             "|cFFFFB5C5/celld reset position|r: "..L["reset Cell position"]..".\n"..

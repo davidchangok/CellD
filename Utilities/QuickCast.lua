@@ -897,23 +897,35 @@ local function QuickCast_UpdateAuras(self)
     local glowBuffFound, outerBuffFound, innerBuffFound
 
     AuraUtil.ForEachAura(self.unit, "HELPFUL", nil, function(name, icon, count, debuffType, duration, expirationTime, source, isStealable, nameplateShowPersonal, spellId)
-        -- Midnight 12.0.0+: skip auras whose fields are secret; non-secret auras (e.g. raid buffs) are safe to read
+        -- Midnight 12.0.0+: 跳过 spellId 为 secret 的光环
         if Cell.isMidnight and issecretvalue and issecretvalue(spellId) then return end
+        -- Midnight 12.0.0+: 即使 spellId 可读, temporal 字段仍可能为 secret
+        -- 对 secret 字段进行算术运算会抛出 Lua 错误, 需要 pcall 保护
+        local start, dur = 0, 0
+        if Cell.isMidnight then
+            if not issecretvalue or (not issecretvalue(expirationTime) and not issecretvalue(duration)) then
+                start = expirationTime - duration
+                dur = duration
+            end
+        else
+            start = expirationTime - duration
+            dur = duration
+        end
 
         if glowBuffs[name] then
             glowBuffFound = true
-            self:SetGlowBuffCooldown(expirationTime - duration, duration)
+            self:SetGlowBuffCooldown(start, dur)
         end
 
         if source == "player" then
             if name == outerBuff then
                 outerBuffFound = true
-                self:SetOuterCooldown(expirationTime - duration, duration)
+                self:SetOuterCooldown(start, dur)
             end
 
             if name == innerBuff then
                 innerBuffFound = true
-                self:SetInnerCooldown(expirationTime - duration, duration)
+                self:SetInnerCooldown(start, dur)
             end
         end
     end)

@@ -15,7 +15,6 @@ Libs\LoadLibs.xml
 
 Core.lua
 Utils.lua
-BlackBox.lua
 Revise.lua
 Comm\LoadComm.xml
 Widgets\LoadWidgets.xml
