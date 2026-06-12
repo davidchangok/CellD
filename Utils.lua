@@ -6,7 +6,12 @@ local F = Cell.funcs
 ---@type CellIndicatorFuncs
 local I = Cell.iFuncs
 
-Cell.vars.playerFaction = UnitFactionGroup("player")
+-- 12.0.5: UnitFactionGroup removed, use C_UnitInfo
+local playerFaction = "Neutral"
+if C_UnitInfo and C_UnitInfo.GetFactionGroup then
+    playerFaction = C_UnitInfo.GetFactionGroup("player") or "Neutral"
+end
+Cell.vars.playerFaction = playerFaction
 
 --[[
     娓告垙鐗堟湰妫€娴?    CellD 浠呮敮鎸侀瓟鍏戒笘鐣屾寮忔湇 12.0.5+ (Midnight)
@@ -39,34 +44,23 @@ local classFileToID = {}
 local classIDToFile = {}
 
 do
-    -- WARRIOR = 1,
-    -- PALADIN = 2,
-    -- HUNTER = 3,
-    -- ROGUE = 4,
-    -- PRIEST = 5,
-    -- DEATHKNIGHT = 6,
-    -- SHAMAN = 7,
-    -- MAGE = 8,
-    -- WARLOCK = 9,
-    -- MONK = 10,
-    -- DRUID = 11,
-    -- DEMONHUNTER = 12,
-    -- EVOKER = 13,
-    -- GetNumClasses removed in 11.0, use C_ClassInfo.GetNumClasses or fallback
+    -- WARRIOR = 1, PALADIN = 2, HUNTER = 3, ROGUE = 4, PRIEST = 5,
+    -- DEATHKNIGHT = 6, SHAMAN = 7, MAGE = 8, WARLOCK = 9, MONK = 10,
+    -- DRUID = 11, DEMONHUNTER = 12, EVOKER = 13
     local function GetNumClassesSafe()
-        local ok, num = pcall(C_ClassInfo.GetNumClasses)
-        if ok and num then return num end
-        if GetNumClasses then return GetNumClasses() end
-        return 13 -- retail default
+        if C_ClassInfo and C_ClassInfo.GetNumClasses then
+            return C_ClassInfo.GetNumClasses()
+        end
+        return 13
     end
     local highestClassID = GetNumClassesSafe()
     if highestClassID < 11 then highestClassID = 11 end
     for i = 1, highestClassID do
-        local classFile, classID = select(2, GetClassInfo(i))
-        if classFile and classID == i then
-            tinsert(sortedClasses, classFile)
-            classFileToID[classFile] = i
-            classIDToFile[i] = classFile
+        local info = C_ClassInfo.GetClassInfo(i)
+        if info and info.classID == i then
+            tinsert(sortedClasses, info.classFile)
+            classFileToID[info.classFile] = i
+            classIDToFile[i] = info.classFile
         end
     end
     sort(sortedClasses)
