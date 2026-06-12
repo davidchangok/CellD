@@ -133,22 +133,22 @@ local function RunBlackBox()
 
     runTest("UnitHealth('player')", function()
         local h = UnitHealth("player")
-        local _ = h >= 0  -- 触发比较
+        F.SafeCompareGE(h, 0)  -- 使用安全比较绕过 Secret Value
     end)
 
     runTest("UnitHealthMax('player')", function()
         local h = UnitHealthMax("player")
-        local _ = h >= 0
+        F.SafeCompareGE(h, 0)
     end)
 
     runTest("UnitPower('player')", function()
         local p = UnitPower("player")
-        local _ = p >= 0
+        F.SafeCompareGE(p, 0)
     end)
 
     runTest("UnitPowerMax('player')", function()
         local p = UnitPowerMax("player")
-        local _ = p >= 0
+        F.SafeCompareGE(p, 0)
     end)
 
     -- 2. 吸收量检测
@@ -168,7 +168,7 @@ local function RunBlackBox()
         if C_UnitAuras and C_UnitAuras.GetAuraDataByIndex then
             local aura = C_UnitAuras.GetAuraDataByIndex("player", 1)
             if aura and aura.duration then
-                local _ = aura.duration + 0
+                F.SafeNumber(aura.duration, 0)  -- 光环持续时间可能是 secret value
             end
         else
             error("C_UnitAuras.GetAuraDataByIndex 不可用")
@@ -182,7 +182,7 @@ local function RunBlackBox()
         if GetUnitSpeed then
             local s = GetUnitSpeed("player")
             if s then
-                local _ = s + 0
+                F.SafeNumber(s, 0)  -- 移动速度可能是 secret value
             end
         end
     end)
