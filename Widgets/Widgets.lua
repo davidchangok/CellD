@@ -42,15 +42,15 @@ end
 --     obj:SetFont()
 -- end
 
-local font_title_name = strupper(addonName).."_FONT_WIDGET_TITLE"
-local font_title_disable_name = strupper(addonName).."_FONT_WIDGET_TITLE_DISABLE"
-local font_name = strupper(addonName).."_FONT_WIDGET"
-local font_small_name = strupper(addonName).."_FONT_WIDGET_SMALL"
-local font_chinese_name = strupper(addonName).."_FONT_CHINESE"
-local font_disable_name = strupper(addonName).."_FONT_WIDGET_DISABLE"
-local font_special_name = strupper(addonName).."_FONT_SPECIAL"
-local font_class_title_name = strupper(addonName).."_FONT_CLASS_TITLE"
-local font_class_name = strupper(addonName).."_FONT_CLASS"
+local font_title_name = "CELL_FONT_WIDGET_TITLE"
+local font_title_disable_name = "CELL_FONT_WIDGET_TITLE_DISABLE"
+local font_name = "CELL_FONT_WIDGET"
+local font_small_name = "CELL_FONT_WIDGET_SMALL"
+local font_chinese_name = "CELL_FONT_CHINESE"
+local font_disable_name = "CELL_FONT_WIDGET_DISABLE"
+local font_special_name = "CELL_FONT_SPECIAL"
+local font_class_title_name = "CELL_FONT_CLASS_TITLE"
+local font_class_name = "CELL_FONT_CLASS"
 
 local font_title = CreateFont(font_title_name)
 font_title:SetFont(GameFontNormal:GetFont(), 14, "")
