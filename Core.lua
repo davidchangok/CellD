@@ -1,4 +1,5 @@
 ---@class Cell
+local addonName = select(1, ...)
 local Cell = select(2, ...)
 _G.Cell = Cell
 
@@ -539,7 +540,7 @@ function eventFrame:ADDON_LOADED(arg1)
         Cell.vars.actions = I.ConvertActions(CellDB["actions"])
 
         -- misc -----------------------------------------------------------------------------------
-        Cell.version = GetAddOnMetadata("Cell", "version")
+        Cell.version = GetAddOnMetadata(addonName, "Version") or "1.0.0"
         Cell.versionNum = tonumber(string.match(Cell.version, "%d+"))
         if not CellDB["revise"] then CellDB["firstRun"] = true end
         F.Revise()
