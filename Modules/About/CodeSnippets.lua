@@ -160,7 +160,7 @@ local function CreateCodeSnippetsFrame()
     errorPopup:SetPoint("BOTTOMRIGHT")
     errorPopup:Hide()
 
-    errorPopup.close = Cell.CreateButton(errorPopup, "鑴?, "red", {18, 18}, false, false, "CELL_FONT_SPECIAL", "CELL_FONT_SPECIAL")
+    errorPopup.close = Cell.CreateButton(errorPopup, "×", "red", {18, 18}, false, false, "CELL_FONT_SPECIAL", "CELL_FONT_SPECIAL")
     errorPopup.close:SetPoint("TOPRIGHT")
     errorPopup.close:SetScript("OnClick", function()
         errorPopup:Hide()

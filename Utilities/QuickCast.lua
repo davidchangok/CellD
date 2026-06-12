@@ -692,6 +692,7 @@ local function LoadSpellButton(b, value)
 end
 
 local function LoadDB()
+    if not quickCastTable then return end
     qcEnabledCB:SetChecked(quickCastTable["enabled"])
     qcNameDD:SetSelectedValue(quickCastTable["namePosition"])
     qcButtonsSlider:SetValue(quickCastTable["num"])

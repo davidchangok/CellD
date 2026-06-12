@@ -2190,25 +2190,35 @@ end
 -- shield bar
 -------------------------------------------------
 local function ShieldBar_SetHorizontalValue(bar, percent)
-    local maxWidth = bar.parentHealthBar:GetWidth()
+    if not percent then bar:Hide(); return end
+    local ok, maxWidth = pcall(bar.parentHealthBar.GetWidth, bar.parentHealthBar)
+    if not ok then bar:Hide(); return end
     local barWidth
-    if percent >= 1 then
-        barWidth = maxWidth
-    else
-        barWidth = maxWidth * percent
-    end
-    bar:SetWidth(max(barWidth, 3))
+    ok, barWidth = pcall(function()
+        if percent >= 1 then
+            return maxWidth
+        else
+            return maxWidth * percent
+        end
+    end)
+    if not ok then bar:Hide(); return end
+    bar:SetWidth(max(barWidth or 3, 3))
 end
 
 local function ShieldBar_SetVerticalValue(bar, percent)
-    local maxHeight = bar.parentHealthBar:GetHeight()
+    if not percent then bar:Hide(); return end
+    local ok, maxHeight = pcall(bar.parentHealthBar.GetHeight, bar.parentHealthBar)
+    if not ok then bar:Hide(); return end
     local barHeight
-    if percent >= 1 then
-        barHeight = maxHeight
-    else
-        barHeight = maxHeight * percent
-    end
-    bar:SetHeight(max(barHeight, 3))
+    ok, barHeight = pcall(function()
+        if percent >= 1 then
+            return maxHeight
+        else
+            return maxHeight * percent
+        end
+    end)
+    if not ok then bar:Hide(); return end
+    bar:SetHeight(max(barHeight or 3, 3))
 end
 
 local function ShieldBar_SetPoint(bar, point, anchorTo, anchorPoint, x, y)

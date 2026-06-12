@@ -2596,7 +2596,8 @@ UnitButton_UpdateShieldAbsorbs = function(self, skipStateUpdates)
             -- NOTE: indicatorBooleans["shieldBar"] (onlyShowOvershields) can't be honored with
             -- secrets since we can't compute overshieldPercent. Show full absorbs instead.
             self.indicators.shieldBar:Show()
-            self.indicators.shieldBar:SetValue(absorbs)
+            local ok = pcall(self.indicators.shieldBar.SetValue, self.indicators.shieldBar, absorbs)
+            if not ok then self.indicators.shieldBar:Hide() end
         else
             self.indicators.shieldBar:Hide()
         end

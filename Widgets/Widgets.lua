@@ -42,15 +42,15 @@ end
 --     obj:SetFont()
 -- end
 
-local font_title_name = strupper(addonName).."_FONT_WIDGET_TITLE"
-local font_title_disable_name = strupper(addonName).."_FONT_WIDGET_TITLE_DISABLE"
-local font_name = strupper(addonName).."_FONT_WIDGET"
-local font_small_name = strupper(addonName).."_FONT_WIDGET_SMALL"
-local font_chinese_name = strupper(addonName).."_FONT_CHINESE"
-local font_disable_name = strupper(addonName).."_FONT_WIDGET_DISABLE"
-local font_special_name = strupper(addonName).."_FONT_SPECIAL"
-local font_class_title_name = strupper(addonName).."_FONT_CLASS_TITLE"
-local font_class_name = strupper(addonName).."_FONT_CLASS"
+local font_title_name = "CELL_FONT_WIDGET_TITLE"
+local font_title_disable_name = "CELL_FONT_WIDGET_TITLE_DISABLE"
+local font_name = "CELL_FONT_WIDGET"
+local font_small_name = "CELL_FONT_WIDGET_SMALL"
+local font_chinese_name = "CELL_FONT_CHINESE"
+local font_disable_name = "CELL_FONT_WIDGET_DISABLE"
+local font_special_name = "CELL_FONT_SPECIAL"
+local font_class_title_name = "CELL_FONT_CLASS_TITLE"
+local font_class_name = "CELL_FONT_CLASS"
 
 local font_title = CreateFont(font_title_name)
 font_title:SetFont(GameFontNormal:GetFont(), 14, "")
@@ -374,7 +374,7 @@ function Cell.CreateMovableFrame(title, name, width, height, frameStrata, frameL
     header.text:SetText(title)
     header.text:SetPoint("CENTER", header)
 
-    header.closeBtn = Cell.CreateButton(header, "閼?, "red", {20, 20}, false, false, "CELL_FONT_SPECIAL", "CELL_FONT_SPECIAL")
+    header.closeBtn = Cell.CreateButton(header, "×", "red", {20, 20}, false, false, "CELL_FONT_SPECIAL", "CELL_FONT_SPECIAL")
     header.closeBtn:SetPoint("TOPRIGHT")
     header.closeBtn:SetScript("OnClick", function() f:Hide() end)
 
@@ -3216,7 +3216,7 @@ function Cell.CreateBindingButton(parent, width)
         tinsert(UISpecialFrames, parent.bindingButton:GetName())
         Cell.StylizeFrame(parent.bindingButton, {0.1, 0.1, 0.1, 1}, {accentColor.t[1], accentColor.t[2], accentColor.t[3]})
 
-        parent.bindingButton.close = Cell.CreateButton(parent.bindingButton, "閼?, "red", {18, 18}, true, true, "CELL_FONT_SPECIAL", "CELL_FONT_SPECIAL")
+        parent.bindingButton.close = Cell.CreateButton(parent.bindingButton, "×", "red", {18, 18}, true, true, "CELL_FONT_SPECIAL", "CELL_FONT_SPECIAL")
         parent.bindingButton.close:SetPoint("TOPRIGHT", -1, -1)
         parent.bindingButton.close:SetScript("OnClick", function()
             parent.bindingButton:Hide()

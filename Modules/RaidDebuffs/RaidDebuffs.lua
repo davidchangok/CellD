@@ -1354,6 +1354,7 @@ local function CreateDetailsFrame()
 
     -- enable
     enabledCB = Cell.CreateCheckButton(detailsContentFrame, L["Enabled"], function(checked)
+        if not currentBossTable or not loadedInstance then return end
         local newOrder = checked and #currentBossTable["enabled"]+1 or 0
         -- update db, on re-enabled set its order to the last
         if not CellDB["raidDebuffs"][loadedInstance] then CellDB["raidDebuffs"][loadedInstance] = {} end
