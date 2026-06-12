@@ -2202,7 +2202,8 @@ else
     UnitInSamePhase = UnitInPhase
 end
 
-local playerClass = UnitClassBase("player")
+local ok, pc = pcall(UnitClassBase, "player")
+local playerClass = ok and pc or "WARRIOR"
 
 local friendSpells = {
     -- ["DEATHKNIGHT"] = 47541,
