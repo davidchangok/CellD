@@ -349,12 +349,14 @@ do
 end
 
 -------------------------------------------------
--- make them accessible
+-- 导出数据供外部访问
+-- Cell/CellD 本体：导出 supporters1/supporters2/wowSupporters
+-- 其他插件引用时：导出 cellSupporters
 -------------------------------------------------
-if addonName == "Cell" then -- Cell
-    ns.supporters1 = supporters1
-    ns.supporters2 = supporters2
-    ns.wowSupporters = Cell.funcs.TMergeOverwrite(wowSupporters, tests)
-else -- other addons
-    ns.cellSupporters = wowSupporters
+if addonName == "Cell" or addonName == "CellD" then -- Cell / CellD 本体
+    ns.supporters1 = supporters1                                   -- 爱发电支持者列表
+    ns.supporters2 = supporters2                                   -- Ko-fi 支持者列表
+    ns.wowSupporters = Cell.funcs.TMergeOverwrite(wowSupporters, tests) -- 游戏内支持者文本显示
+else -- 被其他插件引用时
+    ns.cellSupporters = wowSupporters                              -- 提供支持者数据
 end
