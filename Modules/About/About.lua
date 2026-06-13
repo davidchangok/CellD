@@ -42,7 +42,7 @@ local function CreateOriginalAuthorPane()
 
     originalAuthorText = pane:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
     originalAuthorText:SetPoint("TOPLEFT", 5, -27)
-    originalAuthorText:SetText("enderneko (Cell)")
+    originalAuthorText:SetText("enderneko（原始Cell插件作者）")
 end
 
 -------------------------------------------------
@@ -54,7 +54,7 @@ local function CreateRewriteAuthorPane()
 
     authorText = pane:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
     authorText:SetPoint("TOPLEFT", 5, -27)
-    authorText:SetText("David W Zhang (CellD)")
+    authorText:SetText("David W Zhang（CellD改写和维护者）")
 end
 
 -------------------------------------------------
