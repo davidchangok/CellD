@@ -1223,7 +1223,7 @@ local function HandleDebuff(self, auraInfo)
 
         if enabledIndicators["debuffs"] and not isBlacklisted then
             -- all debuffs / only dispellableByMe
-            if not indicatorBooleans["debuffs"] or I.CanDispel(debuffType) then
+            if not indicatorBooleans["debuffs"] or auraInfo.canActivePlayerDispel then
                 if isBig then
                     self._debuffs_big[auraInstanceID] = true
                 else
@@ -1253,7 +1253,7 @@ local function HandleDebuff(self, auraInfo)
 
         if enabledIndicators["dispels"] and debuffType and debuffType ~= "" then
             -- all dispels / only dispellableByMe
-            if not indicatorBooleans ["dispels"]["dispellableByMe"] or I.CanDispel(debuffType) then
+            if not indicatorBooleans["dispels"]["dispellableByMe"] or auraInfo.canActivePlayerDispel then
                 if indicatorBooleans["dispels"][debuffType] then
                     if isDispelBlacklisted then
                         -- no highlight
