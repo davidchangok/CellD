@@ -1,81 +1,36 @@
 --[[
     CellD 集中化 Debuff/Buff 状态模块 (DebuffStatus.lua)
     =====================================================
-    借鉴 Grid2 StatusAuras.lua 设计模式，将 UnitButton.lua 中分散在
-    HandleDebuff/HandleBuff/UpdateDebuffs/UpdateBuffs 中的以下逻辑
-    集中到单一模块：
+    借鉴 Grid2 StatusAuras.lua 设计模式，将 UnitButton.lua 中原先分散的
+    纯函数集中管理。HandleDebuff/HandleBuff 的热路径（时间值计算、debuffType
+    提取、分类查询）保持内联以保证 combat 环境下的可靠性。
 
-    1. 时间值计算（start/duration/hasSecretTime）
-    2. DurationObject 回退（C_UnitAuras.GetAuraDuration）
-    3. 光环刷新状态（UpdateAuraRefreshState）
-    4. 分类查询（isBig/isBlacklisted/isDispelBlacklisted）
-    5. 排序和变量重置
+    本模块提供：
+    1. DurationObject 回退（C_UnitAuras.GetAuraDuration）
+    2. 光环刷新状态（UpdateRefreshState）
+    3. raidDebuffs 排序（含 cache miss nil guard）
+    4. 变量重置（ResetDebuffVars / ResetBuffVars）
 
     Grid2 参考：
     - StatusAuras.lua: Shared.GetIcons() → GetUnitAuras 批量获取
     - IndicatorIcons.lua: canaccessvalue → DurationObject fallback
     - GridUtils.lua: issecretvalue/canaccessvalue 全局原语
-
-    本模块不改变 CellD 的 HandleDebuff/HandleBuff 整体架构，
-    但消除了其中 4 处重复的时间值计算代码，并提供
-    DurationObject 作为 secret aura 冷却动画的 fallback。
 --]]
 
 local _, Cell = ...
 local F = Cell.funcs
-local I = Cell.iFuncs
 
 local DebuffStatus = {}
 
 --------------------------------------------------
--- 时间值计算
+-- DurationObject 回退（Grid2 模式）
 --------------------------------------------------
 
--- 从 auraInfo 提取 start/duration/hasSecret 三元组
--- 参考 Grid2 IndicatorIcons: canaccessvalue → SetCooldownFromExpirationTime
---                        else → GetAuraDuration → DurationObject
-function DebuffStatus.GetTemporal(auraInfo)
-    local start, duration, hasSecret
-    if F.IsValueNonSecret(auraInfo.expirationTime) and F.IsValueNonSecret(auraInfo.duration) then
-        start = (auraInfo.expirationTime or 0) - auraInfo.duration
-        duration = auraInfo.duration
-        hasSecret = false
-    else
-        start = 0
-        duration = 0
-        hasSecret = true  -- 标记原始值是 secret，不跳过分类
-    end
-    return start, duration, hasSecret
-end
-
--- DurationObject 回退：当时间值是 secret 时获取可渲染对象
--- Grid2 模式：C_UnitAuras.GetAuraDuration(unit, auraInstanceID)
 function DebuffStatus.GetDurationObject(unit, auraInstanceID)
     if C_UnitAuras and C_UnitAuras.GetAuraDuration and unit and auraInstanceID then
         return C_UnitAuras.GetAuraDuration(unit, auraInstanceID)
     end
     return nil
-end
-
--- 安全的 debuffType 提取
--- Grid2 模式：issecretvalue guard 在字符串操作前
-function DebuffStatus.GetDebuffType(auraInfo)
-    return (auraInfo.dispelName and (not issecretvalue or not issecretvalue(auraInfo.dispelName))) and auraInfo.dispelName or ""
-end
-
---------------------------------------------------
--- 分类查询
---------------------------------------------------
-
-function DebuffStatus.ClassifyDebuff(auraInfo)
-    local isBig, isBlacklisted, isDispelBlacklisted
-    if F.IsAuraNonSecret(auraInfo) then
-        local spellId = auraInfo.spellId
-        isBig = spellId and Cell.vars.bigDebuffs[spellId] or false
-        isBlacklisted = spellId and Cell.vars.debuffBlacklist[spellId] or false
-        isDispelBlacklisted = spellId and Cell.vars.dispelBlacklist[spellId] or false
-    end
-    return isBig or false, isBlacklisted or false, isDispelBlacklisted or false
 end
 
 --------------------------------------------------
@@ -116,7 +71,7 @@ function DebuffStatus.UpdateRefreshState(auraInfo)
 end
 
 --------------------------------------------------
--- 排序
+-- 排序（含 cache miss nil guard）
 --------------------------------------------------
 
 function DebuffStatus.SortRaidDebuffs(button)

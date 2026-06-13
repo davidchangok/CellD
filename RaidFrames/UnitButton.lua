@@ -1131,9 +1131,21 @@ local function HandleDebuff(self, auraInfo)
     local icon = auraInfo.icon
     local count = auraInfo.applications
     -- Midnight 12.0.0+: dispelName may be secret (truthy, so `or ""` won't help); sanitize it
-    local debuffType = DebuffStatus.GetDebuffType(auraInfo)
-    -- DebuffStatus.GetTemporal: centralized secret-safe start/duration extraction (Grid2 pattern)
-    local start, duration, hasSecretTime = DebuffStatus.GetTemporal(auraInfo)
+    local debuffType = (auraInfo.dispelName and (not issecretvalue or not issecretvalue(auraInfo.dispelName))) and auraInfo.dispelName or ""
+    local expirationTime = auraInfo.expirationTime or 0
+    local duration = auraInfo.duration
+    -- Midnight 12.0.0+: expirationTime and duration may be secret even when spellId is not.
+    -- Guard per-field: non-secret temporal fields get proper duration/cooldown display.
+    -- When secret, we still classify/show the debuff — just without cooldown animation.
+    local start
+    local hasSecretTime = false
+    if F.IsValueNonSecret(expirationTime) and F.IsValueNonSecret(duration) then
+        start = expirationTime - duration
+    else
+        start = 0
+        duration = 0
+        hasSecretTime = true -- flag the original values were secret, don't skip the debuff
+    end
     local source = auraInfo.sourceUnit
     local spellId = auraInfo.spellId
     -- local attribute = auraInfo.points[1] -- UnitAura:arg16
@@ -1145,7 +1157,6 @@ local function HandleDebuff(self, auraInfo)
     debuffType = I.CheckDebuffType(debuffType, spellId)
 
     -- Store computed values on auraInfo so rendering loop can read them directly
-    -- without calling DebuffStatus again in the hot path.
     auraInfo._start = start
     auraInfo._duration = duration
     auraInfo._debuffType = debuffType
@@ -1157,7 +1168,14 @@ local function HandleDebuff(self, auraInfo)
         DebuffStatus.UpdateRefreshState(auraInfo)
         self._debuffs_cache[auraInstanceID] = auraInfo
 
-        local isBig, isBlacklisted, isDispelBlacklisted = DebuffStatus.ClassifyDebuff(auraInfo)
+        local isBig = false
+        local isBlacklisted = false
+        local isDispelBlacklisted = false
+        if F.IsAuraNonSecret(auraInfo) then
+            isBig = spellId and Cell.vars.bigDebuffs[spellId] or false
+            isBlacklisted = spellId and Cell.vars.debuffBlacklist[spellId] or false
+            isDispelBlacklisted = spellId and Cell.vars.dispelBlacklist[spellId] or false
+        end
 
         if enabledIndicators["debuffs"] and not isBlacklisted then
             -- all debuffs / only dispellableByMe
@@ -1412,8 +1430,21 @@ local function HandleBuff(self, auraInfo)
     -- SetTexture() accepts secret numbers, so this works as-is
     local icon = auraInfo.icon
     local count = auraInfo.applications
-    -- DebuffStatus.GetTemporal: centralized secret-safe start/duration extraction (Grid2 pattern)
-    local start, duration, hasSecretTime = DebuffStatus.GetTemporal(auraInfo)
+    -- local debuffType = auraInfo.isHarmful and auraInfo.dispelName
+    local expirationTime = auraInfo.expirationTime or 0
+    local duration = auraInfo.duration
+    -- Midnight 12.0.0+: expirationTime and duration may be secret even when spellId is not.
+    -- Guard per-field: non-secret temporal fields get proper duration/cooldown display.
+    -- When secret, we still classify/show the buff — just without cooldown animation.
+    local start
+    local hasSecretTime = false
+    if F.IsValueNonSecret(expirationTime) and F.IsValueNonSecret(duration) then
+        start = expirationTime - duration
+    else
+        start = 0
+        duration = 0
+        hasSecretTime = true -- flag the original values were secret, don't skip the buff
+    end
     local source = auraInfo.sourceUnit
     local spellId = auraInfo.spellId
     -- local attribute = auraInfo.points[1] -- UnitAura:arg16
