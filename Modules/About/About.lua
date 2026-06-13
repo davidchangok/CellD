@@ -16,7 +16,7 @@ local UpdateFont
 -------------------------------------------------
 local descriptionPane
 local function CreateDescriptionPane()
-    descriptionPane = Cell.CreateTitledPane(aboutTab, "CellD", 422, 120)
+    descriptionPane = Cell.CreateTitledPane(aboutTab, "CellD", 422, 80)
     descriptionPane:SetPoint("TOPLEFT", aboutTab, "TOPLEFT", 5, -5)
 
     local snippetsBtn = Cell.CreateButton(descriptionPane, L["Code Snippets"], "accent", {120, 17})
@@ -37,8 +37,8 @@ end
 -- original author
 -------------------------------------------------
 local function CreateOriginalAuthorPane()
-    local pane = Cell.CreateTitledPane(aboutTab, L["Original Author"], 422, 30)
-    pane:SetPoint("TOPLEFT", aboutTab, "TOPLEFT", 5, -130)
+    local pane = Cell.CreateTitledPane(aboutTab, L["Original Author"], 210, 50)
+    pane:SetPoint("TOPLEFT", aboutTab, "TOPLEFT", 5, -110)
 
     originalAuthorText = pane:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
     originalAuthorText:SetPoint("TOPLEFT", 5, -27)
@@ -49,8 +49,8 @@ end
 -- rewrite author
 -------------------------------------------------
 local function CreateRewriteAuthorPane()
-    local pane = Cell.CreateTitledPane(aboutTab, L["Rewrite Author"], 422, 30)
-    pane:SetPoint("TOPLEFT", aboutTab, "TOPLEFT", 5, -165)
+    local pane = Cell.CreateTitledPane(aboutTab, L["Rewrite Author"], 210, 50)
+    pane:SetPoint("TOPLEFT", aboutTab, "TOPLEFT", 222, -110)
 
     authorText = pane:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
     authorText:SetPoint("TOPLEFT", 5, -27)
@@ -61,8 +61,8 @@ end
 -- contributors
 -------------------------------------------------
 local function CreateContributorsPane()
-    local pane = Cell.CreateTitledPane(aboutTab, L["Contributors"], 422, 100)
-    pane:SetPoint("TOPLEFT", aboutTab, "TOPLEFT", 5, -200)
+    local pane = Cell.CreateTitledPane(aboutTab, L["Contributors"], 422, 140)
+    pane:SetPoint("TOPLEFT", aboutTab, "TOPLEFT", 5, -165)
 
     local text = pane:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
     text:SetPoint("TOPLEFT", 5, -27)
@@ -325,7 +325,7 @@ end
 
 local function CreateLinksPane()
     local linksPane = Cell.CreateTitledPane(aboutTab, L["Links"], 422, 100)
-    linksPane:SetPoint("TOPLEFT", aboutTab, "TOPLEFT", 5, -480)
+    linksPane:SetPoint("TOPLEFT", aboutTab, "TOPLEFT", 5, -330)
 
     local current
 
@@ -361,7 +361,7 @@ end
 -------------------------------------------------
 local function CreateImportExportPane()
     local iePane = Cell.CreateTitledPane(aboutTab, L["Import & Export All Settings"], 422, 50)
-    iePane:SetPoint("TOPLEFT", 5, -595)
+    iePane:SetPoint("TOPLEFT", 5, -455)
 
     local importBtn = Cell.CreateButton(iePane, L["Import"], "accent-hover", {134, 20})
     importBtn:SetPoint("TOPLEFT", 5, -27)

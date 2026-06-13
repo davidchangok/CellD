@@ -10,7 +10,7 @@ local selected, forceLoadSelected = 0, true
 local LoadList, LoadSnippet, RunSnippet
 
 local function CreateCodeSnippetsFrame()
-    codeSnippetsFrame = Cell.CreateMovableFrame("Cell " .. L["Code Snippets"], "CellCodeSnippetsFrame", 641, 550, "DIALOG")
+    codeSnippetsFrame = Cell.CreateMovableFrame("CellD " .. L["Code Snippets"], "CellCodeSnippetsFrame", 641, 550, "DIALOG")
     Cell.frames.codeSnippetsFrame = codeSnippetsFrame
     codeSnippetsFrame:SetToplevel(true)
     codeSnippetsFrame:SetPoint("CENTER")
@@ -200,7 +200,7 @@ LoadList = function()
         buttons[0].label:SetPoint("RIGHT", -3, 0)
         buttons[0].label:SetJustifyH("LEFT")
         buttons[0].label:SetWordWrap(false)
-        buttons[0].label:SetText("Cell")
+        buttons[0].label:SetText("CellD")
     end
 
     buttons[0].cb:SetChecked(CellDB["snippets"][0]["autorun"])
@@ -426,28 +426,27 @@ end
 function F.GetDefaultSnippet()
     return {
         ["autorun"] = true,
-        ["code"] = "-- snippets can be found at https://github.com/enderneko/Cell/tree/master/.snippets\n" ..
-            "-- use \"/run CellDB['snippets'][0]=nil ReloadUI()\" to reset this snippet\n\n" ..
-            "-- cooldown style for icon/block indicators (\"VERTICAL\", \"CLOCK\")\n" ..
+        ["code"] = "-- CellD 代码片段 | Code Snippets for CellD\n" ..
+            "-- 示例见 / See: https://github.com/davidchangok/CellD\n" ..
+            "-- 运行 /celld reset snippets 重置 | Use /celld reset snippets to reset\n\n" ..
+            "-- 冷却样式 (\"VERTICAL\", \"CLOCK\")\n" ..
             "CELL_COOLDOWN_STYLE = \"VERTICAL\"\n\n" ..
-            "-- fade out unit button if hp percent > (number: 0-1)\n" ..
+            "-- 血量百分比高于此值时淡出 (number: 0-1)\n" ..
             "CELL_FADE_OUT_HEALTH_PERCENT = nil\n\n" ..
-            "-- add summon icons to Status Icon indicator (boolean, retail only)\n" ..
+            "-- 状态图标显示召唤图标 (boolean, 仅正式服)\n" ..
             "CELL_SUMMON_ICONS_ENABLED = false\n\n" ..
-            "-- use separate width and height for custom indicator icons (boolean)\n" ..
+            "-- 为自定义指示器图标使用独立的宽高 (boolean)\n" ..
             "CELL_RECTANGULAR_CUSTOM_INDICATOR_ICONS = false\n\n" ..
-            "-- Use nicknames from Details! Damage Meter (boolean, NickTag-1.0 library)\n" ..
+            "-- 使用 Details! 的昵称 (boolean, NickTag-1.0)\n" ..
             "CELL_NICKTAG_ENABLED = false\n\n" ..
-            "-- remove raid setup details from the tooltip of the Raid button (boolean)\n" ..
+            "-- 团队按钮提示中移除团队设置详情 (boolean)\n" ..
             "CELL_TOOLTIP_REMOVE_RAID_SETUP_DETAILS = false\n\n" ..
-            "-- border thickness: unit button and icon (number)\n" ..
+            "-- 边框粗细 (number)\n" ..
             "CELL_BORDER_SIZE = 1\n\n" ..
-            "-- unit button border color ({r, g, b, a}, number: 0-1)\n" ..
+            "-- 边框颜色 ({r, g, b, a}, 0-1)\n" ..
             "CELL_BORDER_COLOR = {0, 0, 0, 1}\n\n" ..
-            "-- show raid pet owner name (\"VEHICLE\", \"NAME\", nil)\n" ..
-            "CELL_SHOW_GROUP_PET_OWNER_NAME = nil\n\n" ..
-            "-- use LibHealComm (boolean, non-retail)\n" ..
-            "CELL_USE_LIBHEALCOMM = false"
+            "-- 显示团队宠物主人名字 (\"VEHICLE\", \"NAME\", nil)\n" ..
+            "CELL_SHOW_GROUP_PET_OWNER_NAME = nil"
     }
 end
 
