@@ -1223,7 +1223,11 @@ local function HandleDebuff(self, auraInfo)
 
         if enabledIndicators["debuffs"] and not isBlacklisted then
             -- all debuffs / only dispellableByMe
-            if not indicatorBooleans["debuffs"] or auraInfo.canActivePlayerDispel then
+            local canDispel = auraInfo.canActivePlayerDispel
+            if issecretvalue and issecretvalue(canDispel) then
+                canDispel = (debuffType ~= "") -- secret: dispelName exists=dispellable
+            end
+            if not indicatorBooleans["debuffs"] or canDispel then
                 if isBig then
                     self._debuffs_big[auraInstanceID] = true
                 else
@@ -1253,7 +1257,13 @@ local function HandleDebuff(self, auraInfo)
 
         if enabledIndicators["dispels"] and debuffType and debuffType ~= "" then
             -- all dispels / only dispellableByMe
-            if not indicatorBooleans["dispels"]["dispellableByMe"] or auraInfo.canActivePlayerDispel then
+            -- Midnight 12.0.0+: canActivePlayerDispel may be a secret boolean;
+            -- guard the truthiness test with issecretvalue (Grid2 pattern)
+            local canDispel = auraInfo.canActivePlayerDispel
+            if issecretvalue and issecretvalue(canDispel) then
+                canDispel = (debuffType ~= "") -- secret: dispelName exists=dispellable
+            end
+            if not indicatorBooleans["dispels"]["dispellableByMe"] or canDispel then
                 if indicatorBooleans["dispels"][debuffType] then
                     if isDispelBlacklisted then
                         -- no highlight
