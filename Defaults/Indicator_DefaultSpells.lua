@@ -339,10 +339,12 @@ end
 local UnitIsUnit = UnitIsUnit
 local bos = F.GetSpellInfo(6940) -- 牺牲祝福
 function I.IsExternalCooldown(name, id, source, target)
-    if issecretvalue and (issecretvalue(name) or issecretvalue(id)) then return end
-    if name == bos then
+    -- Midnight 12.0.0+: name/id may be secret; only bail if BOTH are secret
+    local nameSecret = issecretvalue and issecretvalue(name)
+    local idSecret = issecretvalue and issecretvalue(id)
+    if nameSecret and idSecret then return end
+    if not nameSecret and name == bos then
         if source and target then
-            -- NOTE: hide bos on caster
             return not UnitIsUnit(source, target)
         else
             return true
@@ -350,6 +352,16 @@ function I.IsExternalCooldown(name, id, source, target)
     else
         return builtInExternals[name] or builtInExternals[id] or customExternals[id]
     end
+end
+
+function I.IsDefensiveCooldown(name, id)
+    -- Midnight 12.0.0+: name/id may be secret; only bail if BOTH are secret
+    local nameSecret = issecretvalue and issecretvalue(name)
+    local idSecret = issecretvalue and issecretvalue(id)
+    if nameSecret and idSecret then return end
+    if nameSecret then return builtInDefensives[id] or customDefensives[id] end
+    if idSecret then return builtInDefensives[name] end
+    return builtInDefensives[name] or builtInDefensives[id] or customDefensives[id]
 end
 
 -------------------------------------------------
@@ -487,11 +499,6 @@ function I.UpdateDefensives(t)
         -- end
         customDefensives[id] = true
     end
-end
-
-function I.IsDefensiveCooldown(name, id)
-    if issecretvalue and (issecretvalue(name) or issecretvalue(id)) then return end
-    return builtInDefensives[name] or builtInDefensives[id] or customDefensives[id]
 end
 
 -------------------------------------------------
@@ -1317,6 +1324,11 @@ function I.UpdateCrowdControls(t)
 end
 
 function I.IsCrowdControls(name, id)
-    if issecretvalue and (issecretvalue(name) or issecretvalue(id)) then return end
+    -- Midnight 12.0.0+: name/id may be secret; only bail if BOTH are secret
+    local nameSecret = issecretvalue and issecretvalue(name)
+    local idSecret = issecretvalue and issecretvalue(id)
+    if nameSecret and idSecret then return end
+    if nameSecret then return builtInCrowdControls[id] end
+    if idSecret then return builtInCrowdControls[name] or customCrowdControls[name] end
     return builtInCrowdControls[name] or builtInCrowdControls[id] or customCrowdControls[name]
 end

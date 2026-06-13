@@ -836,9 +836,14 @@ local function CheckCondition(operator, checkedValue, currentValue)
 end
 
 function I.GetDebuffOrder(spellName, spellId, count)
-    -- Midnight 12.0.0+: spellId/spellName may be secret; cannot use as table key
-    if issecretvalue and (issecretvalue(spellId) or issecretvalue(spellName)) then return end
-    local t = currentAreaDebuffs[spellId] or currentAreaDebuffs[spellName]
+    -- Midnight 12.0.0+: spellId/spellName may be secret; cannot use as table key.
+    -- Only bail if BOTH are secret — a non-secret spellId or spellName allows lookup.
+    local idSecret = issecretvalue and issecretvalue(spellId)
+    local nameSecret = issecretvalue and issecretvalue(spellName)
+    local t
+    if not idSecret then t = currentAreaDebuffs[spellId] end
+    if not t and not nameSecret then t = currentAreaDebuffs[spellName] end
+    if not t then return end
     if not t then return end
 
     -- check condition
@@ -853,9 +858,14 @@ function I.GetDebuffOrder(spellName, spellId, count)
 end
 
 function I.GetDebuffGlow(spellName, spellId, count)
-    -- Midnight 12.0.0+: spellId/spellName may be secret; cannot use as table key
-    if issecretvalue and (issecretvalue(spellId) or issecretvalue(spellName)) then return end
-    local t = currentAreaDebuffs[spellId] or currentAreaDebuffs[spellName]
+    -- Midnight 12.0.0+: spellId/spellName may be secret; cannot use as table key.
+    -- Only bail if BOTH are secret — a non-secret spellId or spellName allows lookup.
+    local idSecret = issecretvalue and issecretvalue(spellId)
+    local nameSecret = issecretvalue and issecretvalue(spellName)
+    local t
+    if not idSecret then t = currentAreaDebuffs[spellId] end
+    if not t and not nameSecret then t = currentAreaDebuffs[spellName] end
+    if not t then return end
     if not t then return end
 
     local showGlow
@@ -875,9 +885,14 @@ function I.GetDebuffGlow(spellName, spellId, count)
 end
 
 function I.IsDebuffUseElapsedTime(spellName, spellId)
-    -- Midnight 12.0.0+: spellId/spellName may be secret; cannot use as table key
-    if issecretvalue and (issecretvalue(spellId) or issecretvalue(spellName)) then return end
-    local t = currentAreaDebuffs[spellId] or currentAreaDebuffs[spellName]
+    -- Midnight 12.0.0+: spellId/spellName may be secret; cannot use as table key.
+    -- Only bail if BOTH are secret — a non-secret spellId or spellName allows lookup.
+    local idSecret = issecretvalue and issecretvalue(spellId)
+    local nameSecret = issecretvalue and issecretvalue(spellName)
+    local t
+    if not idSecret then t = currentAreaDebuffs[spellId] end
+    if not t and not nameSecret then t = currentAreaDebuffs[spellName] end
+    if not t then return end
     if not t then return end
 
     return t["useElapsedTime"]
