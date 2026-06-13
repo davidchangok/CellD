@@ -48,6 +48,7 @@ CellD 致力于提供**比以往更好的用户体验**。
 - **快速协助** — 一键辅助功能（增辉唤魔师适配）
 - **黑箱自检** — 内置 Secret Value 安全性检测（`/celld blackbox`），覆盖所有敏感数据代码路径
 - **精致的选项界面** — 简洁直观的配置面板，操作体验极佳，预览按钮实时展示效果
+- **中文注释覆盖** — 全部非第三方库源文件已添加详细中文注释，涵盖函数职责、数据流说明和 Midnight Secret Value 防护点标注
 - **兼容性** — [BigDebuffs](https://www.curseforge.com/wow/addons/bigdebuffs)、[OmniCD](https://www.curseforge.com/wow/addons/omnicd)
 
 ---
@@ -55,10 +56,6 @@ CellD 致力于提供**比以往更好的用户体验**。
 ## 已知未实现功能
 
 以下功能在原始 Cell 中存在，但 CellD 尚未完成适配，目前可能无法正常工作：
-
-### 自定义代码片段
-
-- **代码片段（Snippets）** — 自定义 Lua 代码注入功能尚未对 Midnight 12.0 API 进行全面兼容性审查。部分原始 Cell 代码片段可能引用了已废弃的 API（如 `UnitFactionGroup`、`GetClassInfo`），在 CellD 中运行可能报错或失效。如需使用代码片段，请务必在非战斗环境中测试。
 
 ### 快速协助（Quick Assist）
 
@@ -73,6 +70,7 @@ CellD 致力于提供**比以往更好的用户体验**。
 
 - **BigDebuffs 集成** — CellD 保留了 BigDebuffs 兼容代码，但未在 Midnight 12.0 环境下验证，BigDebuffs 自身的 Midnight 兼容性也需确认。
 - **WeakAuras** — 12.0 新版本不再支持此插件，已从兼容列表中移除。
+- **代码片段（Snippets）** — 已从 CellD 中彻底移除。
 - **部分工具模块** — `Utilities/` 目录下的部分模块（Buff Tracker、Quick Assist 配置等）保留了原始 Cell 的实现，未进行 Midnight API 迁移。
 
 > 如果你发现某个功能在 Midnight 12.0 上无法正常工作，请在 [GitHub Issues](https://github.com/davidchangok/CellD/issues) 中报告。
@@ -99,7 +97,6 @@ CellD 致力于提供**比以往更好的用户体验**。
 | `/celld reset layouts` | 重置全部布局和指示器 |
 | `/celld reset clickcastings` | 重置全部点击施法 |
 | `/celld reset raiddebuffs` | 重置全部副本减益 |
-| `/celld reset snippets` | 重置全部代码片段 |
 | `/celld reset quickassist` | 重置当前专精的快速协助 |
 | `/celld reset all` | 重置全部设置（慎用） |
 | `/celld report <数字>` | 设置团队战中死亡通报数量（0–40） |
@@ -149,18 +146,6 @@ CellD 致力于提供**比以往更好的用户体验**。
 > /run SetCVar("secretPvPMatchRestrictionsForced", 1)
 > ```
 > 关闭：`/run SetCVar("secretCombatRestrictionsForced", 0)`
-
----
-
-## 代码片段
-
-**遇到问题请先禁用所有代码片段再测试。**
-
-### 用法
-
-1. CellD 选项 → 关于 → 代码片段
-2. 新建 → 粘贴 → 保存 → 勾选自动运行
-3. 重载界面
 
 ---
 

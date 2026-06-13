@@ -48,6 +48,7 @@ Inspired by: **CompactRaid**, **Grid2**, **Aptechka**, **VuhDo**
 - **Quick Assist** — one-click assist (Evoker Augmentation adapted)
 - **BlackBox Self-Test** — built-in Secret Value safety verification (`/celld blackbox`) covering all sensitive data code paths
 - **Polished Options UI** — clean and intuitive configuration panel with live preview
+- **Chinese Code Comments** — all non-third-party source files annotated with detailed Chinese comments covering function roles, data flows, and Midnight Secret Value guard points
 - **Compatibility** — [BigDebuffs](https://www.curseforge.com/wow/addons/bigdebuffs)、[OmniCD](https://www.curseforge.com/wow/addons/omnicd)
 
 ---
@@ -87,7 +88,7 @@ Blizzard introduced the Secret Value (opaque type) mechanism in patch 12.0, wrap
 
 ## Known Unimplemented Features
 
-- **Snippets** — custom Lua injection not fully audited for Midnight 12.0 APIs
+- **Code Snippets** — removed from CellD
 - **Quick Assist** — Evoker Augmentation module not fully reviewed for Secret Value safety
 - **Buff Tracker** — based on original Cell code, pending Secret Value review
 - **Spell Request / Dispel Request** — network communication layer not audited
@@ -121,22 +122,9 @@ Blizzard introduced the Secret Value (opaque type) mechanism in patch 12.0, wrap
 | `/celld reset layouts` | Reset all layouts and indicators |
 | `/celld reset clickcastings` | Reset all click-castings |
 | `/celld reset raiddebuffs` | Reset all raid debuffs |
-| `/celld reset snippets` | Reset all snippets |
 | `/celld reset quickassist` | Reset current spec quick assist |
 | `/celld reset all` | Reset all settings (use with caution) |
 | `/celld report <number>` | Set raid death report count (0–40) |
-
----
-
-## Snippets
-
-**Please disable all snippets before testing if you encounter issues.**
-
-### Usage
-
-1. CellD Options → About → Code Snippets
-2. New → Paste → Save → Check Auto Run
-3. Reload UI
 
 ---
 
