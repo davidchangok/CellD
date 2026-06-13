@@ -376,7 +376,12 @@ local function InitIndicator(indicatorName)
                 if not found and self.highlightType ~= "none" and dispelType and showHighlight then
                     found = true
                     if auraID then
-                        r, g, b = I.GetAuraDispelColor(auraID) or I.GetDebuffTypeColor(dispelType)
+                        local cr, cg, cb = I.GetAuraDispelColor(auraID)
+                        if cr then
+                            r, g, b = cr, cg, cb
+                        else
+                            r, g, b = I.GetDebuffTypeColor(dispelType)
+                        end
                     else
                         r, g, b = I.GetDebuffTypeColor(dispelType)
                     end

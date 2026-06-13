@@ -595,7 +595,12 @@ local function Dispels_SetDispels(self, dispelTypes)
                 found = true
                 -- Midnight 12.0.0+: Blizzard C-engine API (Grid2/VuhDo pattern)
                 if auraID then
-                    r, g, b = I.GetAuraDispelColor(auraID) or I.GetDebuffTypeColor(dispelType)
+                    local cr, cg, cb = I.GetAuraDispelColor(auraID)
+                    if cr then
+                        r, g, b = cr, cg, cb
+                    else
+                        r, g, b = I.GetDebuffTypeColor(dispelType)
+                    end
                 else
                     r, g, b = I.GetDebuffTypeColor(dispelType)
                 end

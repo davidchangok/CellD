@@ -1200,9 +1200,9 @@ local function HandleDebuff(self, auraInfo)
     -- when debuffType came from secret fallback ("Magic"). Grid2 uses this API
     -- to get secret-safe colors without knowing the type string.
     if debuffType == "Magic" and auraInfo.dispelName and issecretvalue and issecretvalue(auraInfo.dispelName) then
-        local r, g, b = I.GetAuraDispelColor(auraInstanceID)
-        if r then
-            auraInfo._dispelColor = {r, g, b}
+        local cr, cg, cb = I.GetAuraDispelColor(auraInstanceID)
+        if cr then
+            auraInfo._dispelColor = {cr, cg, cb}
         end
     end
 
