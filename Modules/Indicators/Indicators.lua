@@ -399,11 +399,14 @@ local function InitIndicator(indicatorName)
                 end
             end
 
-            -- Grid2-style full-cell background coloring
+            -- Grid2 InspectorSquare.lua: full-cell background
             if found then
-                self.cellGlow:SetColorTexture(r, g, b, 0.4)
-                self.cellGlow:Show()
-            else
+                if self.cellGlow then
+                    self.cellGlow:SetBackdropColor(r, g, b, 0.4)
+                    self.cellGlow:Show()
+                end
+            elseif self.cellGlow then
+                self.cellGlow:SetBackdropColor(0, 0, 0, 0)
                 self.cellGlow:Hide()
             end
 

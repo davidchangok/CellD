@@ -623,12 +623,12 @@ local function Dispels_SetDispels(self, dispelTypes)
         end
     end
 
-    -- Grid2-style full-cell background coloring (IndicatorSquare.lua pattern)
-    -- Uses a dedicated texture on highLevelFrame so it's not overridden by backdrop updates
+    -- Grid2 IndicatorSquare.lua: SetBackdropColor on dedicated Frame for full-cell glow
     if found then
-        self.cellGlow:SetColorTexture(r, g, b, 0.4)
+        self.cellGlow:SetBackdropColor(r, g, b, 0.4)
         self.cellGlow:Show()
-    else
+    elseif self.cellGlow then
+        self.cellGlow:SetBackdropColor(0, 0, 0, 0)
         self.cellGlow:Hide()
     end
 
@@ -750,20 +750,22 @@ function I.CreateDispels(parent)
 
     dispels:SetScript("OnHide", function()
         dispels.highlight:Hide()
-        dispels.cellGlow:Hide()
+        if dispels.cellGlow then dispels.cellGlow:Hide() end
     end)
 
     -- Health bar highlight texture (original Cell design)
     dispels.highlight = parent.widgets.midLevelFrame:CreateTexture(parent:GetName().."DispelHighlight")
     dispels.highlight:Hide()
 
-    -- Grid2-style full-cell background glow
-    -- Grid2 IndicatorSquare.lua: status:GetColor(unit) → Square:SetBackdropColor
-    -- Placed on the highLevelFrame so it renders above health bar but below indicators
-    dispels.cellGlow = parent.widgets.highLevelFrame:CreateTexture(parent:GetName().."DispelCellGlow", "BACKGROUND", nil, -6)
-    dispels.cellGlow:SetAllPoints(parent)
-    dispels.cellGlow:SetBlendMode("BLEND")
-    dispels.cellGlow:Hide()
+    -- Grid2 IndicatorSquare.lua pattern: dedicated Frame with backdrop
+    -- placed above health bar (frameLevel + 160) so it cannot be obscured
+    local glowFrame = CreateFrame("Frame", parent:GetName().."DispelCellGlow", parent, "BackdropTemplate")
+    glowFrame:SetFrameLevel(parent:GetFrameLevel() + 160)
+    glowFrame:SetAllPoints(parent)
+    glowFrame:SetBackdrop({bgFile = Cell.vars.whiteTexture})
+    glowFrame:SetBackdropColor(0, 0, 0, 0)
+    glowFrame:Hide()
+    dispels.cellGlow = glowFrame
 
     dispels._SetSize = dispels.SetSize
     dispels.SetSize = Dispels_SetSize
