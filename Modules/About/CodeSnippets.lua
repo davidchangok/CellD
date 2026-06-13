@@ -239,20 +239,17 @@ LoadList = function()
                 buttons[index]:GetScript("OnLeave")(buttons[index])
             end)
 
-            -- delete
-            buttons[index].del = CreateFrame("Button", nil, buttons[index])
-            buttons[index].del:SetPoint("RIGHT", -1, 0)
+            -- delete (parented to topPane to avoid parent button click interception)
+            buttons[index].del = CreateFrame("Button", nil, topPane)
             buttons[index].del:SetSize(14, 14)
             buttons[index].del.tex = buttons[index].del:CreateTexture(nil, "ARTWORK")
             buttons[index].del.tex:SetAllPoints(buttons[index].del)
             buttons[index].del.tex:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\close.tga")
             buttons[index].del.tex:SetVertexColor(0.4, 0.4, 0.4, 1)
             buttons[index].del:SetScript("OnEnter", function()
-                buttons[index]:GetScript("OnEnter")(buttons[index])
                 buttons[index].del.tex:SetVertexColor(1, 1, 1, 1)
             end)
             buttons[index].del:SetScript("OnLeave", function()
-                buttons[index]:GetScript("OnLeave")(buttons[index])
                 buttons[index].del.tex:SetVertexColor(0.4, 0.4, 0.4, 1)
             end)
             buttons[index].del:SetScript("OnClick", function()
@@ -296,6 +293,12 @@ LoadList = function()
             buttons[i]:SetPoint("TOPLEFT", buttons[i - 4], "BOTTOMLEFT", 0, 1)
         else
             buttons[i]:SetPoint("TOPLEFT", buttons[i - 1], "TOPRIGHT", -1, 0)
+        end
+
+        -- reposition delete button (parented to topPane, not the snippet button)
+        if buttons[i].del then
+            buttons[i].del:ClearAllPoints()
+            buttons[i].del:SetPoint("TOPRIGHT", buttons[i], "TOPRIGHT", -1, -3)
         end
 
         buttons[i]:Show()
