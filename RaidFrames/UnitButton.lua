@@ -1165,8 +1165,19 @@ local function HandleDebuff(self, auraInfo)
     -- SetTexture() accepts secret numbers, so this works as-is
     local icon = auraInfo.icon
     local count = auraInfo.applications
-    -- Midnight 12.0.0+: dispelName may be secret (truthy, so `or ""` won't help); sanitize it
-    local debuffType = (auraInfo.dispelName and (not issecretvalue or not issecretvalue(auraInfo.dispelName))) and auraInfo.dispelName or ""
+    -- Midnight 12.0.0+: dispelName may be secret — fallback to "Magic" instead of ""
+    -- Grid2 avoids this by using GetAuraDispelTypeColor(unit, auraInstanceID) which
+    -- internally resolves secrets; but CellD needs the type string for indicatorBooleans filtering.
+    local debuffType
+    if auraInfo.dispelName then
+        if not issecretvalue or not issecretvalue(auraInfo.dispelName) then
+            debuffType = auraInfo.dispelName
+        else
+            debuffType = "Magic" -- Secret fallback: aura IS dispellable but type is hidden
+        end
+    else
+        debuffType = ""
+    end
     local expirationTime = auraInfo.expirationTime or 0
     local duration = auraInfo.duration
     -- Midnight 12.0.0+: expirationTime and duration may be secret even when spellId is not.
@@ -1711,25 +1722,25 @@ local function UpdateMassBarrier(b, event)
 end
 
 -- CLEU-based indicator tracking (mirror image, mass barrier).
--- Unavailable on Midnight (12.0.0+); guarded by Cell.isMidnight.
-if not Cell.isMidnight then
-    cleu:SetScript("OnEvent", function()
-        local _, subEvent, _, sourceGUID, _, sourceFlags, _, _, _, destFlags, _, spellId = CombatLogGetCurrentEventInfo()
+-- Midnight 12.0.0+: COMBAT_LOG_EVENT_UNFILTERED still fires and CombatLogGetCurrentEventInfo()
+-- is still available. The event must be explicitly registered for the cleu frame to work.
+cleu:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+cleu:SetScript("OnEvent", function()
+    local _, subEvent, _, sourceGUID, _, sourceFlags, _, _, _, destFlags, _, spellId = CombatLogGetCurrentEventInfo()
 
-        -- mirror image
-        if spellId == 55342 and F.IsFriend(sourceFlags) then
-            F.HandleUnitButton("guid", sourceGUID, UpdateMirrorImage, subEvent)
-        end
+    -- mirror image (55342): SPELL_AURA_APPLIED/REMOVED on the mage
+    if spellId == 55342 and F.IsFriend(sourceFlags) then
+        F.HandleUnitButton("guid", sourceGUID, UpdateMirrorImage, subEvent)
+    end
 
-        -- mass barrier (self), SPELL_CAST_SUCCESS
-        if spellId == 414660 and F.IsFriend(sourceFlags) then
-            F.HandleUnitButton("guid", sourceGUID, UpdateMassBarrier, "SPELL_CAST_SUCCESS")
-        end
-        if (subEvent == "SPELL_AURA_REMOVED" or subEvent == "SPELL_AURA_REFRESH") and SelfBarriers[spellId] and F.IsFriend(sourceFlags) then
-            F.HandleUnitButton("guid", sourceGUID, UpdateMassBarrier, "SPELL_AURA_REMOVED")
-        end
-    end)
-end
+    -- mass barrier (414660) parent cast, SPELL_CAST_SUCCESS
+    if spellId == 414660 and F.IsFriend(sourceFlags) then
+        F.HandleUnitButton("guid", sourceGUID, UpdateMassBarrier, "SPELL_CAST_SUCCESS")
+    end
+    if (subEvent == "SPELL_AURA_REMOVED" or subEvent == "SPELL_AURA_REFRESH") and SelfBarriers[spellId] and F.IsFriend(sourceFlags) then
+        F.HandleUnitButton("guid", sourceGUID, UpdateMassBarrier, "SPELL_AURA_REMOVED")
+    end
+end)
 
 -------------------------------------------------
 -- functions
@@ -1997,11 +2008,15 @@ ShouldShowPowerText = function(b)
     end
 
     if class then
-        if type(indicatorCustoms["powerText"][class]) == "boolean" then
-            return indicatorCustoms["powerText"][class]
+        local customFilter = indicatorCustoms["powerText"]
+        if not customFilter then return true end
+        local classFilter = customFilter[class]
+        if not classFilter then return true end
+        if type(classFilter) == "boolean" then
+            return classFilter
         else
             if role then
-                return indicatorCustoms["powerText"][class][role]
+                return classFilter[role] ~= false
             else
                 return true -- show power if role not found
             end
@@ -2039,11 +2054,15 @@ ShouldShowPowerBar = function(b)
     end
 
     if class and Cell.vars.currentLayoutTable then
-        if type(Cell.vars.currentLayoutTable["powerFilters"][class]) == "boolean" then
-            return Cell.vars.currentLayoutTable["powerFilters"][class]
+        local filters = Cell.vars.currentLayoutTable["powerFilters"]
+        if not filters then return true end -- no filters configured
+        local classFilter = filters[class]
+        if not classFilter then return true end -- class not in filter list
+        if type(classFilter) == "boolean" then
+            return classFilter
         else
             if role then
-                return Cell.vars.currentLayoutTable["powerFilters"][class][role]
+                return classFilter[role] ~= false -- default to true if role key is missing
             else
                 return true -- show power if role not found
             end
@@ -2550,12 +2569,32 @@ UnitButton_UpdateShieldAbsorbs = function(self, skipStateUpdates)
 
         -- Update shield indicator (user-configurable indicator on top of health bar)
         if enabledIndicators["shieldBar"] then
-            -- On Midnight, we pass the secret absorb value directly; the indicator's SetValue
-            -- accepts secrets since it's backed by a StatusBar on Midnight.
-            -- NOTE: indicatorBooleans["shieldBar"] (onlyShowOvershields) can't be honored with
-            -- secrets since we can't compute overshieldPercent. Show full absorbs instead.
-            self.indicators.shieldBar:Show()
-            self.indicators.shieldBar:SetValue(absorbs)
+            -- Midnight 12.0.0+: ShieldBar_SetHorizontalValue expects a percentage (0-1),
+            -- but absorbs is a raw secret value (e.g. 50000+). Compute percentage safely.
+            -- Grid2 reference: StatusShields.lua uses StatusBar which handles secrets natively.
+            local maxHealth = self.widgets.healthCalculator:GetMaximumHealth()
+            local shieldPercent
+            if F.IsValueNonSecret(absorbs) and F.IsValueNonSecret(maxHealth) and maxHealth > 0 then
+                shieldPercent = absorbs / maxHealth
+            else
+                -- Secret values: show a 25%-width bar as visual presence indicator.
+                -- We cannot compute the exact percentage in secret context (Grid2 avoids
+                -- this by using StatusBar Min/Max which accepts secret values natively).
+                shieldPercent = 0.25
+            end
+            if indicatorBooleans["shieldBar"] then
+                -- onlyShowOvershields: can't compute on Midnight, fall back to showing
+                -- the bar when absorbs exist (indicated by non-zero secret value).
+                if not F.IsValueNonSecret(absorbs) or absorbs > 0 then
+                    self.indicators.shieldBar:Show()
+                    self.indicators.shieldBar:SetValue(shieldPercent)
+                else
+                    self.indicators.shieldBar:Hide()
+                end
+            else
+                self.indicators.shieldBar:Show()
+                self.indicators.shieldBar:SetValue(shieldPercent)
+            end
         else
             self.indicators.shieldBar:Hide()
         end

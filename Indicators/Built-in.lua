@@ -265,7 +265,7 @@ function I.CreateAllCooldowns(parent)
     allCooldowns.UpdatePixelPerfect = I.Cooldowns_UpdatePixelPerfect
 
     for i = 1, 5 do
-        local name = parent:GetName().."ExternalCooldown"..i
+        local name = parent:GetName().."AllCooldown"..i
         local frame = I.CreateAura_BarIcon(name, allCooldowns)
         tinsert(allCooldowns, frame)
     end
@@ -275,7 +275,7 @@ end
 -- CreateTankActiveMitigation
 -------------------------------------------------
 function I.CreateTankActiveMitigation(parent)
-    local bar = Cell.CreateStatusBar(parent:GetName().."TanckActiveMitigation", parent.widgets.indicatorFrame, 20, 6, 100)
+    local bar = Cell.CreateStatusBar(parent:GetName().."TankActiveMitigation", parent.widgets.indicatorFrame, 20, 6, 100)
     parent.indicators.tankActiveMitigation = bar
     bar:Hide()
 
@@ -758,8 +758,12 @@ end
 -- CreateRaidDebuffs
 -------------------------------------------------
 local currentAreaDebuffs = {}
+local currentEncounterID -- active boss encounter ID (nil = no boss)
+
 local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+eventFrame:RegisterEvent("ENCOUNTER_START")
+eventFrame:RegisterEvent("ENCOUNTER_END")
 
 local function UpdateDebuffsForCurrentZone(instanceName)
     wipe(currentAreaDebuffs)
@@ -767,13 +771,23 @@ local function UpdateDebuffsForCurrentZone(instanceName)
     if iName == "" then return end
 
     if iName == instanceName or instanceName == nil then
-        currentAreaDebuffs = F.GetDebuffList(iName)
-        F.Debug("|cffff77AARaidDebuffsChanged:|r", iName)
+        currentAreaDebuffs = F.GetDebuffList(iName, currentEncounterID)
+        F.Debug("|cffff77AARaidDebuffsChanged:|r", iName, currentEncounterID and ("boss:"..currentEncounterID) or "all")
     end
 end
 Cell.RegisterCallback("RaidDebuffsChanged", "UpdateDebuffsForCurrentZone", UpdateDebuffsForCurrentZone)
-eventFrame:SetScript("OnEvent", function()
-    UpdateDebuffsForCurrentZone()
+eventFrame:SetScript("OnEvent", function(_, event, encounterID)
+    if event == "ENCOUNTER_START" then
+        currentEncounterID = encounterID
+        UpdateDebuffsForCurrentZone()
+    elseif event == "ENCOUNTER_END" then
+        currentEncounterID = nil
+        UpdateDebuffsForCurrentZone()
+    else
+        -- PLAYER_ENTERING_WORLD: reset boss tracking
+        currentEncounterID = nil
+        UpdateDebuffsForCurrentZone()
+    end
 end)
 
 local function CheckCondition(operator, checkedValue, currentValue)
@@ -1777,7 +1791,7 @@ end
 
 local function SetPower_Number(self, current, max)
     if Cell.isMidnight and F.IsSecretValue and (F.IsSecretValue(current) or F.IsSecretValue(max)) then
-        self.text:SetText(string.format("%d", current))
+        self.text:SetText(current)
         return SetPower_SecretWidth(self)
     end
     if self.hideIfEmptyOrFull and (current == 0 or current == max) then

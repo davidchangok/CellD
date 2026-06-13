@@ -2226,38 +2226,22 @@ end
 -------------------------------------------------
 -- functions
 -------------------------------------------------
-function F.GetDebuffList(instanceName)
+function F.GetDebuffList(instanceName, encounterID)
     local list = {}
     local eName, iIndex, iId = F.SplitToNumber(":", instanceNameMapping[instanceName])
 
     if iId and loadedDebuffs[iId] then
         local n = 0
-        -- check general
+        -- general debuffs always included
         if loadedDebuffs[iId]["general"] then
-            n = #loadedDebuffs[iId]["general"]["enabled"]
-            for _, t in ipairs(loadedDebuffs[iId]["general"]["enabled"]) do
-                local spellName = F.GetSpellInfo(t["id"])
-                if spellName then
-                    -- list[spellName/spellId] = {order, glowType, glowOptions}
-                    list[t["trackByID"] and t["id"] or spellName] = {
-                        ["order"] = t["order"],
-                        ["condition"] = t["condition"],
-                        ["glowType"] = t["glowType"],
-                        ["glowOptions"] = t["glowOptions"],
-                        ["glowCondition"] = t["glowCondition"],
-                        ["useElapsedTime"] = t["useElapsedTime"],
-                    }
-                end
-            end
-        end
-        -- check boss
-        for bId, bTable in pairs(loadedDebuffs[iId]) do
-            if bId ~= "general" then
-                for _, t in pairs(bTable["enabled"]) do
+            local generalList = loadedDebuffs[iId]["general"]["enabled"]
+            if generalList then
+                n = #generalList
+                for _, t in ipairs(generalList) do
                     local spellName = F.GetSpellInfo(t["id"])
-                    if spellName then -- check again
+                    if spellName then
                         list[t["trackByID"] and t["id"] or spellName] = {
-                            ["order"] = t["order"]+n,
+                            ["order"] = t["order"],
                             ["condition"] = t["condition"],
                             ["glowType"] = t["glowType"],
                             ["glowOptions"] = t["glowOptions"],
@@ -2268,8 +2252,30 @@ function F.GetDebuffList(instanceName)
                 end
             end
         end
+        -- boss-specific debuffs: filter by encounterID when in combat
+        for bId, bTable in pairs(loadedDebuffs[iId]) do
+            if bId ~= "general" then
+                -- If encounterID is active, only include debuffs for the current boss
+                if not encounterID or bId == encounterID then
+                    if bTable["enabled"] then
+                        for _, t in ipairs(bTable["enabled"]) do
+                            local spellName = F.GetSpellInfo(t["id"])
+                            if spellName then
+                                list[t["trackByID"] and t["id"] or spellName] = {
+                                    ["order"] = t["order"]+n,
+                                    ["condition"] = t["condition"],
+                                    ["glowType"] = t["glowType"],
+                                    ["glowOptions"] = t["glowOptions"],
+                                    ["glowCondition"] = t["glowCondition"],
+                                    ["useElapsedTime"] = t["useElapsedTime"],
+                                }
+                            end
+                        end
+                    end
+                end
+            end
+        end
     end
-    -- texplore(list)
 
     return list
 end
