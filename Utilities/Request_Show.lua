@@ -9,8 +9,9 @@ local LCG = LibStub("LibCustomGlow-1.0")
 local Comm = LibStub:GetLibrary("AceComm-3.0")
 
 -------------------------------------------------
--- glow
+-- 发光效果控制 —— 为团队框体按钮提供多种发光高亮动画，用于提示玩家施法请求
 -------------------------------------------------
+-- 隐藏发光效果：停止所有类型的发光动画并取消关联的计时器
 local function HideGlow(glowFrame)
     LCG.ButtonGlow_Stop(glowFrame)
     LCG.PixelGlow_Stop(glowFrame)
@@ -23,6 +24,12 @@ local function HideGlow(glowFrame)
     end
 end
 
+-- 显示发光效果：根据 glowType 启动对应的发光动画（normal/pixel/shine/proc），并在超时后自动隐藏
+-- glowFrame:  目标按钮的发光子框架
+-- glowType:   发光类型 —— "normal"(按钮发光) / "pixel"(像素发光) / "shine"(闪烁发光) / "proc"(触发发光)
+-- glowOptions: 各类型对应的参数表（颜色、频率、尺寸、偏移等）
+-- timeout:    发光持续秒数，到期后自动隐藏
+-- callback:   隐藏后的回调函数
 local function ShowGlow(glowFrame, glowType, glowOptions, timeout, callback)
     F.Debug("|cffa2d2ffSHOW_GLOW:|r", glowFrame:GetName())
 
@@ -64,8 +71,9 @@ local function ShowGlow(glowFrame, glowType, glowOptions, timeout, callback)
 end
 
 -------------------------------------------------
--- icon
+-- 图标显示控制 —— 在团队框体按钮上显示技能图标，用于提示施法请求类型
 -------------------------------------------------
+-- 隐藏图标并取消关联的计时器
 local function HideIcon(icon)
     icon:Hide()
 
@@ -75,6 +83,12 @@ local function HideIcon(icon)
     end
 end
 
+-- 显示图标：设置材质和颜色并显示，超时后自动隐藏
+-- icon:      图标UI控件
+-- tex:       图标材质路径
+-- iconColor: 图标颜色（r, g, b, a）
+-- timeout:   显示持续秒数
+-- callback:  隐藏后的回调函数
 local function ShowIcon(icon, tex, iconColor, timeout, callback)
     F.Debug("|cffa2d2ffSHOW_ICON:|r", icon:GetName())
 
@@ -93,8 +107,9 @@ local function ShowIcon(icon, tex, iconColor, timeout, callback)
 end
 
 -------------------------------------------------
--- text
+-- 文字提示控制 —— 在团队框体按钮上显示文本提示（如驱散请求文字）
 -------------------------------------------------
+-- 隐藏文字提示并取消关联的计时器
 local function HideText(text)
     text:Hide()
 
@@ -104,6 +119,10 @@ local function HideText(text)
     end
 end
 
+-- 显示文字提示：调用控件自身的 Display 方法显示文本，超时后自动隐藏
+-- text:     文字UI控件
+-- timeout:  显示持续秒数
+-- callback: 隐藏后的回调函数
 local function ShowText(text, timeout, callback)
     F.Debug("|cffa2d2ffSHOW_TEXT:|r", text:GetName())
 
@@ -122,22 +141,45 @@ local function ShowText(text, timeout, callback)
 end
 
 -------------------------------------------------
--- spell request
+-- 施法请求系统 —— 接收其他玩家发来的施法请求（通过插件通讯或密语），在目标单位框体上显示发光/图标提示
+-- 两个入口：
+--   1. 插件通讯 "CELL_REQ_S"（由 Cell 队友发送）
+--   2. 密语 CHAT_MSG_WHISPER（匹配关键字触发）
+-- 收到请求后检查条件（技能是否已知/冷却/目标已有Buff），满足则在对应单位按钮上显示视觉提示
 -------------------------------------------------
+-- 施法请求的全局配置变量（从 CellDB["spellRequest"] 中读取，由 SR_UpdateRequests 初始化）
+-- srEnabled:      是否启用施法请求功能
+-- srExists:       是否检查目标已有Buff（避免重复施法）
+-- srKnown:        是否只响应已学会的技能
+-- srFreeCD:       是否要求技能冷却完毕
+-- srReplyCD:      是否在技能冷却中时回复冷却时间
+-- srResponseType: 响应模式 —— "all"(响应所有) / "me"(仅响应发给自己的) / "whisper"(仅密语模式)
+-- srTimeout:      发光提示的持续秒数
+-- srCastMsg:      施法成功后自动发送的密语消息（可选）
 local srEnabled, srExists, srKnown, srFreeCD, srReplyCD, srResponseType, srTimeout, srCastMsg
+-- 施法请求的技能配置表 —— [spellId] = {显示类型, BuffId, 关键字, 发光参数} 或 {显示类型, BuffId, 关键字, 图标材质, 图标颜色}
+-- 显示类型为 "icon"(图标模式) 或 glowType 字符串(发光模式)
 local srSpells = {
     -- [spellId] = {type, buffId, keywords, glowOptions} / {type, buffId, keywords, icon, iconColor}
 }
+-- 施法请求的活跃追踪表 —— [unit] = buffId，记录当前正在显示提示的单位及其等待的Buff
+-- 当 COMBAT_LOG_EVENT_UNFILTERED 检测到对应 Buff 成功施放后，自动隐藏提示
 local srUnits = {
     -- [unit] = buffId
 }
 
+-- 核心帧 —— 用于注册事件监听，并非显示控件
 local SR = CreateFrame("Frame")
 local COOLDOWN_TIME = _G.ITEM_COOLDOWN_TIME
 local IsSpellReady = F.IsSpellReady
 
 local GetSpellLink = C_Spell.GetSpellLink or GetSpellLink
 
+-- 检查施法请求的条件是否满足
+-- spellId: 请求的技能ID
+-- unit:    目标单位标识（如 "raid1"）
+-- sender:  请求发送者的角色名
+-- 返回 true 表示应该显示施法提示，false 则不显示
 local function CheckSRConditions(spellId, unit, sender)
     F.Debug("|cffcdb4dbCheckSRConditions:|r", spellId, unit, sender)
 
@@ -180,6 +222,9 @@ local function CheckSRConditions(spellId, unit, sender)
     end
 end
 
+-- 在指定单位按钮上显示施法请求提示
+-- button:  单位按钮对象（widget 容器）
+-- spellId: 请求的技能ID，决定用图标还是发光来提示
 local function ShowSpellRequest(button, spellId)
     if button then
         local unit = button.states.unit
@@ -199,12 +244,15 @@ local function ShowSpellRequest(button, spellId)
     end
 end
 
+-- 隐藏单位按钮上的施法请求提示（同时停止发光和图标）
 local function HideSpellRequest(button)
     HideGlow(button.widgets.srGlowFrame)
     HideIcon(button.widgets.srIcon)
 end
 
---! glow on addon message
+-- 注册插件通讯通道 "CELL_REQ_S"：接收其他 Cell 用户发来的施法请求
+-- message 格式: "spellId:target"（target 可选，为请求目标玩家的名称或昵称）
+-- 仅在 srResponseType ~= "whisper" 时生效（密语模式下走 CHAT_MSG_WHISPER 事件）
 Comm:RegisterComm("CELL_REQ_S", function(prefix, message, channel, sender)
     if srEnabled and srResponseType ~= "whisper" then
         local spellId, target = strsplit(":", message)
@@ -223,9 +271,11 @@ Comm:RegisterComm("CELL_REQ_S", function(prefix, message, channel, sender)
     end
 end)
 
---! glow on whisper
-local COOLDOWN_TIME_TEXT = string.gsub(ITEM_COOLDOWN_TIME, "%%s", "")
+-- 密语监听 —— 当收到玩家密语时，将密语内容与所有已配置技能的关键字匹配
+-- 匹配成功则触发施法请求提示
+-- 冷却时间回复密语（格式为技能链接+"冷却剩余..."）会被过滤跳过，避免循环触发
 -- NOTE: playerName always contains SERVER name!
+local COOLDOWN_TIME_TEXT = string.gsub(ITEM_COOLDOWN_TIME, "%%s", "")
 function SR:CHAT_MSG_WHISPER(text, playerName, languageName, channelName, playerName2, specialFlags, zoneChannelID, channelIndex, channelBaseName, languageID, lineID, guid, bnSenderID, isMobile, isSubtitle, hideSenderInLetterbox, supressRaidIcons)
     -- NOTE: filter cd reply
     if strfind(text, "^|c.+|H.+|h%[.+%]|h|r "..COOLDOWN_TIME_TEXT..".+") then return end
@@ -243,6 +293,9 @@ function SR:CHAT_MSG_WHISPER(text, playerName, languageName, channelName, player
 end
 
 --! hide on applied
+-- 战斗记录监听 —— 检测施法请求的技能Buff是否已施放成功
+-- 当检测到目标单位获得了对应的Buff(Aura)，自动隐藏施法请求提示
+-- 如果施法者是玩家自己且配置了 srCastMsg，则自动发送密语告知请求者
 function SR:COMBAT_LOG_EVENT_UNFILTERED(_, event, _, sourceGUID, sourceName, sourceFlags, _, destGUID, destName, destFlags, _, buffId)
     if event == "SPELL_AURA_APPLIED" or event == "SPELL_AURA_REFRESH" then
         local unit = Cell.vars.guids[destGUID]
@@ -262,6 +315,9 @@ function SR:COMBAT_LOG_EVENT_UNFILTERED(_, event, _, sourceGUID, sourceName, sou
     end
 end
 
+-- 事件分发器 —— 通过 OnEvent 脚本统一处理 SR 帧注册的所有事件
+-- COMBAT_LOG_EVENT_UNFILTERED 取回完整事件参数后转发到对应方法
+-- 其他事件（如 CHAT_MSG_WHISPER）直接按方法名调用
 SR:SetScript("OnEvent", function(self, event, ...)
     if event == "COMBAT_LOG_EVENT_UNFILTERED" then
         self:COMBAT_LOG_EVENT_UNFILTERED(CombatLogGetCurrentEventInfo())
@@ -270,6 +326,12 @@ SR:SetScript("OnEvent", function(self, event, ...)
     end
 end)
 
+-- 更新施法请求配置 —— 从 CellDB 读取最新的设置并应用
+-- 在插件初始化或设置变更时由 Cell.RegisterCallback("UpdateRequests") 触发
+-- which: 指定更新范围，nil 表示全量更新
+--   "spellRequest"       - 仅更新开关/条件/事件注册/超时等基础设置
+--   "spellRequest_icon"  - 仅更新图标组件的位置/大小/动画
+--   "spellRequest_spells"- 仅更新技能配置表 srSpells
 local function SR_UpdateRequests(which)
     F.Debug("|cffBBFFFFUpdateRequests:|r", which)
 
@@ -330,13 +392,29 @@ end
 Cell.RegisterCallback("UpdateRequests", "SR_UpdateRequests", SR_UpdateRequests)
 
 -------------------------------------------------
--- dispel request
+-- 驱散请求系统 —— 接收其他玩家发来的驱散请求，在需要驱散的单位框体上显示发光/文字提示
+-- 两个入口：
+--   1. 插件通讯 "CELL_REQ_D"（由 Cell 队友发送）
+--   2. 战斗记录 COMBAT_LOG_EVENT_UNFILTERED（检测DEBUFF移除后自动隐藏）
+--   3. 遭遇开始/结束 ENCOUNTER_START / ENCOUNTER_END（重置所有提示）
+-- 响应逻辑：根据 responseType 获取目标单位上所有可驱散DEBUFF或指定DEBUFF，过滤后显示提示
 -------------------------------------------------
+-- 驱散请求的全局配置变量（从 CellDB["dispelRequest"] 中读取）
+-- drEnabled:      是否启用驱散请求功能
+-- drDispellable:  是否仅显示自己可以驱散的DEBUFF
+-- drResponseType: 响应模式 —— "all"(获取所有可驱散DEBUFF) / "specific"(仅获取指定DEBUFF列表)
+-- drTimeout:      发光/文字提示的持续秒数
+-- drDebuffs:      指定关注的DEBUFF ID表（由配置的字符串转换而来）
+-- drDisplayType:  显示类型 —— "text"(文字提示) 或 glow 类型(发光效果)
 local drEnabled, drDispellable, drResponseType, drTimeout, drDebuffs, drDisplayType
+-- 驱散请求的活跃追踪表 —— [unit] = { [debuffSpellId] = debuffType }
+-- 记录正在显示驱散提示的单位及其DEBUFF列表
+-- 当检测到DEBUFF被移除后自动隐藏对应提示
 local drUnits = {}
+-- 核心帧 —— 用于注册战斗记录/遭遇事件监听，并非显示控件
 local DR = CreateFrame("Frame")
 
--- hide all
+-- 隐藏所有单位的驱散请求提示 —— 遍历 drUnits 中所有单位并清除对应的发光/文字提示
 local function HideAllDRGlows()
     -- NOTE: hide all
     for unit in pairs(drUnits) do
@@ -349,6 +427,9 @@ local function HideAllDRGlows()
 end
 
 -- hide glow if removed
+-- 事件分发器 —— 通过 OnEvent 脚本统一处理 DR 帧注册的所有事件
+-- COMBAT_LOG_EVENT_UNFILTERED：检测DEBUFF移除，若对应单位有活跃的驱散提示则自动隐藏
+-- ENCOUNTER_START / ENCOUNTER_END：遭遇开始时重置所有驱散提示
 DR:SetScript("OnEvent", function(self, event)
     if event == "COMBAT_LOG_EVENT_UNFILTERED" then
         local timestamp, subEvent, _, sourceGUID, sourceName, sourceFlags, sourceRaidFlags, destGUID, destName, destFlags, destRaidFlags, spellID = CombatLogGetCurrentEventInfo()
@@ -368,7 +449,9 @@ DR:SetScript("OnEvent", function(self, event)
     end
 end)
 
--- glow on addon message
+-- 注册插件通讯通道 "CELL_REQ_D"：接收其他 Cell 用户发来的驱散请求
+-- 根据 drResponseType 获取目标单位上所有可驱散DEBUFF或指定DEBUFF列表
+-- 根据 drDispellable 过滤出自身职业可驱散的DEBUFF后，在对应单位按钮上显示提示
 Comm:RegisterComm("CELL_REQ_D", function(prefix, message, channel, sender)
     if drEnabled then
         local unit = Cell.vars.names[sender]
@@ -409,6 +492,11 @@ Comm:RegisterComm("CELL_REQ_D", function(prefix, message, channel, sender)
     end
 end)
 
+-- 更新驱散请求配置 —— 从 CellDB 读取最新的设置并应用
+-- 在插件初始化或设置变更时由 Cell.RegisterCallback("UpdateRequests") 触发
+-- which: 指定更新范围，nil 表示全量更新
+--   "dispelRequest"       - 仅更新开关/条件/事件注册/超时等基础设置
+--   "dispelRequest_text"  - 仅更新文字提示控件的位置/大小/颜色
 local function DR_UpdateRequests(which)
     if not which or which == "dispelRequest" then
         HideAllDRGlows()

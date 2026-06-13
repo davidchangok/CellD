@@ -1,24 +1,40 @@
+-- ===========================================================================
+-- Indicator_DefaultSpells.lua
+-- 为 Cell 的指示器模块提供默认法术数据，包括：
+--   - 团队减伤 / 外部冷却 / 群控技能的硬编码列表
+--   - 驱散能力检测（基于专精天赋树节点）
+--   - 大秘境点名技能列表（targetedSpells）
+--   - 治疗者 HoT/护盾默认指示器配置（首次运行向导）
+--   - 所有 Midnight/SecretValue 防护点（防止暴雪隐藏法术名称/ID 时崩溃）
+-- ===========================================================================
+
 local _, Cell = ...
 local L = Cell.L
-local I = Cell.iFuncs
-local F = Cell.funcs
+local I = Cell.iFuncs        -- 对外暴露的接口函数表（供其他模块调用）
+local F = Cell.funcs          -- 内部工具函数表（GetSpellInfo, GetClassColorStr 等）
 
--- forward declarations (populated by I.UpdateDefensives/I.UpdateExternals)
+-- 前向声明：由 I.UpdateDefensives() / I.UpdateExternals() 在运行时填充
+-- 这些表在首次调用更新函数之前为 nil，使用时需判空
 local builtInDefensives, customDefensives
 local builtInExternals, customExternals
 
 -------------------------------------------------
--- dispelBlacklist
+-- dispelBlacklist — 驱散黑名单
+-- 作用：抑制特定 debuff 的"可驱散"高亮提示
+-- 当前为空表，预留扩展空间；用户或模块可在运行时动态添加 spellId
 -------------------------------------------------
--- suppress dispel highlight
 local dispelBlacklist = {}
 
+-- 获取默认驱散黑名单（供 Cell 核心模块读取）
 function I.GetDefaultDispelBlacklist()
     return dispelBlacklist
 end
 
 -------------------------------------------------
--- debuffBlacklist
+-- debuffBlacklist — Debuff 黑名单
+-- 作用：过滤掉不应在团队框体上显示的 debuff（如复活虚弱、嗜血疲劳等）
+-- 数据结构：spellId 为键的数组（数字索引），统一按 ID 匹配
+-- 注意：注释掉的代码原为"按名称匹配"，当前版本直接返回 ID 列表
 -------------------------------------------------
 local debuffBlacklist = {
     8326, -- 鬼魂 - Ghost
@@ -38,6 +54,8 @@ local debuffBlacklist = {
     213213, -- 伪装 - Masquerade
 }
 
+-- 获取默认 Debuff 黑名单（返回 spellId 数组）
+-- 调用方使用 F.GetSpellInfo(id) 自行转换为名称进行匹配
 function I.GetDefaultDebuffBlacklist()
     -- local temp = {}
     -- for i, id in pairs(debuffBlacklist) do
@@ -48,7 +66,10 @@ function I.GetDefaultDebuffBlacklist()
 end
 
 -------------------------------------------------
--- bigDebuffs
+-- bigDebuffs — 重要 Debuff 列表
+-- 作用：标记需要放大显示或特殊处理的副本/词缀 debuff
+-- 包含：赛季词缀机制（爆裂、死疽、重伤）以及各资料片副本的重要 debuff
+-- 注：已废弃的旧赛季词缀以注释形式保留，方便后续赛季参考复用
 -------------------------------------------------
 local bigDebuffs = {
     46392, -- 专注打击 - Focused Assault
@@ -91,7 +112,11 @@ function I.GetDefaultBigDebuffs()
 end
 
 -------------------------------------------------
--- aoeHealings
+-- aoeHealings — 群体治疗法术列表
+-- 数据结构：{ [className] = { [spellId] = trackByName (bool) } }
+--   - trackByName = true  → 按法术名称匹配（适用于施法者名称≠玩家名的情况，如召唤物）
+--   - trackByName = false → 按法术 ID 匹配（适用于 PVP 天赋等名称可能变化的情况）
+-- 用途：在团队框体上显示群疗技能的施法/持续状态指示器
 -------------------------------------------------
 local aoeHealings = {
     ["DRUID"] = {
@@ -159,11 +184,16 @@ function I.GetAoEHealings()
     return aoeHealings
 end
 
+-- 运行时缓存表：builtInAoEHealings 存放内置群疗（过滤用户禁用后），customAoEHealings 存放用户自定义群疗
 local builtInAoEHealings = {}
 local customAoEHealings = {}
 
+-- 更新群疗法术缓存
+-- t["disabled"]: 用户禁用的内置法术 ID 集合
+-- t["custom"]: 用户自定义添加的法术 ID 列表
+-- 逻辑：先清空两个缓存，再遍历 aoeHealings 硬编码表，跳过被禁用的法术，最终合并用户自定义法术
 function I.UpdateAoEHealings(t)
-    -- user disabled
+    -- 处理内置法术：遍历所有职业的法术列表，过滤掉被用户禁用的
     wipe(builtInAoEHealings)
     for class, spells in pairs(aoeHealings) do
         for id, trackByName in pairs(spells) do
@@ -187,11 +217,19 @@ function I.UpdateAoEHealings(t)
     end
 end
 
+-- 判断某个法术是否为群疗技能
+-- 参数 name/id 来自战斗事件（CLEU/UNIT_AURA），优先按名称匹配，其次按 ID 匹配
+-- Midnight 12.0.0+ 防护：暴雪可能将法术名称或 ID 标记为 secret value，
+--   此时对应的参数在 Lua 端被隐藏。若任一参数为 secret 即跳过检测，避免误判
 function I.IsAoEHealing(name, id)
+    -- Midnight SecretValue 防护：name 或 id 任一为 secret 则安全退出
     if issecretvalue and (issecretvalue(name) or issecretvalue(id)) then return end
     return builtInAoEHealings[name] or builtInAoEHealings[id] or customAoEHealings[id]
 end
 
+-- summonDuration — 召唤物/图腾持续时间表
+-- 原始定义用 spellId 作为键，存储持续秒数
+-- 下方的 do...end 块将其转换为"法术名称 → 持续时间"的映射，方便运行时按名称查找
 local summonDuration = {
     -- evoker
     [377509] = 6, -- 梦境投影（pvp）- Dream Projection
@@ -204,6 +242,8 @@ local summonDuration = {
     [52042] = 15, -- 治疗之泉图腾 - Healing Stream Totem
 }
 
+-- 转换 summonDuration 键名：spellId → 法术名称
+-- 原因：战斗事件中召唤物施放法术时，只能拿到法术名称，用名称做键查找更直接
 do
     local temp = {}
     for id, duration in pairs(summonDuration) do
@@ -212,14 +252,20 @@ do
     summonDuration = temp
 end
 
+-- 根据法术名称查询召唤物的持续时间（秒），用于指示器计时显示
 function I.GetSummonDuration(spellName)
     return summonDuration[spellName]
 end
 
 -------------------------------------------------
--- externalCooldowns
+-- externalCooldowns — 外部冷却技能列表
+-- 数据结构：{ [className] = { [spellId] = trackByName (bool) 或 subTable } }
+--   - trackByName = true  → 按法术名称追踪（推荐，兼容性更好）
+--   - trackByName = false → 按法术 ID 追踪（特殊场景用）
+--   - subTable            → 嵌套子法术表（如法师群体屏障含3种护体），主 ID 也加入缓存
+-- 用途：在团队框体上显示队友对你施放的减伤/辅助类技能
 -------------------------------------------------
-local externals = { -- true: track by name, false: track by id
+local externals = { -- true: 按名称追踪, false: 按 ID 追踪
     ["DEATHKNIGHT"] = {
         [51052] = true, -- 反魔法领域 - Anti-Magic Zone
     },
@@ -300,6 +346,8 @@ end
 local builtInExternals = {}
 local customExternals = {}
 
+-- 内部辅助函数：将单个外部冷却法术加入 builtInExternals 缓存
+-- trackByName 为 true 时按法术名称存储，否则按 spellId 存储
 local function UpdateExternals(id, trackByName)
     if trackByName then
         local name = F.GetSpellInfo(id)
@@ -311,14 +359,20 @@ local function UpdateExternals(id, trackByName)
     end
 end
 
+-- 更新外部冷却法术缓存（用户设置变更时调用）
+-- t["disabled"]: 用户禁用的内置法术 ID 集合
+-- t["custom"]: 用户自定义添加的法术 ID 列表
+-- 特殊处理：嵌套表结构（如法师群体屏障）— 主 ID 直接加入缓存，
+--   子法术按各自 trackByName 标记分别处理
 function I.UpdateExternals(t)
-    -- user disabled
+    -- 处理内置法术：遍历所有职业，跳过被用户禁用的法术
     wipe(builtInExternals)
     for class, spells in pairs(externals) do
         for id, v in pairs(spells) do
-            if not t["disabled"][id] then -- not disabled
+            if not t["disabled"][id] then -- 未被用户禁用
                 if type(v) == "table" then
-                    builtInExternals[id] = true -- for I.IsExternalCooldown()
+                    -- 嵌套表（如法师群体屏障）：主 ID 加入缓存供 I.IsExternalCooldown() 匹配
+                    builtInExternals[id] = true
                     for subId, subTrackByName in pairs(v) do
                         UpdateExternals(subId, subTrackByName)
                     end
@@ -329,26 +383,30 @@ function I.UpdateExternals(t)
         end
     end
 
-    -- user created
+    -- 处理用户自定义法术
     wipe(customExternals)
     for _, id in pairs(t["custom"]) do
-        -- local name = F.GetSpellInfo(id)
-        -- if name then
-        --     customExternals[name] = true
-        -- end
+        -- 自定义法术统一按 spellId 存储，注释掉的代码原为按名称存储方案
         customExternals[id] = true
     end
 end
 
 local UnitIsUnit = UnitIsUnit
-local bos = F.GetSpellInfo(6940) -- 牺牲祝福
+local bos = F.GetSpellInfo(6940) -- 牺牲祝福（特殊处理：只对自己施放时不视为外部冷却）
+-- 判断某个法术是否为外部冷却技能
+-- 参数 name, id 来自战斗事件；source, target 为施法者和目标 UnitID
+-- 特殊逻辑：牺牲祝福（bos）仅在施法者≠目标时才视为外部冷却
+-- Midnight 12.0.0+ 防护：name 和 id 可能同时为 secret value，
+--   只有两者皆为 secret 时才安全退出（因为此时完全无法识别法术）；
+--   若仅 name 为 secret，仍可按 id 继续匹配
 function I.IsExternalCooldown(name, id, source, target)
-    -- Tables may be nil before I.UpdateExternals() is called
+    -- 防护：builtInExternals 在首次 I.UpdateExternals() 调用之前为 nil
     if not builtInExternals then return end
-    -- Midnight 12.0.0+: name/id may be secret; only bail if BOTH are secret
+    -- Midnight SecretValue 防护：name 和 id 皆为 secret 时才安全退出
     local nameSecret = issecretvalue and issecretvalue(name)
     local idSecret = issecretvalue and issecretvalue(id)
     if nameSecret and idSecret then return end
+    -- 牺牲祝福特殊处理：自己给自己不视为外部冷却
     if not nameSecret and name == bos then
         if source and target then
             return not UnitIsUnit(source, target)
@@ -360,22 +418,36 @@ function I.IsExternalCooldown(name, id, source, target)
     end
 end
 
+-- 判断某个法术是否为个人减伤技能
+-- 参数 name, id 来自战斗事件（CLEU/UNIT_AURA）
+-- Midnight 12.0.0+ 防护策略（与 I.IsExternalCooldown 类似但更精细）：
+--   - 两者皆为 secret → 安全退出
+--   - 仅 name 为 secret → 仅按 id 匹配（跳过 name 查找，避免对 secret 做表键访问）
+--   - 仅 id 为 secret → 仅按 name 匹配
+--   - 两者都可见 → 同时按 name 和 id 匹配
 function I.IsDefensiveCooldown(name, id)
-    -- Tables may be nil before I.UpdateDefensives() is called
+    -- 防护：builtInDefensives 在首次 I.UpdateDefensives() 调用之前为 nil
     if not builtInDefensives then return end
-    -- Midnight 12.0.0+: name/id may be secret; only bail if BOTH are secret
+    -- Midnight SecretValue 防护：name 和 id 皆为 secret 时才安全退出
     local nameSecret = issecretvalue and issecretvalue(name)
     local idSecret = issecretvalue and issecretvalue(id)
     if nameSecret and idSecret then return end
+    -- 仅 name 为 secret：只能按 id 匹配（builtInDefensives 的 id 键 + customDefensives）
     if nameSecret then return builtInDefensives[id] or customDefensives[id] end
+    -- 仅 id 为 secret：只能按 name 匹配（builtInDefensives 的 name 键）
     if idSecret then return builtInDefensives[name] end
+    -- 两者都可见：同时按 name 和 id 匹配，任一命中即可
     return builtInDefensives[name] or builtInDefensives[id] or customDefensives[id]
 end
 
 -------------------------------------------------
--- defensiveCooldowns
+-- defensiveCooldowns — 个人减伤技能列表
+-- 数据结构：{ [className] = { [spellId] = trackByName (bool) } }
+--   - trackByName = true  → 按法术名称追踪（推荐，适用于绝大多数减伤）
+--   - trackByName = false → 按法术 ID 追踪（适用于 PVP 天赋、英雄天赋等名称可能不唯一的场景）
+-- 用途：在团队框体上显示队友开启的个人减伤技能指示器
 -------------------------------------------------
-local defensives = { -- true: track by name, false: track by id
+local defensives = { -- true: 按名称追踪, false: 按 ID 追踪
     ["DEATHKNIGHT"] = {
         [48707] = true, -- 反魔法护罩 - Anti-Magic Shell
         [48792] = true, -- 冰封之韧 - Icebound Fortitude
@@ -477,40 +549,45 @@ function I.GetDefensives()
     return defensives
 end
 
+-- 运行时缓存表：builtInDefensives 存放内置减伤（过滤用户禁用后），customDefensives 存放用户自定义减伤
 local builtInDefensives = {}
 local customDefensives = {}
 
+-- 更新个人减伤技能缓存（用户设置变更时调用）
+-- t["disabled"]: 用户禁用的内置法术 ID 集合
+-- t["custom"]: 用户自定义添加的法术 ID 列表
+-- 逻辑：遍历 defensives 硬编码表，跳过用户禁用的法术；
+--   trackByName 为 true 的法术按名称存入缓存，方便跨语言/跨版本匹配
 function I.UpdateDefensives(t)
-    -- user disabled
+    -- 处理内置法术：遍历所有职业，过滤掉被用户禁用的
     wipe(builtInDefensives)
     for class, spells in pairs(defensives) do
         for id, trackByName in pairs(spells) do
-            if not t["disabled"][id] then -- not disabled
+            if not t["disabled"][id] then -- 未被用户禁用
                 if trackByName then
                     local name = F.GetSpellInfo(id)
                     if name then
-                        builtInDefensives[name] = true
+                        builtInDefensives[name] = true  -- 按名称存储，兼容多语言客户端
                     end
                 else
-                    builtInDefensives[id] = true
+                    builtInDefensives[id] = true    -- 按 ID 存储，用于特殊场景
                 end
             end
         end
     end
 
-    -- user created
+    -- 处理用户自定义法术（统一按 spellId 存储）
     wipe(customDefensives)
     for _, id in pairs(t["custom"]) do
-        -- local name = F.GetSpellInfo(id)
-        -- if name then
-        --     customDefensives[name] = true
-        -- end
         customDefensives[id] = true
     end
 end
 
 -------------------------------------------------
--- tankActiveMitigation
+-- tankActiveMitigation — 坦克主动减伤技能列表
+-- 数据结构：spellId 为键的布尔表，用于在团队框体上高亮显示坦克的常驻减伤
+-- tankActiveMitigationNames 是对应的彩色名称字符串数组（含职业颜色），
+--   用于向用户展示支持的技能列表（如设置面板提示）
 -------------------------------------------------
 local tankActiveMitigations = {
     -- death knight
@@ -554,34 +631,52 @@ local tankActiveMitigationNames = {
     F.GetClassColorStr("WARRIOR")..F.GetSpellInfo(132404).."|r", -- 盾牌格挡
 }
 
+-- 转换 tankActiveMitigations：统一为 { [spellId] = true } 格式（原始格式也是按 ID）
+-- 注释掉的代码原为按名称转换方案
 do
     local temp = {}
     for _, id in pairs(tankActiveMitigations) do
-        -- temp[F.GetSpellInfo(id)] = true
         temp[id] = true
     end
     tankActiveMitigations = temp
 end
 
+-- 判断指定 spellId 是否为坦克主动减伤技能
+-- Midnight 12.0.0+ 防护：若 spellId 为 secret value 则安全退出
 function I.IsTankActiveMitigation(spellId)
     if issecretvalue and issecretvalue(spellId) then return end
     return tankActiveMitigations[spellId]
 end
 
+-- 返回坦克主动减伤技能列表的可读字符串（含职业颜色标记），用于设置面板提示
 function I.GetTankActiveMitigationString()
     return table.concat(tankActiveMitigationNames, ", ").."."
 end
 
 -------------------------------------------------
--- dispels
+-- dispels — 驱散能力检测
+-- 核心思路：不同专精通过天赋树节点（nodeID）获得驱散能力，检测逻辑如下：
+--   1. 获取当前专精 ID（Cell.vars.playerSpecID）
+--   2. 查 dispelNodeIDs 表获取该专精下各驱散类型对应的天赋节点
+--   3. 调用 C_Traits.GetNodeInfo 检查节点是否已激活（activeRank != 0）
+-- 驱散类型键名："Curse"(诅咒), "Disease"(疾病), "Magic"(魔法), "Poison"(中毒), "Bleed"(流血)
+-- 值含义：
+--   - true (boolean)     → 该专精天生可驱散此类型（无需天赋节点）
+--   - number             → 单个天赋节点 ID，需检查激活状态
+--   - table (number[])   → 多个天赋节点 ID（任一激活即可），如唤魔师用 Cauterizing Flame
+-- 注意：术士的 Magic 驱散依赖宠物技能（吞噬魔法 89808），通过 UNIT_PET 事件单独处理
 -------------------------------------------------
+-- dispellable 运行时缓存表：{ [dispelType] = true/false }，表示当前角色能否驱散对应类型
 local dispellable = {}
 
+-- 查询当前角色是否能驱散指定类型
 function I.CanDispel(dispelType)
     if not dispelType then return end
     return dispellable[dispelType]
 end
 
+-- dispelNodeIDs：专精 ID → 驱散类型 → 天赋节点信息
+-- 键为专精 ID（非职业 ID），从 C_ClassTalents.GetActiveConfigID / Cell.vars.playerSpecID 获取
 local dispelNodeIDs = {
     -- DRUID ----------------
         -- 102 - Balance
@@ -658,48 +753,71 @@ local dispelNodeIDs = {
     -------------------------
 }
 
+-- ===========================================================================
+-- 驱散能力检测：事件监听与 dispellable 缓存更新
+-- ===========================================================================
+-- eventFrame 是驱散检测的专用事件帧，根据职业不同注册不同事件：
+--   - 术士：监听 UNIT_PET 事件（宠物召唤/解散时重新检测吞噬魔法）
+--   - 其他职业：监听 PLAYER_ENTERING_WORLD 和 TRAIT_CONFIG_UPDATED
+--     （切换天赋配置时重新检测节点激活状态）
+-- 两次事件触发之间使用 1 秒延迟合并（C_Timer.NewTimer），防止短时间内重复检测
 local eventFrame = CreateFrame("Frame")
---Whenever anything is committed to the configID, e.g. when saving talents, switching talent loadouts, spending profession points, etc
 
 if UnitClassBase("player") == "WARLOCK" then
+    -- 术士专有逻辑：驱散能力来自宠物技能"吞噬魔法"(spellId 89808)
+    -- 使用 IsSpellKnown(89808, true) 检测（第二个参数 true 表示包括宠物技能）
     eventFrame:RegisterEvent("UNIT_PET")
 
     local timer
     eventFrame:SetScript("OnEvent", function(self, event, unit)
-        if unit ~= "player" then return end
+        if unit ~= "player" then return end     -- 仅响应玩家自身的宠物事件
 
+        -- 使用 1 秒防抖定时器，避免宠物频繁切换时重复检测
         if timer then
             timer:Cancel()
         end
         timer = C_Timer.NewTimer(1, function()
-            -- update dispellable
+            -- 更新驱散能力：检查是否学会吞噬魔法（包括宠物技能栏）
             dispellable["Magic"] = IsSpellKnown(89808, true)
-            -- texplore(dispellable)
         end)
 
     end)
 else
+    -- 非术士职业：通过天赋树节点检测驱散能力
+    -- PLAYER_ENTERING_WORLD：登录/加载时首次检测
     eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+    -- TRAIT_CONFIG_UPDATED：切换天赋配置/保存天赋时重新检测
     eventFrame:RegisterEvent("TRAIT_CONFIG_UPDATED")
-    -- eventFrame:RegisterEvent("ACTIVE_PLAYER_SPECIALIZATION_CHANGED")
+    -- ACTIVE_PLAYER_SPECIALIZATION_CHANGED 已废弃，改用 TRAIT_CONFIG_UPDATED
 
+    -- UpdateDispellable：根据当前天赋配置重新计算 dispellable 表
+    -- 工作流程：
+    --   1. 清空 dispellable 缓存
+    --   2. 获取当前激活的天赋配置 ID (activeConfigID)
+    --   3. 查 dispelNodeIDs 表获取当前专精的各驱散类型节点信息
+    --   4. 根据节点信息类型分别处理：boolean（天生可驱）、table（多节点任一激活）、number（单节点激活检测）
     local function UpdateDispellable()
-        -- update dispellable
+        -- 清空并重建驱散能力缓存
         wipe(dispellable)
         local activeConfigID = C_ClassTalents.GetActiveConfigID()
         if activeConfigID and dispelNodeIDs[Cell.vars.playerSpecID] then
             for dispelType, value in pairs(dispelNodeIDs[Cell.vars.playerSpecID]) do
                 if type(value) == "boolean" then
+                    -- 天生可驱散（如奶德可驱散诅咒/魔法/中毒）
                     dispellable[dispelType] = value
-                elseif type(value) == "table" then -- more than one trait
+                elseif type(value) == "table" then
+                    -- 多个天赋节点，任一激活即可驱散
+                    -- 例如：唤魔师的 Cauterizing Flame(93294) 可驱散多种类型
+                    --       或 Poison 同时需要 Expunge(93306) 或 Cauterizing Flame(93294)
                     for _, v in pairs(value) do
                         local nodeInfo = C_Traits.GetNodeInfo(activeConfigID, v)
                         if nodeInfo and nodeInfo.activeRank ~= 0 then
                             dispellable[dispelType] = true
-                            break
+                            break   -- 任一激活即跳出，不再检查其余节点
                         end
                     end
-                else -- number: check node info
+                else
+                    -- 单个天赋节点，检查是否已激活
                     local nodeInfo = C_Traits.GetNodeInfo(activeConfigID, value)
                     if nodeInfo and nodeInfo.activeRank ~= 0 then
                         dispellable[dispelType] = true
@@ -707,21 +825,24 @@ else
                 end
             end
         end
-
-        -- texplore(dispellable)
     end
 
+    -- 1 秒防抖定时器：合并短时间内的多次事件触发
     local timer
 
     eventFrame:SetScript("OnEvent", function(self, event)
         if event == "PLAYER_ENTERING_WORLD" then
+            -- 登录后仅需检测一次，此后由 TRAIT_CONFIG_UPDATED 处理
             eventFrame:UnregisterEvent("PLAYER_ENTERING_WORLD")
         end
 
+        -- 重置防抖定时器：确保事件触发后等待 1 秒再执行检测
         if timer then timer:Cancel() end
         timer = C_Timer.NewTimer(1, UpdateDispellable)
     end)
 
+    -- 专精切换回调：Cell 框架层的 SpecChanged 事件
+    -- 当玩家切换专精时，驱散能力可能变化，需重新检测
     Cell.RegisterCallback("SpecChanged", "Dispellable_SpecChanged", function()
         if timer then timer:Cancel() end
         timer = C_Timer.NewTimer(1, UpdateDispellable)
@@ -729,7 +850,9 @@ else
 end
 
 -------------------------------------------------
--- drinking
+-- drinking — 饮水/进食法术列表
+-- 原始定义用 spellId 数组，下方 do...end 块转换为 { [name] = true } 便于按名称匹配
+-- 用途：在团队框体上显示正在吃喝回蓝回血的队友状态指示器
 -------------------------------------------------
 local drinks = {
     170906, -- 食物和饮水 - Food & Drink
@@ -743,6 +866,7 @@ local drinks = {
     461063, -- 静默省思（土灵）- Quiet Contemplation (Earthen)
 }
 
+-- 转换 drinks 表键名：spellId → 法术名称（方便运行时按名称匹配）
 do
     local temp = {}
     for _, id in pairs(drinks) do
@@ -751,13 +875,18 @@ do
     drinks = temp
 end
 
+-- 判断指定法术名是否为饮水/进食技能
+-- Midnight 12.0.0+ 防护：若 name 为 secret value 则安全退出
 function I.IsDrinking(name)
     if issecretvalue and issecretvalue(name) then return end
     return drinks[name]
 end
 
 -------------------------------------------------
--- healer
+-- healer — 治疗者 HoT/护盾默认指示器法术列表
+-- 数据结构：spellId 数组（数字索引），包含各治疗职业的核心 HoT、护盾、增疗等 buff
+-- 用途：首次运行向导 (F.FirstRun) 自动创建"Healers"图标指示器
+--   展示队友身上的持续性治疗效果，帮助治疗者快速了解覆盖情况
 -------------------------------------------------
 local spells =  {
     -- druid
@@ -847,21 +976,28 @@ local spells =  {
     -- 456366, -- 治疗之雨 - Healing Rain
 }
 
+-- 首次运行向导：询问用户是否创建"Healers"图标指示器
+-- 显示所有硬编码治疗法术的图标预览（每行 11 个），用户确认后自动创建指示器配置
+-- 创建的指示器默认属性：右上角、13x13 图标、5 个/行、右到左排列、显示堆叠、仅自己施放
 function F.FirstRun()
+    -- 构建图标预览字符串（用于弹窗展示）
     local icons = "\n\n"
     for i, id in pairs(spells) do
         local icon = select(2, F.GetSpellInfo(id))
         if icon then
             icons = icons .. "|T"..icon..":0|t"
             if i % 11 == 0 then
-                icons = icons .. "\n"
+                icons = icons .. "\n"    -- 每 11 个图标换行
             end
         end
     end
 
+    -- 创建确认弹窗：包含图标预览和"Yes/No"按钮
     local popup = Cell.CreateConfirmPopup(Cell.frames.anchorFrame, 200, L["Would you like Cell to create a \"Healers\" indicator (icons)?"]..icons, function(self)
+        -- 用户点击"是"：在当前布局中创建 Healers 指示器
         local currentLayoutTable = Cell.vars.currentLayoutTable
 
+        -- 计算新指示器名称（indicator1, indicator2, ...）
         local last = #currentLayoutTable["indicators"]
         if currentLayoutTable["indicators"][last]["type"] == "built-in" then
             indicatorName = "indicator1"
@@ -869,6 +1005,7 @@ function F.FirstRun()
             indicatorName = "indicator"..(tonumber(strmatch(currentLayoutTable["indicators"][last]["indicatorName"], "%d+"))+1)
         end
 
+        -- 插入新指示器配置到当前布局末尾
         tinsert(currentLayoutTable["indicators"], {
             ["name"] = "Healers",
             ["indicatorName"] = indicatorName,
@@ -893,10 +1030,12 @@ function F.FirstRun()
             ["castBy"] = "me",
             ["auras"] = spells,
         })
+        -- 触发 UI 更新事件，通知各模块刷新指示器
         Cell.Fire("UpdateIndicators", Cell.vars.currentLayout, indicatorName, "create", currentLayoutTable["indicators"][last+1])
-        CellDB["firstRun"] = false
+        CellDB["firstRun"] = false      -- 标记首次运行已完成
         F.ReloadIndicatorList()
     end, function()
+        -- 用户点击"否"：也标记完成，不再重复询问
         CellDB["firstRun"] = false
     end)
     popup:SetPoint("TOPLEFT")
@@ -923,7 +1062,10 @@ end
 -- end
 
 -------------------------------------------------
--- targetedSpells
+-- targetedSpells — 副本点名技能列表
+-- 数据结构：spellId 数组（数字索引），按资料片/副本分组
+-- 用途：在团队框体上高亮/闪烁显示被副本技能点名的队友，方便坦克和奶妈提前反应
+-- 维护注意：新版本/新赛季大秘境更新后需同步添加新的点名技能 ID
 -------------------------------------------------
 local targetedSpells = {
     -- Cataclysm -------------------
@@ -1120,37 +1262,47 @@ local targetedSpells = {
     1226111, -- 不稳定的喷发
 }
 
+-- 获取默认点名法术 ID 列表（供指示器配置模块读取）
 function I.GetDefaultTargetedSpellsList()
     return targetedSpells
 end
 
+-- 获取默认点名法术的发光选项（高亮闪烁配置）
+-- 返回格式：{"发光类型", {颜色RGB}, 时长, 间隔, 大小, 厚度}
 function I.GetDefaultTargetedSpellsGlow()
     return {"Pixel", {0.95,0.95,0.32,1}, 9, 0.25, 8, 2}
 end
 
 -------------------------------------------------
--- Actions
+-- Actions — 默认快捷动作（药水/治疗石）
+-- 数据结构：{ { spellId, { 点击绑定, 颜色 } }, ... }
+--   点击绑定："A" = 左键, "C3" = 中键（如游戏内的 ClickCast 绑定）
+--   颜色：RGB 三元组，用于指示器按钮着色
+-- 用途：在团队框体上创建快捷使用按钮（如点击队友框体直接使用治疗石）
+-- I.ConvertActions 将其转换为 { [spellId] = { 绑定, 颜色 } } 便于快速查找
 -------------------------------------------------
 local actions = {
     {
         6262, -- 治疗石 - Healthstone
-        {"A", {0.4, 1, 0}},
+        {"A", {0.4, 1, 0}},      -- 左键点击使用，绿色按钮
     },
     {
         431416, -- 阿加治疗药水 - Algari Healing Potion
-        {"A", {1, 0.1, 0.1}},
+        {"A", {1, 0.1, 0.1}},    -- 左键点击使用，红色按钮
     },
     {
         431932, -- 淬火药水 - Tempered Potion
-        {"C3", {1, 1, 0}},
+        {"C3", {1, 1, 0}},       -- 中键点击使用，黄色按钮
     },
 }
 
-
+-- 获取默认动作列表（供设置面板加载）
 function I.GetDefaultActions()
     return actions
 end
 
+-- 将 {数组} 格式的动作列表转换为 { [spellId] = {绑定, 颜色} } 的查找表格式
+-- 方便运行时通过 spellId 快速定位对应的点击绑定和按钮颜色
 function I.ConvertActions(db)
     local temp = {}
     for _, t in pairs(db) do
@@ -1160,9 +1312,14 @@ function I.ConvertActions(db)
 end
 
 -------------------------------------------------
--- crowdControls
+-- crowdControls — 群体控制技能列表
+-- 数据结构：{ [className] = { [spellId] = trackByName (bool) } }
+--   - trackByName = true  → 按法术名称追踪（推荐，兼容多语言客户端）
+--   - trackByName = false → 按法术 ID 追踪（特殊场景，如天赋被动效果）
+-- 包含 "UNCATEGORIZED" 键：存放种族天赋控制技能（不限于特定职业）
+-- 用途：在团队框体上显示队友施放的控制技能（眩晕、迷惑、恐惧等），避免重复控制
 -------------------------------------------------
-local crowdControls = { -- true: track by name, false: track by id
+local crowdControls = { -- true: 按名称追踪, false: 按 ID 追踪
     ["DEATHKNIGHT"] = {
         [47476] = true, -- 绞袭 - Strangulate (PVP)
         [91800] = true, -- 撕扯 - Gnaw
@@ -1300,15 +1457,20 @@ function I.GetCrowdControls()
     return crowdControls
 end
 
+-- 运行时缓存表：builtInCrowdControls 存放内置群控（过滤用户禁用后），customCrowdControls 存放用户自定义群控
+-- 注意：自定义群控按名称存储（与内置减伤/外部冷却按 ID 存储不同），便于用户输入自定义法术
 local builtInCrowdControls = {}
 local customCrowdControls = {}
 
+-- 更新群控技能缓存（用户设置变更时调用）
+-- t["disabled"]: 用户禁用的内置法术 ID 集合
+-- t["custom"]: 用户自定义添加的法术 ID 列表（会自动转换为名称存储）
 function I.UpdateCrowdControls(t)
-    -- user disabled
+    -- 处理内置法术：遍历所有职业（含 "UNCATEGORIZED"），跳过被用户禁用的法术
     wipe(builtInCrowdControls)
     for class, spells in pairs(crowdControls) do
         for id, trackByName in pairs(spells) do
-            if not t["disabled"][id] then -- not disabled
+            if not t["disabled"][id] then -- 未被用户禁用
                 if trackByName then
                     local name = F.GetSpellInfo(id)
                     if name then
@@ -1321,7 +1483,8 @@ function I.UpdateCrowdControls(t)
         end
     end
 
-    -- user created
+    -- 处理用户自定义法术：通过 spellId 获取名称后按名称存储
+    -- 与内置减伤/外部冷却不同，自定义群控统一按名称存储以便跨版本匹配
     wipe(customCrowdControls)
     for _, id in pairs(t["custom"]) do
         local name = F.GetSpellInfo(id)
@@ -1331,12 +1494,22 @@ function I.UpdateCrowdControls(t)
     end
 end
 
+-- 判断某个法术是否为群控技能
+-- 参数 name, id 来自战斗事件（CLEU/UNIT_AURA）
+-- Midnight 12.0.0+ 防护策略：
+--   - 两者皆为 secret → 安全退出（完全无法识别）
+--   - 仅 name 为 secret → 仅按 id 匹配（只查 builtInCrowdControls 的 id 键）
+--   - 仅 id 为 secret → 按 name 匹配（查 builtInCrowdControls + customCrowdControls 的 name 键）
+--   - 两者都可见 → 同时按 name 和 id 匹配
 function I.IsCrowdControls(name, id)
-    -- Midnight 12.0.0+: name/id may be secret; only bail if BOTH are secret
+    -- Midnight SecretValue 防护：name 和 id 皆为 secret 时才安全退出
     local nameSecret = issecretvalue and issecretvalue(name)
     local idSecret = issecretvalue and issecretvalue(id)
     if nameSecret and idSecret then return end
+    -- 仅 name 为 secret：只能按 id 匹配内置群控
     if nameSecret then return builtInCrowdControls[id] end
+    -- 仅 id 为 secret：只能按 name 匹配（内置 + 自定义）
     if idSecret then return builtInCrowdControls[name] or customCrowdControls[name] end
+    -- 两者都可见：同时按 name 和 id 匹配，任一命中即可
     return builtInCrowdControls[name] or builtInCrowdControls[id] or customCrowdControls[name]
 end

@@ -1,3 +1,8 @@
+-- ============================================================================
+-- Widgets.lua - CellD 控件工厂模块
+-- 提供所有自定义UI控件的创建函数：按钮、滑块、开关、下拉菜单、滚动框等
+-- 所有控件统一使用像素完美(PixelPerfect)缩放和职业色(AccentColor)主题
+-- ============================================================================
 local addonName = ...
 ---@class Cell
 local Cell = select(2, ...)
@@ -9,7 +14,7 @@ local P = Cell.pixelPerfectFuncs
 local LCG = LibStub("LibCustomGlow-1.0")
 
 -----------------------------------------
--- Color
+-- Color -- 预定义颜色表，包含颜色字符串和RGB表两种表示形式
 -----------------------------------------
 local colors = {
     grey = {s="|cFFB2B2B2", t={0.7, 0.7, 0.7}},
@@ -20,16 +25,18 @@ local colors = {
     chartreuse = {s="|cFF80FF00", t={0.5, 1, 0}},
 }
 
+-- 获取当前玩家职业，用于设置主题强音色（accentColor）
 local class = select(2, UnitClass("player"))
-local accentColor = {s="|cCCB2B2B2", t={0.7, 0.7, 0.7}}
+local accentColor = {s="|cCCB2B2B2", t={0.7, 0.7, 0.7}}  -- 默认灰色，后续用职业色覆盖
 if class then
     accentColor.t[1], accentColor.t[2], accentColor.t[3], accentColor.s = RAID_CLASS_COLORS[class].r, RAID_CLASS_COLORS[class].g, RAID_CLASS_COLORS[class].b, RAID_CLASS_COLORS[class].colorStr
     accentColor.s = "|c"..accentColor.s
 end
 
 -----------------------------------------
--- Font
+-- Font -- 创建全局字体对象，统一管理所有控件的字体样式
 -----------------------------------------
+-- 注释掉的字体缩放系统，原计划存储所有字体对象以备全局缩放
 -- local fonts = {}
 -- local function SetFont(obj, font, size, flags)
 --     -- store in fonts for resizing
@@ -42,15 +49,15 @@ end
 --     obj:SetFont()
 -- end
 
-local font_title_name = "CELL_FONT_WIDGET_TITLE"
-local font_title_disable_name = "CELL_FONT_WIDGET_TITLE_DISABLE"
-local font_name = "CELL_FONT_WIDGET"
-local font_small_name = "CELL_FONT_WIDGET_SMALL"
-local font_chinese_name = "CELL_FONT_CHINESE"
-local font_disable_name = "CELL_FONT_WIDGET_DISABLE"
-local font_special_name = "CELL_FONT_SPECIAL"
-local font_class_title_name = "CELL_FONT_CLASS_TITLE"
-local font_class_name = "CELL_FONT_CLASS"
+local font_title_name = "CELL_FONT_WIDGET_TITLE"      -- 标题字体（白色14号，粗体风格）
+local font_title_disable_name = "CELL_FONT_WIDGET_TITLE_DISABLE"  -- 禁用状态的标题字体
+local font_name = "CELL_FONT_WIDGET"                  -- 通用控件字体（白色13号）
+local font_small_name = "CELL_FONT_WIDGET_SMALL"      -- 小号字体（白色11号）
+local font_chinese_name = "CELL_FONT_CHINESE"         -- 中文字体（使用暴雪内置中文字体）
+local font_disable_name = "CELL_FONT_WIDGET_DISABLE"  -- 禁用状态的通用字体
+local font_special_name = "CELL_FONT_SPECIAL"         -- 特殊字体（使用Cell自带的font.ttf）
+local font_class_title_name = "CELL_FONT_CLASS_TITLE" -- 职业着色标题字体（使用职业颜色）
+local font_class_name = "CELL_FONT_CLASS"             -- 职业着色通用字体（使用职业颜色）
 
 local font_title = CreateFont(font_title_name)
 font_title:SetFont(GameFontNormal:GetFont(), 14, "")
@@ -119,6 +126,9 @@ font_class:SetJustifyH("CENTER")
 local defaultFont = GameFontNormal:GetFont()
 local fontSizeOffset = 0
 function Cell.UpdateOptionsFont(offset, useGameFont)
+    -- 更新所有全局字体对象的字体和大小
+    -- offset: 字体大小偏移量（用于UI缩放适配）
+    -- useGameFont: 是否使用游戏默认字体（否则使用Cell自定义字体）
     if useGameFont then
         defaultFont = GameFontNormal:GetFont()
     else
@@ -141,6 +151,7 @@ end
 -----------------------------------------
 local accentColorOverride
 function Cell.OverrideAccentColor(cTable)
+    -- 覆盖职业强音色为指定RGB颜色表，同时更新所有职业着色字体
     accentColorOverride = true
 
     accentColor.t[1], accentColor.t[2], accentColor.t[3] = unpack(cTable)
@@ -151,10 +162,12 @@ function Cell.OverrideAccentColor(cTable)
 end
 
 function Cell.GetAccentColorRGB()
+    -- 返回当前强音色的RGB三个通道值
     return unpack(accentColor.t)
 end
 
 function Cell.GetAccentColorTable(alpha)
+    -- 返回当前强音色的RGB表，可附加alpha通道
     if alpha then
         return {accentColor.t[1], accentColor.t[2], accentColor.t[3], alpha}
     else
@@ -163,19 +176,23 @@ function Cell.GetAccentColorTable(alpha)
 end
 
 function Cell.GetAccentColorString()
+    -- 返回当前强音色的颜色转义字符串（用于WrapTextInColorCode）
     return accentColor.s
 end
 
 function Cell.ColorFontStringWithAccentColor(fs)
+    -- 将字体字符串对象着色为当前强音色
     fs:SetTextColor(accentColor.t[1], accentColor.t[2], accentColor.t[3])
 end
 
 function Cell.WrapTextInAccentColor(text)
+    -- 将文本包裹在强音色转义码中，形成着色文本字符串
     return WrapTextInColorCode(text, accentColor.s) -- FIXME: ("|c%s%s|r"):format(colorHexString, text)
 end
 
 -----------------------------------------
--- enable/disable
+-- enable/disable -- 统一的启用/禁用控件外观处理
+-- 根据控件类型（FontString/Texture/通用Frame）自动应用禁用外观（灰色/去饱和/隐藏）
 -----------------------------------------
 function Cell.SetEnabled(isEnabled, ...)
     for _, w in pairs({...}) do
@@ -202,11 +219,11 @@ function Cell.SetEnabled(isEnabled, ...)
 end
 
 -----------------------------------------
--- rainbow text
+-- rainbow text -- 彩虹文字动效：逐字符应用渐变HSV色相旋转
 -----------------------------------------
 local colorSelect = CreateFrame("Colorselect")
 function Cell.StartRainbowText(fs, reverse)
-    -- save original
+    -- 保存原始文本，通过OnUpdate逐帧为每个字符包裹不同色相的颜色转义码
     fs.text = fs:GetText()
 
     -- updater
@@ -223,7 +240,7 @@ function Cell.StartRainbowText(fs, reverse)
     fs.updater:SetScript("OnUpdate", function(self, elapsed)
 
         local hue = pos
-        -- NOTE: lua 正则匹配中文，不知道会不会有问题
+        -- 用UTF-8字节级正则匹配每一个字符（兼容中文等多字节字符），为每个字符包裹不同色相的着色码
         str = fs.text:gsub("[%z\1-\127\194-\244][\128-\191]*", function(char)
             colorSelect:SetColorHSV(hue,1,1)
             col = CreateColor(colorSelect:GetColorRGB())
@@ -241,6 +258,7 @@ function Cell.StartRainbowText(fs, reverse)
     end)
 end
 
+-- 停止彩虹文字动效，恢复原始文本并清除OnUpdate
 function Cell.StopRainbowText(fs)
     fs.rainbow = nil
     if fs.updater then
@@ -250,7 +268,7 @@ function Cell.StopRainbowText(fs)
 end
 
 -----------------------------------------
--- seperator
+-- separator -- 分隔线：在父框架顶部创建带标题文字和装饰线的标题栏
 -----------------------------------------
 function Cell.CreateSeparator(text, parent, width, color)
     if not color then color = {t={accentColor.t[1], accentColor.t[2], accentColor.t[3], 0.777}, s=accentColor.s} end
@@ -273,6 +291,9 @@ function Cell.CreateSeparator(text, parent, width, color)
     return fs
 end
 
+-----------------------------------------
+-- separator -- 带标题栏的分隔面板，标题文字+下方装饰线+阴影
+-----------------------------------------
 function Cell.CreateTitledPane(parent, text, width, height, color)
     if not color then color = {["r"]=accentColor.t[1], ["g"]=accentColor.t[2], ["b"]=accentColor.t[3], ["a"]=0.777, ["s"]=accentColor.s} end
 
@@ -311,8 +332,9 @@ function Cell.CreateTitledPane(parent, text, width, height, color)
 end
 
 -----------------------------------------
--- Frame
+-- Frame -- 框架创建与样式化（背景色/边框/拖动/像素完美）
 -----------------------------------------
+-- 给指定frame设置Backdrop样式（背景色+边框色），用于统一外观
 function Cell.StylizeFrame(frame, color, borderColor)
     if not color then color = {0.1, 0.1, 0.1, 0.9} end
     if not borderColor then borderColor = {0, 0, 0, 1} end
@@ -322,6 +344,7 @@ function Cell.StylizeFrame(frame, color, borderColor)
     frame:SetBackdropBorderColor(unpack(borderColor))
 end
 
+-- 创建标准Frame控件，支持可选的模板、透明模式和像素完美更新
 function Cell.CreateFrame(name, parent, width, height, isTransparent, template)
     local f = CreateFrame("Frame", name, parent, template and template..",BackdropTemplate" or "BackdropTemplate")
     f:Hide()
@@ -338,6 +361,7 @@ function Cell.CreateFrame(name, parent, width, height, isTransparent, template)
 end
 
 
+-- 创建可拖动窗口，带职业色标题栏、关闭按钮和拖动处理
 function Cell.CreateMovableFrame(title, name, width, height, frameStrata, frameLevel, notUserPlaced)
     local f = CreateFrame("Frame", name, CellParent, "BackdropTemplate")
     f:EnableMouse(true)
@@ -392,8 +416,9 @@ function Cell.CreateMovableFrame(title, name, width, height, frameStrata, frameL
 end
 
 -----------------------------------------
--- tooltip
+-- tooltip -- 通用提示框系统：为任意控件绑定鼠标悬停提示
 -----------------------------------------
+-- 内部函数：显示通用提示框
 local function ShowTooltips(widget, anchor, x, y, tooltips)
     if type(tooltips) ~= "table" or #tooltips == 0 then
         CellTooltip:Hide()
@@ -410,6 +435,7 @@ local function ShowTooltips(widget, anchor, x, y, tooltips)
     CellTooltip:Show()
 end
 
+-- 为控件绑定悬停提示（首次调用Hook OnEnter/OnLeave，后续更新提示文本）
 function Cell.SetTooltips(widget, anchor, x, y, ...)
     if not widget._tooltipsInited then
         widget._tooltipsInited = true
@@ -430,7 +456,8 @@ function Cell.ClearTooltips(widget)
 end
 
 -----------------------------------------
--- change frame size with animation
+-- change frame size with animation -- 平滑动画改变Frame尺寸
+-- 使用C_Timer.NewTicker逐帧插值，step控制总帧数，支持动画开始/结束回调
 -----------------------------------------
 function Cell.ChangeSizeWithAnimation(frame, targetWidth, targetHeight, step, startFunc, endFunc, repoint)
     if startFunc then startFunc() end
@@ -474,7 +501,9 @@ function Cell.ChangeSizeWithAnimation(frame, targetWidth, targetHeight, step, st
 end
 
 -----------------------------------------
--- Button
+-- Button -- 创建带颜色主题的按钮控件
+-- buttonColor支持: "red"/"green"/"cyan"/"blue"/"yellow"/"accent"/"chartreuse"/"magenta"/"transparent"系列/"none" 等
+-- 支持为按钮附加图标纹理(SetTexture)，自动处理悬停/点击/禁用状态
 -----------------------------------------
 function Cell.CreateButton(parent, text, buttonColor, size, noBorder, noBackground, fontNormal, fontDisable, template, ...)
     local b = CreateFrame("Button", nil, parent, template and template..",BackdropTemplate" or "BackdropTemplate")
@@ -695,7 +724,9 @@ function Cell.CreateButton(parent, text, buttonColor, size, noBorder, noBackgrou
 end
 
 -----------------------------------------
--- Button Group
+-- Button Group -- 按钮组：互斥高亮选中，点击一个按钮时高亮该项并重置其他按钮
+-- onClick: 所有按钮共同的点击回调
+-- func1/func2: 选中项/非选中项各自的额外回调
 -----------------------------------------
 function Cell.CreateButtonGroup(buttons, onClick, func1, func2, onEnter, onLeave)
     local function HighlightButton(id)
@@ -739,7 +770,7 @@ function Cell.CreateButtonGroup(buttons, onClick, func1, func2, onEnter, onLeave
 end
 
 -----------------------------------------
--- tips button
+-- tips button -- "?"提示按钮：悬停显示多行提示信息，支持不同方向弹出
 -----------------------------------------
 function Cell.CreateTipsButton(parent, size, points, ...)
     -- tips
@@ -783,7 +814,8 @@ function Cell.CreateTipsButton(parent, size, points, ...)
 end
 
 -----------------------------------------
--- check button
+-- check button -- 自定义复选框：带职业色选中纹理和标签字体
+-- 基于FrameXML的CheckButton模板概念手动构建，支持点击回调、工具提示
 -----------------------------------------
 function Cell.CreateCheckButton(parent, label, onClick, ...)
     -- InterfaceOptionsCheckButtonTemplate --> FrameXML\InterfaceOptionsPanels.xml line 19
@@ -851,7 +883,8 @@ function Cell.CreateCheckButton(parent, label, onClick, ...)
 end
 
 -----------------------------------------
--- colorpicker
+-- colorpicker -- 颜色拾取按钮：点击打开暴雪原生ColorPickerFrame
+-- 按钮背景色反映当前选中的颜色，支持透明度通道
 -----------------------------------------
 function Cell.CreateColorPicker(parent, label, hasOpacity, onChange, onConfirm)
     local cp = CreateFrame("Button", nil, parent, "BackdropTemplate")
@@ -964,8 +997,9 @@ function Cell.CreateColorPicker(parent, label, hasOpacity, onChange, onConfirm)
 end
 
 -----------------------------------------
--- editbox
+-- editbox -- 输入框控件及确认按钮辅助函数
 -----------------------------------------
+-- 为EditBox添加确认按钮（OK），仅在文本变化后显示，支持number/trim/普通三种模式
 local function EditBox_AddConfirmButton(self, func, mode)
     self.confirmBtn = self.confirmBtn or Cell.CreateButton(self, "OK", "accent", {27, 20})
     self.confirmBtn:Hide()
@@ -1013,6 +1047,7 @@ local function EditBox_AddConfirmButton(self, func, mode)
     end)
 end
 
+-- 创建标准EditBox，支持多行/纯数字/透明背景等选项
 function Cell.CreateEditBox(parent, width, height, isTransparent, isMultiLine, isNumeric, font)
     local eb = CreateFrame("EditBox", nil, parent, "BackdropTemplate")
     if not isTransparent then Cell.StylizeFrame(eb, {0.115, 0.115, 0.115, 0.9}) end
@@ -1038,6 +1073,7 @@ function Cell.CreateEditBox(parent, width, height, isTransparent, isMultiLine, i
     return eb
 end
 
+-- 创建带滚动条的多行编辑框，自动处理光标位置与滚动同步
 function Cell.CreateScrollEditBox(parent, onTextChanged, scrollStep)
     scrollStep = scrollStep or 1
 
@@ -1101,7 +1137,9 @@ function Cell.CreateScrollEditBox(parent, onTextChanged, scrollStep)
 end
 
 -----------------------------------------
--- slider 2020-08-25 02:49:16
+-- slider -- 滑块控件：带标签、数值输入框、上下限文本和职业色滑块头
+-- 基于FrameXML的OptionsSliderTemplate概念手动构建
+-- 支持onValueChanged(拖动中实时)和afterValueChanged(拖动结束后)两个回调阶段
 -----------------------------------------
 -- Interface\FrameXML\OptionsPanelTemplates.xml, line 76, OptionsSliderTemplate
 function Cell.CreateSlider(name, parent, low, high, width, step, onValueChangedFn, afterValueChangedFn, isPercentage, ...)
@@ -1281,7 +1319,8 @@ function Cell.CreateSlider(name, parent, low, high, width, step, onValueChangedF
 end
 
 -----------------------------------------
--- switch
+-- switch -- 二选一切换开关：左右两个选项，点击触发动画滑动高亮块切换选中项
+-- 牧师职业使用较低的透明度（白色底色下不可见）
 -----------------------------------------
 function Cell.CreateSwitch(parent, size, leftText, leftValue, rightText, rightValue, func)
     local switch = CreateFrame("Frame", nil, parent, "BackdropTemplate")
@@ -1377,6 +1416,7 @@ function Cell.CreateSwitch(parent, size, leftText, leftValue, rightText, rightVa
     return switch
 end
 
+-- 三选一切换开关：三个等分区域，点击循环切换 LEFT/CENTER/RIGHT
 function Cell.CreateTripleSwitch(parent, size, func)
     local switch = CreateFrame("Frame", nil, parent, "BackdropTemplate")
     P.Size(switch, size[1], size[2])
@@ -1470,6 +1510,7 @@ function Cell.CreateTripleSwitch(parent, size, func)
     return switch
 end
 
+-- 四选一切换开关：四个等分区域，点击循环切换 1/2/3/4
 function Cell.CreateFourfoldSwitch(parent, size, func)
     local switch = CreateFrame("Frame", nil, parent, "BackdropTemplate")
     P.Size(switch, size[1], size[2])
@@ -1559,7 +1600,7 @@ function Cell.CreateFourfoldSwitch(parent, size, func)
 end
 
 -----------------------------------------
--- status bar
+-- status bar -- 状态条：基于StatusBar控件，支持平滑过渡(SmoothStatusBarMixin)和文字百分比显示
 -----------------------------------------
 function Cell.CreateStatusBar(name, parent, width, height, maxValue, smooth, func, showText, texture, color)
     local bar = CreateFrame("StatusBar", name, parent, "BackdropTemplate")
@@ -1626,6 +1667,7 @@ function Cell.CreateStatusBar(name, parent, width, height, maxValue, smooth, fun
     return bar
 end
 
+-- 带倒计时进度条的按钮：点击后进度条从满值递减，归零时自动停止
 function Cell.CreateStatusBarButton(parent, text, size, maxValue, template)
     local b = Cell.CreateButton(parent, text, "accent-hover", size, false, true, nil, nil, template)
     b:SetFrameLevel(parent:GetFrameLevel()+2)
@@ -1695,7 +1737,7 @@ function Cell.CreateStatusBarButton(parent, text, size, maxValue, template)
 end
 
 -----------------------------------------
--- mask
+-- mask -- 遮罩层：在父框架上覆盖半透明遮罩，阻止点击/滚动穿透，可显示提示文字
 -----------------------------------------
 function Cell.CreateMask(parent, text, points) -- points = {topleftX, topleftY, bottomrightX, bottomrightY}
     if not parent.mask then -- not init
@@ -1732,6 +1774,7 @@ function Cell.CreateMask(parent, text, points) -- points = {topleftX, topleftY, 
     parent.mask:Show()
 end
 
+-- 战斗状态遮罩：在战斗中禁止修改选项，显示"战斗中无法修改"提示
 function Cell.CreateCombatMask(parent, x1, y1, x2, y2)
     local mask = CreateFrame("Frame", nil, parent, "BackdropTemplate")
     parent.combatMask = mask
@@ -1755,7 +1798,9 @@ function Cell.CreateCombatMask(parent, x1, y1, x2, y2)
 end
 
 -----------------------------------------
--- create popup (delete/edit/... confirm) with mask
+-- confirm popup -- 确认弹窗：带遮罩的Yes/No确认对话框
+-- 支持可选的文本输入框(hasEditBox)和下拉菜单(dropdowns)
+-- 高度根据文本自动计算
 -----------------------------------------
 function Cell.CreateConfirmPopup(parent, width, text, onAccept, onReject, mask, hasEditBox, dropdowns)
     if not parent.confirmPopup then -- not init
@@ -1887,7 +1932,7 @@ function Cell.CreateConfirmPopup(parent, width, text, onAccept, onReject, mask, 
 end
 
 -----------------------------------------
--- notification popup
+-- notification popup -- 通知弹窗：仅带OK按钮的提示对话框，高度自动计算
 -----------------------------------------
 function Cell.CreateNotificationPopup(parent, width, text, mask)
     if not parent.notificationPopup then -- not init
@@ -1950,7 +1995,9 @@ function Cell.CreateNotificationPopup(parent, width, text, mask)
 end
 
 -----------------------------------------
--- popup edit box
+-- popup edit box -- 弹出式编辑框：在原位置显示EditBox供快速编辑
+-- 支持多行模式(Shift+Enter换行），Enter确认/Escape取消
+-- 可显示底部提示文本(tips)
 -----------------------------------------
 function Cell.CreatePopupEditBox(parent, func, multiLine)
     if not parent.popupEditBox then
@@ -1971,6 +2018,7 @@ function Cell.CreatePopupEditBox(parent, func, multiLine)
         end)
 
         function eb:ShowEditBox(text)
+            -- 显示弹出编辑框并预设文本
             eb:SetText(text)
             eb:Show()
         end
@@ -1987,6 +2035,7 @@ function Cell.CreatePopupEditBox(parent, func, multiLine)
         tipsBackground:SetColorTexture(0.115, 0.115, 0.115, 0.9)
         tipsBackground:Hide()
 
+        -- 在编辑框下方显示提示文本（带背景）
         function eb:SetTips(text)
             tipsText:SetText(text)
             tipsText:Show()
@@ -2019,7 +2068,8 @@ function Cell.CreatePopupEditBox(parent, func, multiLine)
 end
 
 -----------------------------------------
--- dual popup edit box
+-- dual popup edit box -- 双输入框弹出编辑：左右两个EditBox+OK按钮
+-- 支持纯数字模式(isNumeric)，Tab键切换焦点，左右各有提示占位文本
 -----------------------------------------
 function Cell.CreateDualPopupEditBox(parent, leftTip, rightTip, isNumeric, func)
     if not parent.dualPopupEditBox then
@@ -2142,7 +2192,10 @@ function Cell.CreateDualPopupEditBox(parent, leftTip, rightTip, isNumeric, func)
 end
 
 -----------------------------------------
--- cascading menu
+-- cascading menu -- 多级联动菜单系统
+-- 支持无限层级子菜单(menu[0]=主菜单, menu[1]=一级子菜单, ...)
+-- 主菜单项hover时显示对应子菜单，点击叶子菜单项执行回调
+-- 也支持带滚动条的列表模式(当item数量超过limit时)
 -----------------------------------------
 local menu = Cell.CreateFrame(addonName.."CascadingMenu", CellParent, 100, 20)
 Cell.menu = menu
@@ -2159,10 +2212,11 @@ function menu:UpdatePixelPerfect()
     menu:SetBackdropBorderColor(Cell.GetAccentColorRGB())
 end
 
--- items: menu items table
--- itemTable: table to store item buttons --> menu/submenu
--- itemParent: menu/submenu
--- level: menu level, 0, 1, 2, 3, ...
+-- 递归创建联动菜单项按钮
+-- items: 菜单项数据表（含text/icon/children/onClick字段）
+-- itemTable: 存储创建的按钮（menu.items 或子菜单项的父按钮自身作为表）
+-- itemParent: 按钮的父容器（menu 或 submenu）
+-- level: 菜单层级，0=主菜单，1=一级子菜单，以此类推
 local function CreateItemButtons(items, itemTable, itemParent, level)
     itemParent:SetScript("OnHide", function(self) self:Hide() end)
 
@@ -2285,6 +2339,7 @@ local function CreateItemButtons(items, itemTable, itemParent, level)
     itemParent:SetHeight(2 + #items*18)
 end
 
+-- 带滚动条的联动菜单项创建函数（当菜单项超过limit时使用滚动条模式）
 local function CreateItemButtons_Scroll(items, itemTable, limit, level)
     menu:SetScript("OnHide", function(self) self:Hide() end)
 
@@ -2426,8 +2481,9 @@ local function CreateItemButtons_Scroll(items, itemTable, limit, level)
     end
 end
 
+-- 设置联动菜单的数据项，limit参数触发滚动模式
 function menu:SetItems(items, limit)
-    -- clear topmenu
+    -- 清空现有顶级菜单按钮
     for _, b in pairs({menu:GetChildren()}) do
         if b:GetObjectType() == "Button" then
             b:Hide()
@@ -2450,6 +2506,7 @@ function menu:SetItems(items, limit)
     end
 end
 
+-- 设置各级菜单宽度，可传入多个宽度值分别设置每一级
 function menu:SetWidths(...)
     local widths = {...}
     P.Width(menu, widths[1])
@@ -2464,6 +2521,7 @@ function menu:SetWidths(...)
     end
 end
 
+-- 显示联动菜单（隐藏所有子菜单，仅显示主菜单）
 function menu:ShowMenu()
     for i, m in ipairs(menu) do
         m:Hide()
@@ -2471,13 +2529,15 @@ function menu:ShowMenu()
     menu:Show()
 end
 
+-- 更改联动菜单的父框架和层级
 function menu:SetMenuParent(parent)
     menu:SetParent(parent)
     menu:SetFrameStrata("TOOLTIP")
 end
 
 -----------------------------------------
--- scroll text frame
+-- scroll text frame -- 水平滚动文本Frame：文本超出宽度时自动滚动
+-- 支持淡入淡出动效，滚动完成后停留delayTime后重新开始
 -----------------------------------------
 function Cell.CreateScrollTextFrame(parent, s, timePerScroll, scrollStep, delayTime, noFadeIn)
     if not delayTime then delayTime = 3 end
@@ -2583,7 +2643,9 @@ function Cell.CreateScrollTextFrame(parent, s, timePerScroll, scrollStep, delayT
 end
 
 -----------------------------------------------------------------------------------
--- create scroll frame (with scrollbar & content frame)
+-- create scroll frame -- 通用滚动框架（含滚动条 + 内容区 + 拖动滑块）
+-- 支持鼠标滚轮滚动、滑块拖动、自动判断是否需要显示滚动条
+-- 不用UIPanelScrollFrameTemplate以便完全自定义外观
 -----------------------------------------------------------------------------------
 function Cell.CreateScrollFrame(parent, top, bottom, color, border)
     -- create scrollFrame & scrollbar seperately (instead of UIPanelScrollFrameTemplate), in order to custom it
@@ -2744,7 +2806,7 @@ function Cell.CreateScrollFrame(parent, top, bottom, color, border)
     -- "invisible" widgets should be hidden, then the scroll range is NOT accurate!
     -- scrollFrame:SetScript("OnScrollRangeChanged", function(self, xOffset, yOffset) end)
 
-    -- dragging and scrolling
+    -- 滑块拖动逻辑：通过OnUpdate实时计算鼠标偏移，映射到滚动位置
     scrollThumb:SetScript("OnMouseDown", function(self, button)
         if button ~= 'LeftButton' then return end
         local offsetY = select(5, scrollThumb:GetPoint(1))
@@ -2807,7 +2869,10 @@ function Cell.CreateScrollFrame(parent, top, bottom, color, border)
 end
 
 ------------------------------------------------
--- dropdown menu
+-- dropdown menu -- 下拉菜单控件
+-- 全局共享一个list弹出Frame(CELLDropdownList)，每个menu实例维护自己的items数据
+-- 支持迷你模式(isMini)、纹理模式(dropdownType="texture")、字体预览模式(dropdownType="font")
+-- 列表超过15项时自动启用滚动条
 ------------------------------------------------
 local listInit, list, highlightTexture
 list = CreateFrame("Frame", "CellDropdownList", CellParent, "BackdropTemplate")
@@ -2832,7 +2897,7 @@ list:SetScript("OnShow", function()
 end)
 list:SetScript("OnHide", function() list:Hide() end)
 
--- close dropdown
+-- 将控件注册为点击后关闭下拉菜单（Button/CheckButton/Slider自动Hook对应事件）
 function Cell.RegisterForCloseDropdown(f)
     if f:GetObjectType() == "Button" or f:GetObjectType() == "CheckButton" then
         f:HookScript("OnClick", function()
@@ -2845,6 +2910,8 @@ function Cell.RegisterForCloseDropdown(f)
     end
 end
 
+-- 设置下拉列表高亮项：将高亮纹理附着到指定索引的按钮上
+-- i为nil时隐藏高亮
 local function SetHighlightItem(i)
     if not i then
         highlightTexture:ClearAllPoints()
@@ -3014,6 +3081,7 @@ function Cell.CreateDropdown(parent, width, dropdownType, isMini, isHorizontal)
         menu.reloadRequired = true
     end
 
+    -- 刷新下拉列表内容：根据当前menu.items重建所有list按钮，处理文本/纹理/字体/选中/布局
     local function LoadItems()
         if not listInit then
             listInit = true
@@ -3191,8 +3259,9 @@ function Cell.CreateDropdown(parent, width, dropdownType, isMini, isHorizontal)
 end
 
 -----------------------------------------
--- binding button
+-- binding button -- 按键绑定捕获按钮：捕获鼠标/键盘/滚轮输入，返回修饰键+按键名
 -----------------------------------------
+-- 获取当前按下的修饰键组合字符串（alt-/ctrl-/shift-/meta-）
 local function GetModifier()
     local modifier = "" -- "shift-", "ctrl-", "alt-", "ctrl-shift-", "alt-shift-", "alt-ctrl-", "alt-ctrl-shift-"
     local alt = IsAltKeyDown()
@@ -3208,6 +3277,8 @@ local function GetModifier()
     return modifier
 end
 
+-- 创建/获取按键绑定捕获Frame，支持鼠标左/中/右键、滚轮、键盘按键
+-- 捕获后调用bindingButton.func(modifier, key)
 function Cell.CreateBindingButton(parent, width)
     if not parent.bindingButton then
         parent.bindingButton = Cell.CreateFrame("CellClickCastings_BindingButton", parent, 50, 20)
@@ -3278,8 +3349,10 @@ function Cell.CreateBindingButton(parent, width)
 end
 
 -----------------------------------------
--- binding list button
+-- binding list button -- 按键绑定列表行：显示按键/类型/动作三列的可拖动行
+-- 每行包含keyGrid/typeGrid/actionGrid三个子格，支持拖动排序和图标显示
 -----------------------------------------
+-- 创建单个单元格（Grid），用于按键绑定列表的列显示
 local function CreateGrid(parent, text, width)
     local grid = CreateFrame("Button", nil, parent, "BackdropTemplate")
     grid:SetFrameLevel(6)
@@ -3345,6 +3418,7 @@ local function CreateGrid(parent, text, width)
     return grid
 end
 
+-- 创建绑定列表行按钮：显示(修饰键+按键) / 类型 / 动作三列，支持图标和拖动排序
 function Cell.CreateBindingListButton(parent, modifier, bindKey, bindType, bindAction)
     local b = CreateFrame("Button", nil, parent, "BackdropTemplate")
     b:SetFrameLevel(5)
@@ -3452,7 +3526,10 @@ function Cell.CreateBindingListButton(parent, modifier, bindKey, bindType, bindA
 end
 
 -----------------------------------------
--- receiving frame
+-- receiving frame -- 跨角色数据接收/导入窗口
+-- 用于接收其他玩家通过插件通讯发送的Debuff配置或布局数据
+-- 显示类型/名称/来源，支持Request请求、Import导入、Cancel取消操作
+-- 带进度条显示传输进度，10秒超时提示跨服组队要求
 -----------------------------------------
 function Cell.CreateReceivingFrame(parent)
     local f = CreateFrame("Frame", "CellReceivingFrame", parent, "BackdropTemplate")
@@ -3550,6 +3627,7 @@ function Cell.CreateReceivingFrame(parent)
     progressBar:SetPoint("BOTTOMRIGHT", cancelBtn, "BOTTOMLEFT")
     progressBar:Hide()
 
+    -- 显示接收窗口，设置类型/名称/来源，根据文本行数动画调整窗口高度
     function f:ShowFrame(type, playerName, name1, name2)
         P.Size(f, 249, 20) -- reset size
         typeLabel:Hide()
@@ -3589,6 +3667,7 @@ function Cell.CreateReceivingFrame(parent)
     end
 
     local timeout
+    -- 设置Request按钮回调：显示进度条，启动10秒超时定时器（跨服需要同组队）
     function f:SetOnRequest(func)
         requestBtn:SetScript("OnClick", function(self)
             requestBtn:Hide()
@@ -3624,6 +3703,8 @@ function Cell.CreateReceivingFrame(parent)
         progressBar:SetSmoothedValue(done)
     end
 
+    -- 显示导入结果：处理Debuffs/Layout两种类型的数据接收
+    -- 检查版本兼容性，显示接收到的数据摘要，启用/禁用Import按钮
     function f:ShowImport(status, received, func)
         if timeout then
             timeout:Cancel()

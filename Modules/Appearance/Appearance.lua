@@ -1,3 +1,9 @@
+-- CellD 外观设置模块
+-- 负责管理 CellD 所有外观相关设置的面板，包括：
+-- 1. 全局 Cell 设置（缩放、层级、强调色、字体）
+-- 2. 单位按钮样式（纹理、颜色、动画、护盾/吸收显示）
+-- 3. 预览区域（预览图标动画 + 预览单位按钮行为）
+-- 4. Debuff 类型颜色设置
 local _, Cell = ...
 local L = Cell.L
 local F = Cell.funcs
@@ -5,23 +11,27 @@ local B = Cell.bFuncs
 local I = Cell.iFuncs
 local P = Cell.pixelPerfectFuncs
 
+-- 前向声明：从 CellDB 加载配置数据的函数
 local LoadData, LoadButtonStyle, LoadDebuffTypeColor
 
+-- 创建外观设置页签的主容器 Frame
 local appearanceTab = Cell.CreateFrame("CellOptionsFrame_AppearanceTab", Cell.frames.optionsFrame, nil, nil, true)
 Cell.frames.appearanceTab = appearanceTab
 appearanceTab:SetAllPoints(Cell.frames.optionsFrame)
 appearanceTab:Hide()
 
 -------------------------------------------------
--- cell
+-- Cell 全局设置面板
+-- 包含：全局缩放、选项界面字体大小、框体层级、强调色、游戏字体开关
 -------------------------------------------------
 local scaleSlider, strataDropdown, accentColorDropdown, accentColorPicker, optionsFontSizeOffset, useGameFontCB
 
+-- 创建 Cell 全局设置面板
 local function CreateCellPane()
     local cellPane = Cell.CreateTitledPane(appearanceTab, "Cell", 422, 140)
     cellPane:SetPoint("TOPLEFT", appearanceTab, "TOPLEFT", 5, -5)
 
-    -- global scale
+    -- 全局缩放滑块：控制整个 CellD 框架的缩放比例
     scaleSlider = Cell.CreateSlider(L["Scale"], cellPane, 0.5, 2, 141, 0.01, nil, nil, nil, L["Scale"])
     scaleSlider:SetPoint("TOPLEFT", cellPane, "TOPLEFT", 5, -40)
     scaleSlider.afterValueChangedFn = function(value)
@@ -29,6 +39,7 @@ local function CreateCellPane()
         Cell.Fire("UpdateAppearance", "scale")
         Cell.Fire("UpdatePixelPerfect")
 
+        -- 修改缩放比例后提示用户需要重新加载 UI
         local popup = Cell.CreateConfirmPopup(appearanceTab, 200, L["A UI reload is required.\nDo it now?"], function()
             ReloadUI()
         end, nil, true)
@@ -37,7 +48,7 @@ local function CreateCellPane()
     Cell.RegisterForCloseDropdown(scaleSlider)
     F.ApplyCombatProtectionToWidget(scaleSlider)
 
-    -- recommended scale
+    -- 推荐缩放按钮：根据屏幕分辨率自动计算最适合的缩放比例
     local recScaleBtn = Cell.CreateButton(cellPane, nil, "accent-hover", {17, 17}, nil, nil, nil, nil, nil, L["Apply Recommended Scale"])
     recScaleBtn:SetPoint("BOTTOMRIGHT", scaleSlider, "TOPRIGHT", 0, 2)
     recScaleBtn:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\resize", {15, 15}, {"CENTER", 0, 0})
@@ -48,7 +59,7 @@ local function CreateCellPane()
     end)
     F.ApplyCombatProtectionToWidget(recScaleBtn)
 
-    -- options ui font size
+    -- 选项界面字体大小偏移滑块：独立控制设置面板内部的字体大小
     optionsFontSizeOffset = Cell.CreateSlider(L["Options UI Font Size"], cellPane, -5, 5, 141, 1)
     optionsFontSizeOffset:SetPoint("TOPLEFT", 222, -40)
 
@@ -58,7 +69,7 @@ local function CreateCellPane()
         Cell.UpdateAboutFont(value)
     end
 
-    -- raid frame strata
+    -- 框体层级（Strata）：控制团队框体在画面中的绘制层级（LOW/MEDIUM/HIGH）
     strataDropdown = Cell.CreateDropdown(cellPane, 141)
     strataDropdown:SetPoint("TOPLEFT", scaleSlider, 0, -50)
     strataDropdown:SetItems({
@@ -97,7 +108,7 @@ local function CreateCellPane()
         end
     end)
 
-    -- accent color
+    -- 强调色（Accent Color）：控制 CellD 设置面板的强调色方案（职业色/自定义色）
     accentColorDropdown = Cell.CreateDropdown(cellPane, 141)
     accentColorDropdown:SetPoint("TOPLEFT", optionsFontSizeOffset, 0, -50)
     accentColorDropdown:SetItems({
@@ -106,6 +117,7 @@ local function CreateCellPane()
             ["value"] = "class_color",
             ["onClick"] = function()
                 if CellDB["appearance"]["accentColor"][1] ~= "class_color" then
+                    -- 切换强调色类型后需要重新加载 UI
                     local popup = Cell.CreateConfirmPopup(appearanceTab, 200, L["A UI reload is required.\nDo it now?"], function()
                         ReloadUI()
                     end, nil, true)
@@ -120,6 +132,7 @@ local function CreateCellPane()
             ["value"] = "custom",
             ["onClick"] = function()
                 if CellDB["appearance"]["accentColor"][1] ~= "custom" then
+                    -- 切换强调色类型后需要重新加载 UI
                     local popup = Cell.CreateConfirmPopup(appearanceTab, 200, L["A UI reload is required.\nDo it now?"], function()
                         ReloadUI()
                     end, nil, true)
@@ -135,6 +148,7 @@ local function CreateCellPane()
     accentColorText:SetPoint("BOTTOMLEFT", accentColorDropdown, "TOPLEFT", 0, 1)
     accentColorText:SetText(L["Options UI Accent Color"])
 
+    -- 强调色拾取器：仅在强调色模式为"自定义"时可用；修改颜色后需要重新加载 UI
     accentColorPicker = Cell.CreateColorPicker(cellPane, "", false, nil, function(r, g, b)
         if CellDB["appearance"]["accentColor"][2][1] ~= r or CellDB["appearance"]["accentColor"][2][2] ~= g or CellDB["appearance"]["accentColor"][2][3] ~= b then
             local popup = Cell.CreateConfirmPopup(appearanceTab, 200, L["A UI reload is required.\nDo it now?"], function()
@@ -150,7 +164,7 @@ local function CreateCellPane()
     accentColorPicker:SetPoint("LEFT", accentColorDropdown, "RIGHT", 5, 0)
     Cell.RegisterForCloseDropdown(accentColorPicker)
 
-    -- use game font
+    -- 使用游戏默认字体：切换选项面板字体为游戏原版字体；亚洲客户端默认隐藏此选项
     useGameFontCB = Cell.CreateCheckButton(cellPane, L["Use Game Font"], function(checked)
         CellDB["appearance"]["useGameFont"] = checked
         Cell.UpdateOptionsFont(CellDB["appearance"]["optionsFontSizeOffset"], checked)
@@ -162,10 +176,13 @@ local function CreateCellPane()
 end
 
 -------------------------------------------------
--- preview icons
+-- 预览区域：光环图标预览
+-- 用于在外观设置页中展示 Debuff 边框图标和 Buff 条形图标的样式预览
 -------------------------------------------------
 local previewIconsBG, borderIcon1, borderIcon2, barIcon1, barIcon2
 
+-- 为预览图标设置 OnUpdate 脚本，使其循环播放冷却动画
+-- indicator: 预览图标对象; type: debuff 类型（如 Magic）; icon: 法术图标 ID; stack: 层数
 local function SetOnUpdate(indicator, type, icon, stack)
     indicator.preview = indicator.preview or CreateFrame("Frame", nil, indicator)
     indicator.preview:SetScript("OnUpdate", function(self, elapsed)
@@ -213,7 +230,10 @@ local previewIconsFont = {
     {"Cell ".._G.DEFAULT, 11, "Outline", false, "BOTTOMRIGHT", 2, -1},
 }
 
+-- 创建预览图标区域：在设置面板右侧展示两个 BorderIcon（边框图标）和两个 BarIcon（条形图标），
+-- 并循环播放冷却动画，方便用户直观预览光环指示器的外观
 local function CreatePreviewIcons()
+    -- 预览区域背景容器
     previewIconsBG = Cell.CreateFrame("CellAppearancePreviewIconsBG", appearanceTab)
     previewIconsBG:SetPoint("TOPLEFT", appearanceTab, "TOPRIGHT", 5, -160)
     P.Size(previewIconsBG, 95, 45)
@@ -224,6 +244,7 @@ local function CreatePreviewIcons()
     previewText:SetPoint("TOP", 0, -3)
     previewText:SetText(Cell.GetAccentColorString()..L["Preview"].." 1")
 
+    -- 预览图标1：BorderIcon 类型，展示魔法 debuff 的边框图标样式（带定时刷新冷却动画）
     borderIcon1 = I.CreateAura_BorderIcon("CellAppearancePreviewIcon1", previewIconsBG, 2)
     borderIcon1:SetFont(unpack(previewIconsFont))
     P.Size(borderIcon1, 22, 22)
@@ -231,6 +252,7 @@ local function CreatePreviewIcons()
     SetOnUpdate(borderIcon1, "Magic", 135819, 0)
     borderIcon1:Show()
 
+    -- 预览图标2：BorderIcon 类型，展示层数逐渐增加的堆叠效果
     borderIcon2 = I.CreateAura_BorderIcon("CellAppearancePreviewIcon2", previewIconsBG, 2)
     borderIcon2:SetFont(unpack(previewIconsFont))
     P.Size(borderIcon2, 22, 22)
@@ -251,6 +273,7 @@ local function CreatePreviewIcons()
     end)
     borderIcon2:Show()
 
+    -- 预览图标4：BarIcon 类型，展示带持续时间动画的 buff 图标
     barIcon2 = I.CreateAura_BarIcon("CellAppearancePreviewIcon4", previewIconsBG)
     barIcon2:SetFont(unpack(previewIconsFont))
     P.Size(barIcon2, 22, 22)
@@ -270,6 +293,7 @@ local function CreatePreviewIcons()
     barIcon2:ShowAnimation(true)
     barIcon2:Show()
 
+    -- 预览图标3：BarIcon 类型，展示带持续时间和堆叠动画的 buff 图标（含层数显示）
     barIcon1 = I.CreateAura_BarIcon("CellAppearancePreviewIcon3", previewIconsBG)
     barIcon1:SetFont(unpack(previewIconsFont))
     P.Size(barIcon1, 22, 22)
@@ -308,10 +332,14 @@ local function CreatePreviewIcons()
 end
 
 -------------------------------------------------
--- preview button
+-- 预览区域：单位按钮预览
+-- 创建两个预览单位按钮，用于在各种外观设置变更时实时展示效果
+-- Preview 2（previewButton）: 满血状态，通过定时器模拟血量变化动画
+-- Preview 3（previewButton2）: 60%血量状态，展示护盾/治疗预估/吸收等效果
 -------------------------------------------------
 local previewButton, previewButton2
 
+-- 创建预览按钮区域：生成两个完整的单位按钮预览，用于实时展示血条颜色、纹理、动画、护盾等设置效果
 local function CreatePreviewButtons()
     previewButton = CreateFrame("Button", "CellAppearancePreviewButton", appearanceTab, "CellPreviewButtonTemplate")
     B.UpdateBackdrop(previewButton)
@@ -369,7 +397,8 @@ local function CreatePreviewButtons()
     previewText2:SetPoint("TOP", 0, -3)
     previewText2:SetText(Cell.GetAccentColorString()..L["Preview"].." 3")
 
-    -- animation
+    -- 血量变化动画模拟：在预览按钮1上循环模拟血量增减动画
+    -- states 数组定义每步的血量变化量，配合定时器每1秒切换一次状态
     local states = {-20, -30, -40, 50, -60, 0, 100, 0}
     local ticker
     previewButton:SetScript("OnShow", function()
@@ -385,9 +414,11 @@ local function CreatePreviewButtons()
             healthPercent = health / 100
             previewButton.perc = healthPercent
 
+            -- 根据当前设置的血条动画模式显示血量变化
             if CellDB["appearance"]["barAnimation"] == "Flash" then
                 previewButton.widgets.healthBar:SetValue(health)
 
+                -- Flash 模式：血量减少时显示伤害闪烁效果
                 local diff = healthPercent - (healthPercentOld or healthPercent)
                 if diff >= 0 then
                     B.HideFlash(previewButton)
@@ -397,19 +428,21 @@ local function CreatePreviewButtons()
                     -- print(abs(diff))
                 end
             elseif CellDB["appearance"]["barAnimation"] == "Smooth" then
+                -- Smooth 模式：平滑过渡血量变化
                 previewButton.widgets.healthBar:SetSmoothedValue(health)
             else
+                -- None 模式：直接设置血量值
                 previewButton.widgets.healthBar:SetValue(health)
             end
 
-            -- update text
+            -- 更新血量文本：0 时显示"死亡"，否则显示百分比
             if health == 0 then
                 previewButton.previewHealthText:SetText(L["DEAD"])
             else
                 previewButton.previewHealthText:SetText(health.."%")
             end
 
-            -- update color
+            -- 根据当前血量百分比更新血条颜色和损失颜色
             local r, g, b, lossR, lossG, lossB = F.GetHealthBarColor(healthPercent, health == 0, F.GetClassColor(Cell.vars.playerClass))
             previewButton.widgets.healthBar:SetStatusBarColor(r, g, b, CellDB["appearance"]["barAlpha"])
             previewButton.widgets.healthBarLoss:SetVertexColor(lossR, lossG, lossB, CellDB["appearance"]["lossAlpha"])
@@ -419,6 +452,7 @@ local function CreatePreviewButtons()
         end)
     end)
 
+    -- 预览按钮隐藏时取消动画定时器，避免后台空转消耗性能
     previewButton:SetScript("OnHide", function()
         previewButton.perc = 100
         if ticker then
@@ -427,10 +461,14 @@ local function CreatePreviewButtons()
         end
     end)
 
+    -- 通知其他模块创建额外预览内容（如布局相关的指示器）
     Cell.Fire("CreatePreview", previewButton, previewButton2)
 end
 
+-- 更新预览按钮上的护盾/吸收/治疗预估显示效果
+-- r, g, b: 当前血条颜色，用于计算默认的护盾/吸收颜色
 local function UpdatePreviewShields(r, g, b)
+    -- 治疗预估条：展示即将到达的治疗量（绿色半透明覆盖层）
     if CellDB["appearance"]["healPrediction"][1] then
         previewButton2.widgets.incomingHeal:SetValue(0.2, 0.6)
         if CellDB["appearance"]["healPrediction"][2] then
@@ -442,9 +480,11 @@ local function UpdatePreviewShields(r, g, b)
         previewButton2.widgets.incomingHeal:Hide()
     end
 
+    -- 治疗吸收条：正式服/熊猫人版本特有，展示治疗吸收效果及溢出辉光
     if Cell.isRetail or Cell.isMists then
         if CellDB["appearance"]["healAbsorb"][1] then
             previewButton2.widgets.absorbsBar:SetValue(0.8, 0.6)
+            -- 若启用了反色模式，使用血条颜色的反色作为吸收条颜色
             if CellDB["appearance"]["healAbsorbInvertColor"] then
                 previewButton2.widgets.absorbsBar:SetVertexColor(F.InvertColor(previewButton2.widgets.healthBar:GetStatusBarColor()))
                 previewButton2.widgets.overAbsorbGlow:SetVertexColor(F.InvertColor(previewButton2.widgets.healthBar:GetStatusBarColor()))
@@ -458,6 +498,7 @@ local function UpdatePreviewShields(r, g, b)
         end
     end
 
+    -- 护盾条：正式服/熊猫人/巫妖王/大灾变版本
     if Cell.isRetail or Cell.isMists or Cell.isWrath or Cell.isCata then
         if CellDB["appearance"]["shield"][1] then
             previewButton2.widgets.shieldBar:SetValue(0.6, 0.6)
@@ -468,6 +509,7 @@ local function UpdatePreviewShields(r, g, b)
 
         local reverseFilling = CellDB["appearance"]["shield"][1] and CellDB["appearance"]["overshieldReverseFill"]
 
+        -- 溢出护盾辉光：默认从左向右填充；若启用反向填充则使用右侧备选条
         if CellDB["appearance"]["overshield"][1] and not reverseFilling then
             previewButton2.widgets.overShieldGlow:SetVertexColor(unpack(CellDB["appearance"]["overshield"][2]))
             previewButton2.widgets.overShieldGlow:Show()
@@ -475,6 +517,7 @@ local function UpdatePreviewShields(r, g, b)
             previewButton2.widgets.overShieldGlow:Hide()
         end
 
+        -- 反向填充模式：护盾条和溢出辉光从右侧向左绘制
         if reverseFilling then
             previewButton2.widgets.shieldBarR:SetVertexColor(unpack(CellDB["appearance"]["shield"][2]))
             previewButton2.widgets.shieldBarR:Show()
@@ -492,7 +535,10 @@ local function UpdatePreviewShields(r, g, b)
     end
 end
 
+-- 根据外观设置更新预览按钮的显示
+-- which: 指定需要更新的设置类别（texture/layout/color/alpha/shields/reset），nil 表示全部更新
 local function UpdatePreviewButton(which)
+    -- 纹理更新：将所有预览按钮的相关纹理设置为当前选中的材质
     if not which or which == "texture" or which == "reset" then
         previewButton.widgets.healthBar:SetStatusBarTexture(Cell.vars.texture)
         previewButton.widgets.healthBarLoss:SetTexture(Cell.vars.texture)
@@ -519,6 +565,7 @@ local function UpdatePreviewButton(which)
         previewButton2.widgets.damageFlashTex:SetTexture(Cell.vars.texture)
     end
 
+    -- 布局更新：根据当前布局表设置预览按钮的方向和尺寸
     if not which or which == "layout" then
         -- barOrientation
         B.SetOrientation(previewButton, Cell.vars.currentLayoutTable["barOrientation"][1], Cell.vars.currentLayoutTable["barOrientation"][2])
@@ -531,6 +578,7 @@ local function UpdatePreviewButton(which)
         B.SetPowerSize(previewButton2, Cell.vars.currentLayoutTable["main"]["powerSize"])
     end
 
+    -- 颜色/透明度/护盾更新：重新计算并设置预览按钮的血条颜色、能量条颜色等
     if not which or which == "color" or which == "alpha" or which == "shields" or which == "reset" then
         -- power color
         local r, g, b = F.GetPowerBarColor("player", Cell.vars.playerClass)
@@ -557,11 +605,14 @@ local function UpdatePreviewButton(which)
 
     previewButton.loaded = true
 
+    -- 通知其他模块更新预览内容
     Cell.Fire("UpdatePreview", previewButton, previewButton2)
 end
 
 -------------------------------------------------
--- unitbutton
+-- 单位按钮样式设置面板
+-- 包含：纹理、血条颜色、颜色阈值、死亡色、能量颜色、血条动画、
+--       目标/鼠标悬停高亮、光环图标选项、透明度、治疗预估、吸收、护盾等设置
 -------------------------------------------------
 local textureDropdown, barColorDropdown, barColorPicker, fullColorCB, fullColorPicker, lossColorDropdown, lossColorPicker, deathColorCB, deathColorPicker, powerColorDropdown, powerColorPicker, barAnimationDropdown, targetColorPicker, mouseoverColorPicker, highlightSize
 local gradientCB, thresholdCP1, thresholdCP2, thresholdCP3, thresholdDropdown, colorThresholdDropdown2
@@ -571,6 +622,8 @@ local predCustomCB, predColorPicker, absorbColorPicker, shieldColorPicker, overs
 local iconOptionsBtn, iconOptionsFrame, iconAnimationDropdown, durationRoundUpCB, durationDecimalText1, durationDecimalText2, durationDecimalDropdown, durationColorCB, durationNormalCP, durationPercentCP, durationSecondCP, durationPercentDD, durationSecondEB, durationSecondText
 
 local LSM = LibStub("LibSharedMedia-3.0", true)
+-- 从 LibSharedMedia-3.0 库获取可用状态条纹理列表，填充纹理下拉菜单
+-- 将 Cell 默认材质置于列表首位
 local function CheckTextures()
     local items = {}
     local textures, textureNames
@@ -618,6 +671,8 @@ local function CheckTextures()
     end
 end
 
+-- 创建光环图标选项子面板（弹出式 Frame）
+-- 包含：图标动画模式、持续时间取整、小数点显示、持续时间颜色阈值设置
 local function CreateIconOptionsFrame()
     if not appearanceTab.mask then
         Cell.CreateMask(appearanceTab, nil, {1, -1, -1, 1})
@@ -830,6 +885,7 @@ local function CreateIconOptionsFrame()
     durationSecondText:SetText(L["sec"])
 end
 
+-- 根据各护盾/吸收复选框的选中状态，更新其子控件的启用/禁用状态
 local function UpdateCheckButtons()
     predCustomCB:SetEnabled(CellDB["appearance"]["healPrediction"][1])
     predColorPicker:SetEnabled(CellDB["appearance"]["healPrediction"][1] and CellDB["appearance"]["healPrediction"][2])
@@ -848,6 +904,8 @@ local function UpdateCheckButtons()
     end
 end
 
+-- 根据当前颜色模式（职业色/自定义色/颜色阈值）显示或隐藏对应的颜色拾取器
+-- 同时调整下游控件的布局位置
 local function UpdateColorPickers()
     -- full color
     if CellDB["appearance"]["barColor"][1] == "custom" then
@@ -922,6 +980,9 @@ local function UpdateColorPickers()
     end
 end
 
+-- 创建单位按钮风格设置面板（主面板）
+-- 包含纹理、血条颜色（含颜色阈值）、血条损失色、死亡色、能量颜色、血条动画、
+-- 高亮色、光环图标选项、透明度、治疗预估、吸收、护盾、溢出护盾等全部控件
 local function CreateUnitButtonStylePane()
     local unitButtonPane = Cell.CreateTitledPane(appearanceTab, L["Unit Button Style"], 422, 410)
     unitButtonPane:SetPoint("TOPLEFT", appearanceTab, "TOPLEFT", 5, -160)
@@ -1552,10 +1613,12 @@ local function CreateUnitButtonStylePane()
 end
 
 -------------------------------------------------
--- debuff type color
+-- Debuff 类型颜色设置面板
+-- 为每种 Debuff 类型（诅咒、疾病、魔法、中毒、流血）设置独立的边框/图标颜色
 -------------------------------------------------
 local curseCP, diseaseCP, magicCP, poisonCP, bleedCP
 
+-- 创建 Debuff 类型颜色设置面板
 local function CreateDebuffTypeColorPane()
     local dtcPane = Cell.CreateTitledPane(appearanceTab, L["Debuff Type Color"], 422, 60)
     dtcPane:SetPoint("TOPLEFT", appearanceTab, "TOPLEFT", 5, -595)
@@ -1609,9 +1672,11 @@ local function CreateDebuffTypeColorPane()
 end
 
 -------------------------------------------------
--- functions
+-- 数据加载与面板初始化函数
 -------------------------------------------------
+-- 首次调用标记：面板控件采用延迟创建（首次打开外观页签时才创建），此标记确保只创建一次
 local init
+-- 从 CellDB 加载单位按钮风格设置到面板控件
 LoadButtonStyle = function()
     if not init then CheckTextures() end
 
@@ -1689,6 +1754,7 @@ LoadButtonStyle = function()
     durationSecondEB:SetText(CellDB["appearance"]["auraIconOptions"]["durationColors"][3][4])
 end
 
+-- 从 CellDB 加载每种 Debuff 类型的自定义颜色到颜色拾取器
 LoadDebuffTypeColor = function()
     curseCP:SetColor(I.GetDebuffTypeColor("Curse"))
     diseaseCP:SetColor(I.GetDebuffTypeColor("Disease"))
@@ -1697,6 +1763,7 @@ LoadDebuffTypeColor = function()
     bleedCP:SetColor(I.GetDebuffTypeColor("Bleed"))
 end
 
+-- 从 CellDB 加载所有外观设置数据到面板控件（包括全局设置、按钮风格和 Debuff 颜色）
 LoadData = function()
     scaleSlider:SetValue(CellDB["appearance"]["scale"])
     strataDropdown:SetSelected(CellDB["appearance"]["strata"])
@@ -1710,8 +1777,12 @@ LoadData = function()
     LoadDebuffTypeColor()
 end
 
+-- 外观页签显示/隐藏回调
+-- 首次打开时延迟创建所有子面板控件（PreviewIcons、PreviewButtons、CellPane、UnitButtonStylePane、IconOptionsFrame、DebuffTypeColorPane）
+-- 随后加载数据并更新预览
 local function ShowTab(tab)
     if tab == "appearance" then
+        -- 延迟创建：首次打开外观页签时才实例化所有子面板
         if not init then
             CreatePreviewIcons()
             CreatePreviewButtons()
@@ -1723,6 +1794,7 @@ local function ShowTab(tab)
 
         appearanceTab:Show()
 
+        -- 控件已创建且数据已加载，不再重复初始化
         if init then return end
 
         UpdatePreviewButton()
@@ -1735,7 +1807,7 @@ end
 Cell.RegisterCallback("ShowOptionsTab", "AppearanceTab_ShowTab", ShowTab)
 
 -------------------------------------------------
--- update preivew
+-- 布局更新回调：当前布局发生变化时更新预览按钮的布局显示
 -------------------------------------------------
 local function UpdateLayout()
     if init and previewButton.loaded then
@@ -1754,14 +1826,20 @@ Cell.RegisterCallback("UpdateIndicators", "AppearanceTab_UpdateIndicators", Upda
 ]]
 
 -------------------------------------------------
--- update appearance
+-- 外观更新回调：当任何外观设置发生变化时被触发
+-- 遍历所有单位按钮并应用新的外观设置（纹理、颜色、动画、护盾、高亮等）
+-- 同时更新全局缩放、层级、光环图标选项和预览按钮
+-- which: 指定变更的设置类别，nil 表示全部应用
 -------------------------------------------------
 local function UpdateAppearance(which)
     F.Debug("|cff7f7fffUpdateAppearance:|r", which)
 
+    -- 单位按钮外观更新：遍历所有单位按钮并逐项应用设置变更
     if not which or which == "texture" or which == "color" or which == "fullColor" or which == "deathColor" or which == "alpha" or which == "outOfRangeAlpha" or which == "shields" or which == "animation" or which == "highlightColor" or which == "highlightSize" or which == "reset" then
         local tex
         if not which or which == "texture" or which == "reset" then tex = F.GetBarTexture() end
+
+        -- 颜色阈值模式检测：判断是否需要启用条件颜色显示（高 CPU 开销）
 
         if not which or which == "color" or which == "reset" then
             if strfind(CellDB["appearance"]["barColor"][1], "^threshold") or strfind(CellDB["appearance"]["lossColor"][1], "^threshold") then
@@ -1779,50 +1857,51 @@ local function UpdateAppearance(which)
             Cell.vars.useDeathColor = CellDB["appearance"]["deathColor"][1] and true or false
         end
 
+        -- 遍历所有单位按钮，逐项应用外观设置
         F.IterateAllUnitButtons(function(b)
-            -- texture
+            -- 纹理
             if not which or which == "texture" or which == "reset" then
                 B.SetTexture(b, tex)
             end
-            -- color
+            -- 颜色（含血条色、满血色、死亡色、透明度）
             if not which or which == "color" or which == "fullColor" or which == "deathColor" or which == "alpha" or which == "shields" or which == "reset" then
                 B.UpdateColor(b)
             end
-            -- outOfRangeAlpha
+            -- 超出距离透明度：强制重新检测范围状态
             if which == "outOfRangeAlpha" or which == "reset" then
                 b.states.wasInRange = false
             end
-            -- shields
+            -- 护盾/吸收显示
             if not which or which == "shields" or which == "reset" then
                 B.UpdateShields(b)
             end
-            -- animation
+            -- 血条动画模式（Flash/Smooth/None）
             if not which or which == "animation" or which == "reset" then
                 B.UpdateAnimation(b)
             end
-            -- highlightColor
+            -- 高亮颜色（目标/鼠标悬停）
             if not which or which == "highlightColor" or which == "reset" then
                 B.UpdateHighlightColor(b)
             end
-            -- highlightColor
+            -- 高亮边框大小
             if not which or which == "highlightSize" or which == "reset" then
                 B.UpdateHighlightSize(b)
             end
         end)
     end
 
-    -- icon options
+    -- 光环图标选项更新：动画模式、取整、小数点、持续时间颜色阈值
     if not which or which == "icon" or which == "reset" then
-        -- animation
+        -- 动画模式：控制光环图标是否显示冷却动画及显示方式（duration/stack/never）
         Cell.vars.iconAnimation = CellDB["appearance"]["auraIconOptions"]["animation"]
 
-        -- round up
+        -- 持续时间取整
         Cell.vars.iconDurationRoundUp = CellDB["appearance"]["auraIconOptions"]["durationRoundUp"]
 
-        -- decimal
+        -- 小数点位数
         Cell.vars.iconDurationDecimal = CellDB["appearance"]["auraIconOptions"]["durationDecimal"]
 
-        -- color
+        -- 持续时间颜色：仅在启用时应用颜色阈值表
         if CellDB["appearance"]["auraIconOptions"]["durationColorEnabled"] then
             Cell.vars.iconDurationColors = CellDB["appearance"]["auraIconOptions"]["durationColors"]
         else
@@ -1830,7 +1909,7 @@ local function UpdateAppearance(which)
         end
     end
 
-    -- scale
+    -- 全局缩放：更新主框架缩放并同步所有关联元素的像素完美设置
     if not which or which == "scale" then
         CellParent:SetScale(CellDB["appearance"]["scale"])
 
@@ -1848,14 +1927,14 @@ local function UpdateAppearance(which)
         end
     end
 
-    -- strata
+    -- 框体层级：更新主框架层级，设置面板和团队名册始终保持在 DIALOG 层级
     if not which or which == "strata" then
         Cell.frames.mainFrame:SetFrameStrata(CellDB["appearance"]["strata"])
         Cell.frames.optionsFrame:SetFrameStrata("DIALOG")
         Cell.frames.raidRosterFrame:SetFrameStrata("DIALOG")
     end
 
-    -- preview
+    -- 更新预览按钮（仅当面板可见时；排除纯高亮变更以免不必要的重绘）
     if which ~= "highlightColor" and which ~= "highlightSize" and init and previewButton:IsVisible() then
         UpdatePreviewButton(which)
     end

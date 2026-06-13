@@ -26,6 +26,8 @@ local ListHighlightFn
 -------------------------------------------------
 local previewButton, previewButtonBG, previewAlphaSlider, previewScaleSlider, previewShowAllCB
 
+-- 创建预览按钮：在选项面板右侧展示一个模拟的单元按钮，用于实时预览指示器效果
+-- 该按钮模拟一个玩家单元框架，各指示器的位置、大小、动画等设置会即时在此按钮上呈现
 local function CreatePreviewButton()
     previewButton = CreateFrame("Button", "CellIndicatorsPreviewButton", indicatorsTab, "CellPreviewButtonTemplate")
     B.UpdateBackdrop(previewButton)
@@ -98,6 +100,8 @@ local function CreatePreviewButton()
     Cell.Fire("CreatePreview", previewButton)
 end
 
+-- 更新预览按钮外观：根据当前布局表中 main 尺寸、条方向、能量条大小、
+-- 生命/能量条纹理颜色、背景透明度等设置刷新预览按钮
 local function UpdatePreviewButton()
     P.Size(previewButton, currentLayoutTable["main"]["size"][1], currentLayoutTable["main"]["size"][2])
     B.SetOrientation(previewButton, currentLayoutTable["barOrientation"][1], currentLayoutTable["barOrientation"][2])
@@ -126,6 +130,13 @@ local function UpdatePreviewButton()
 end
 
 -- indicator preview onupdate
+-- 预览 OnUpdate 动画辅助函数：为指示器创建 OnUpdate 循环，每 13 秒重新设置一次冷却，
+-- 模拟周期性触发的光环效果（如减益、增益、冷却技能等）
+-- @param indicator 目标指示器帧
+-- @param type 光环类型（空字符串、Curse、Disease、Magic、Poison 等）
+-- @param icon 图标纹理 ID 或路径
+-- @param stack 堆叠层数
+-- @param extra 额外参数（如颜色表）
 local function SetOnUpdate(indicator, type, icon, stack, extra)
     indicator.preview = indicator.preview or CreateFrame("Frame", nil, indicator)
     indicator.preview:SetScript("OnUpdate", function(self, elapsed)
@@ -142,11 +153,17 @@ local function SetOnUpdate(indicator, type, icon, stack, extra)
 end
 
 -- init preview button indicator animation
+-- 初始化指示器预览动画：为预览按钮上的各类指示器设置模拟数据和动画循环，
+-- 使其在预览中呈现真实效果。每个指示器类型有不同的模拟逻辑：
+-- 文本类指示器模拟动态数据，图标类指示器循环切换图片，条类指示器模拟数值变化，
+-- 冷却类指示器周期性刷新冷却倒计时
+-- @param indicatorName 指示器名称（如 "nameText"、"debuffs"、"statusText" 等）
 local function InitIndicator(indicatorName)
     local indicator = previewButton.indicators[indicatorName]
     if indicator.init then return end
 
     if indicatorName == "nameText" then
+        -- 名字文本预览：显示玩家名称和载具名称，标记为预览模式
         previewButton.states.name = UnitName("player")
         previewButton.states.isPlayer = true
         indicator.isPreview = true
@@ -157,6 +174,7 @@ local function InitIndicator(indicatorName)
         indicator.preview:SetAllPoints(indicator)
 
     elseif indicatorName == "statusText" then
+        -- 状态文本预览：循环显示多种状态（AFK、离线、死亡、灵魂、假死、饮水、等待复活、已接受、已拒绝），每 1 秒切换一次
         local count = 2
         local maxCount = Cell.isRetail and 9 or 6
         local ticker
@@ -220,6 +238,7 @@ local function InitIndicator(indicatorName)
         indicator:SetTexture("Interface\\RaidFrame\\Raid-Icon-Rez")
 
     elseif indicatorName == "roleIcon" then
+        -- 职责图标预览：循环切换坦克/治疗/伤害输出图标，每 1.5 秒切换一次
         -- texture type cannot glow by LCG
         indicator.preview = indicator.preview or CreateFrame("Frame", nil, previewButton)
         indicator.preview:SetAllPoints(indicator)
@@ -236,6 +255,7 @@ local function InitIndicator(indicatorName)
         end)
 
     elseif indicatorName == "partyAssignmentIcon" then
+        -- 团队分配图标预览：循环切换主坦克/主助理图标，每 1.5 秒切换一次
         -- texture type cannot glow by LCG
         indicator.preview = indicator.preview or CreateFrame("Frame", nil, previewButton)
         indicator.preview:SetAllPoints(indicator)
@@ -258,6 +278,7 @@ local function InitIndicator(indicatorName)
         indicator.preview:SetAllPoints(indicator)
 
     elseif indicatorName == "readyCheckIcon" then
+        -- 就绪检查图标预览：循环切换就绪/未就绪/等待状态，每 2 秒切换一次
         local status = {"ready", "notready", "waiting"}
         indicator:SetScript("OnShow", function()
             indicator.elapsed = 0
@@ -287,6 +308,7 @@ local function InitIndicator(indicatorName)
         SetRaidTargetIconTexture(indicator.tex, 8)
 
     elseif indicatorName == "aggroBar" then
+        -- 仇恨条预览：红色状态条模拟仇恨值从 0 到 100 高速循环变化
         indicator:SetStatusBarColor(1, 0, 0)
         indicator.value = 0
         indicator:SetScript("OnUpdate", function(self, elapsed)
@@ -302,9 +324,11 @@ local function InitIndicator(indicatorName)
         end)
 
     elseif indicatorName == "shieldBar" then
+        -- 护盾条预览：显示固定的 50% 护盾值，模拟吸收护盾效果
         indicator:SetValue(0.5)
 
     elseif indicatorName == "powerWordShield" then
+        -- 真言术：盾预览：模拟护盾值从 200 逐渐衰减到 0（20 秒内），然后周期性刷新冷却
         indicator:SetScript("OnShow", function()
             indicator.elapsed = 0
             indicator:UpdateShield(200, 200)
@@ -323,6 +347,7 @@ local function InitIndicator(indicatorName)
         end)
 
     elseif indicatorName == "tankActiveMitigation" then
+        -- 坦克主动减伤预览：模拟减伤值从 0 到 100 循环变化，支持职业颜色或自定义颜色
         indicator.value = 0
         indicator:SetMinMaxValues(0, 100)
         indicator:SetValue(0)
@@ -346,6 +371,7 @@ local function InitIndicator(indicatorName)
         end
 
     elseif indicatorName == "debuffs" then
+        -- 减益效果预览：10 个图标循环展示不同减益类型（无、诅咒、疾病、魔法、中毒），每个都有独立的冷却动画
         local types = {"", "Curse", "Disease", "Magic", "Poison", "", "Curse", "Disease", "Magic", "Poison"}
         local icons = {132155, 136139, 136128, 240443, 136182, 132155, 136139, 136128, 240443, 136182}
         for i = 1, 10 do
@@ -353,6 +379,7 @@ local function InitIndicator(indicatorName)
         end
 
     elseif indicatorName == "dispels" then
+        -- 驱散预览：循环展示各种可驱散类型（诅咒、疾病、魔法、中毒、流血）的高亮效果和图标
         indicator.isDispels = true
 
         local debuffTypes = {
@@ -363,7 +390,8 @@ local function InitIndicator(indicatorName)
             {["Bleed"]=true},
         }
 
-        -- override
+        -- 重写 SetDispels 方法用于预览：根据驱散类型设置高亮颜色和样式
+        -- 支持多种高亮类型：entire（整体）、current（当前）、gradient（渐变）等
         indicator.SetDispels = function(self, dispelTypes)
             local r, g, b = 0, 0, 0
             local found
@@ -432,6 +460,7 @@ local function InitIndicator(indicatorName)
         end
 
     elseif indicatorName == "raidDebuffs" then
+        -- 团队减益预览：3 个图标循环展示不同类型的团队减益，冷却结束后自动重新开始
         indicator.isRaidDebuffs = true
         local types = {"", "Curse", "Magic"}
         for i = 1, 3 do
@@ -448,6 +477,7 @@ local function InitIndicator(indicatorName)
         end
 
     elseif indicatorName == "privateAuras" then
+        -- 私有光环预览：使用暴雪风格的图标遮罩和边框，带 15 秒循环冷却倒计时
         indicator.isPrivateAuras = true
 
         indicator.mask = indicator:CreateMaskTexture()
@@ -485,6 +515,7 @@ local function InitIndicator(indicatorName)
         end)
 
     elseif indicatorName == "targetedSpells" then
+        -- 被施法目标预览：循环展示被混沌箭等法术选为目标的效果，冷却结束后自动重新开始
         indicator.isTargetedSpells = true
         for _, f in ipairs(indicator) do
             f:HookScript("OnShow", function()
@@ -500,9 +531,11 @@ local function InitIndicator(indicatorName)
         end
 
     elseif indicatorName == "targetCounter" then
+        -- 目标计数预览：显示固定的 3 个敌人正在以该单位为目标的计数
         indicator:SetCount(3)
 
     elseif indicatorName == "crowdControls" then
+        -- 控制效果预览：3 个图标循环展示变形、恐惧、缠绕等控制法术效果
         indicator.isCrowdControls = true
         local spells = {
             {"Magic", "Interface\\Icons\\spell_nature_polymorph"},
@@ -523,26 +556,38 @@ local function InitIndicator(indicatorName)
         end
 
     elseif indicatorName == "externalCooldowns" then
+        -- 外部冷却预览：5 个图标循环展示外部减伤技能（如牺牲、铁树皮等）
         local icons = {135936, 135964, 135966, 237510, 237542}
         for i = 1, 5 do
             SetOnUpdate(indicator[i], nil, icons[i], 0)
         end
     elseif indicatorName == "defensiveCooldowns" then
+        -- 个人减伤冷却预览：5 个图标循环展示个人减伤技能（如盾墙、树皮术等）
         local icons = {135919, 136120, 135841, 132362, 132199}
         for i = 1, 5 do
             SetOnUpdate(indicator[i], nil, icons[i], 0)
         end
     elseif indicatorName == "allCooldowns" then
+        -- 全部冷却预览：5 个图标循环展示外部+个人减伤技能合集
         local icons = {135936, 136120, 135966, 132362, 237542}
         for i = 1, 5 do
             SetOnUpdate(indicator[i], nil, icons[i], 0)
         end
     elseif indicatorName == "missingBuffs" then
+        -- 缺失增益预览：展示 3 个缺失的团队增益效果（耐力、智力、野性印记）
         local buffs = {135987, 135932, 136078}
         for i = 1, 3 do
             indicator[i]:SetCooldown(0, 0, nil, buffs[i], 0)
         end
     elseif string.find(indicatorName, "indicator") then
+        -- 自定义指示器预览分支：根据指示器类型（图标组、条形、块形、文本、颜色覆盖、纹理、发光、边框）
+        -- 设置对应的预览动画。每种类型的预览逻辑有所不同：
+        --   icons/bars/blocks: 10 个子元素循环动画
+        --   text: 单文本显示 5 层堆叠
+        --   color: 颜色覆盖整个按钮
+        --   texture: 纹理图标带渐隐效果
+        --   glow: 发光效果带渐隐
+        --   border: 边框颜色动画
         if indicator.indicatorType == "icons" then
             for i = 1, 10 do
                 SetOnUpdate(indicator[i], nil, 134400, i)
@@ -597,11 +642,20 @@ local function InitIndicator(indicatorName)
     indicator.init = true
 end
 
+-- 更新指示器显示：当布局或指示器设置发生变化时，刷新预览按钮上的所有指示器
+-- 有两种调用模式：
+--   1. 初始化模式（layout == true）：重建所有指示器，遍历布局表中的所有条目
+--   2. 单项设置变更模式：仅针对某个指示器的某个设置项进行增量更新
+-- @param layout 为 true 时表示初始化全部指示器，否则为具体指示器的设置变更
+-- @param indicatorName 发生变化的指示器名称（仅在非初始化时传入）
+-- @param setting 变化的设置项名称
+-- @param value 新的设置值
+-- @param value2 辅助值（用于 checkbutton 等需要额外参数的设置项）
 local function UpdateIndicators(layout, indicatorName, setting, value, value2)
     if not indicatorsTab:IsShown() then return end
 
-    if not indicatorName then -- init
-        if layout == true then --! call from UpdateIndicators(true) not from Cell.Fire("UpdateIndicators", ...)
+    if not indicatorName then -- 初始化模式：重建所有指示器
+        if layout == true then -- 确保首次调用时创建内置冷却指示器（仅一次） --! call from UpdateIndicators(true) not from Cell.Fire("UpdateIndicators", ...)
             if not previewButton._indicatorsCreated then
                 previewButton._indicatorsCreated = true
                 I.CreateDefensiveCooldowns(previewButton)
@@ -811,9 +865,11 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
             B.UpdatePixelPerfect(previewButton, true)
         end
     else
+        -- 单项设置变更模式：根据 setting 参数分发到对应的指示器更新方法
         local indicator = previewButton.indicators[indicatorName]
-        -- changed in IndicatorsTab
+        -- 以下所有分支处理来自指示器设置面板的单项属性变更
         if setting == "enabled" then
+            -- 启用/禁用切换：更新指示器的显示状态
             indicator.enabled = value
             -- if value then
             --     indicator.enabled = true
@@ -832,6 +888,7 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
             --     if indicator.isTargetedSpells then indicator:HideGlowPreview() end
             -- end
         elseif setting == "position" then
+            -- 位置变更：重新锚定指示器到指定位置（statusText 使用特殊的 SetPosition 方法）
             if indicatorName == "statusText" then
                 indicator:SetPosition(value[1], value[2], value[3])
             else
@@ -848,6 +905,7 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
         elseif setting == "frameLevel" then
             indicator:SetFrameLevel(indicator:GetParent():GetFrameLevel()+value)
         elseif setting == "size" then
+            -- 尺寸变更：debuffs 有普通/放大两种尺寸逻辑，其他指示器直接设置
             if indicatorName == "debuffs" then
                 indicator:SetSize(value[1], value[2])
             else
@@ -870,6 +928,7 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
             indicator:SetAlpha(value)
             -- indicator.alpha = value
         elseif setting == "num" then
+            -- 数量变更：显示前 N 个子元素，隐藏超出的部分
             for i, frame in ipairs(indicator) do
                 if i <= value then
                     frame:Show()
@@ -984,6 +1043,7 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 indicator:EnableSmooth(value2)
             end
         elseif setting == "create" then
+            -- 创建新指示器：实例化指示器并应用所有初始属性（位置、尺寸、颜色、字体等）
             indicator = I.CreateIndicator(previewButton, value)
             indicator.configs = value
 
@@ -1080,6 +1140,7 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
             indicator:Show()
             indicator.enabled = true
         elseif setting == "remove" then
+            -- 移除指示器：先清理预览动画帧，再调用 I.RemoveIndicator 从按钮上移除
             if indicator.preview then
                 indicator.preview:SetParent(nil)
                 indicator.preview:Hide()
@@ -1105,6 +1166,8 @@ local function CreateLayoutPane()
 end
 
 
+-- 加载布局下拉菜单：遍历 CellDB["layouts"] 中所有布局名称，排序后将 "default" 置顶
+-- 点击任一布局项时切换到该布局，刷新同步状态、预览按钮和指示器列表
 LoadLayoutDropdown = function()
     local indices = {}
     for name, _ in pairs(CellDB["layouts"]) do
@@ -1140,6 +1203,8 @@ end
 local syncDropdown, syncStatus
 local masters, slaves = {}, {}
 
+-- 在同步状态文本中为布局名称着色：当前选中的布局以红色高亮显示
+-- default 布局使用魔兽世界本地化的"默认"文本
 local function ColorName(layout)
     if layout == currentLayout then
         if layout == "default" then
@@ -1156,8 +1221,13 @@ local function ColorName(layout)
     return layout
 end
 
+-- 更新同步布局关系：遍历所有布局的 syncWith 字段，建立主从（master/slave）映射关系
+-- 1. 先清空所有从布局的指示器数据（保留副本以避免丢失）
+-- 2. 重建 masters/slaves 映射表
+-- 3. 执行同步：将所有从布局的 indicators 替换为主布局的 indicators
+-- 4. 更新右侧同步状态面板的文本显示
 local function UpdateSyncedLayouts()
-    --! CLEAR SYNC
+    --! 清空同步：恢复所有从布局的指示器数据为其独立副本
     for slave, master in pairs(slaves) do
         if CellDB["layouts"][slave] then -- not deleted
             CellDB["layouts"][slave]["indicators"] = F.Copy(CellDB["layouts"][slave]["indicators"])
@@ -1210,20 +1280,24 @@ local function UpdateSyncedLayouts()
     end
 end
 
+-- 获取应该被通知的布局名称：根据同步关系，判断对 layout 的修改是否应通知到 currentLayout
+-- 场景 1：currentLayout 是从布局，且 layout 是其主布局或共享同一主布局 → 返回 currentLayout
+-- 场景 2：currentLayout 是主布局，且 layout 是其从布局之一 → 返回 currentLayout
+-- 场景 3：无同步关系 → 返回 layout 本身
 function F.GetNotifiedLayoutName(layout)
-    -- if currentlyEnabled is a slave
+    -- 如果当前启用的布局是从布局
     local masterOfCurrentlyEnabled = slaves[Cell.vars.currentLayout]
     if masterOfCurrentlyEnabled then
-        -- if layout is currentlyEnabled's master or they share a same master
+        -- 如果 layout 是当前布局的主布局，或它们共享同一个主布局
         if layout == masterOfCurrentlyEnabled or slaves[layout] == masterOfCurrentlyEnabled then
             return Cell.vars.currentLayout
         end
     end
 
-    -- if currentlyEnabled is a master
+    -- 如果当前启用的布局是主布局
     local slaves = masters[Cell.vars.currentLayout]
     if slaves then
-        -- if layout is a slave of currentlyEnabled
+        -- 如果 layout 是当前布局的从布局之一
         if slaves[layout] then
             return Cell.vars.currentLayout
         end
@@ -1232,11 +1306,15 @@ function F.GetNotifiedLayoutName(layout)
     return layout
 end
 
+-- 加载同步下拉菜单：基于当前布局的同步关系构建下拉选项
+-- 如果是主布局，则只能选择"无"（被禁用的下拉菜单）
+-- 否则列出可同步的目标布局（排除自身、"default"、以及已是从布局的项）
+-- 选择目标布局后弹出确认框，确认后将当前布局设置为目标布局的从布局
 LoadSyncDropdown = function()
     UpdateSyncedLayouts()
 
     if masters[currentLayout] then
-        -- NOTE: a master layout can not sync with others
+        -- 注意：主布局不能作为从布局同步到其他布局
         syncDropdown:SetItems({
             {
                 ["text"] = L["None"],
@@ -1549,6 +1627,16 @@ local function CreateSettingsPane()
     settingsFrame.scrollFrame:SetScrollStep(50)
 end
 
+-- indicatorSettings 是每个内置指示器和自定义指示器类型的设置项配置表
+-- 键为指示器名称（如 "nameText"、"debuffs"、"raidDebuffs" 等），值为设置项名称数组
+-- 设置项名称支持以下格式：
+--   - 普通设置: "enabled", "size", "position", "color", "font" 等
+--   - checkbutton 设置: "checkbutton:showTimer" (冒号后为数据库字段名)
+--   - 字体设置: "font1:stackFont" (数字索引+字段名)
+--   - 带取值范围: "num:5", "frameLevel:50" (冒号后为最大值)
+--   - 特殊类型: "size-square", "color-alpha", "statusPosition" 等（在 ShowIndicatorSettings 中映射）
+-- 数组的第一个元素如果是颜色代码字符串（如 "|cffb7b7b7..."），则作为该指示器的提示信息显示在面板顶部
+-- 本表按 WoW 扩展版本分为三个分支：Retail/Mists、Cata/Wrath、Vanilla/TBC
 local indicatorSettings
 local DEBUFFS_TOOLTIP1 = L["This will make these icons not click-through-able"].."|"..L["Tooltips need to be enabled in General tab"]
 local DEBUFFS_TOOLTIP2 = L["This will make these icons not click-through-able"]
@@ -1675,6 +1763,9 @@ elseif Cell.isVanilla or Cell.isTBC then
     }
 end
 
+-- 显示指示器设置面板：根据指示器类型（built-in 或自定义类型如 icon/icons/bar/text/glow 等）
+-- 动态构建对应的设置项列表，并创建所有设置控件（开关、滑块、颜色选择器、字体选择器等）
+-- 每个控件通过 w:SetDBValue 绑定数据库值，通过 w:SetFunc 绑定变更回调（触发 UpdateIndicators 事件）
 local function ShowIndicatorSettings(id)
     -- if selected == id then return end
 
@@ -1695,11 +1786,14 @@ local function ShowIndicatorSettings(id)
 
     local settingsTable
     if indicatorType == "built-in" then
+        -- 内置指示器：从 indicatorSettings 表中获取该指示器对应的设置项列表
         settingsTable = indicatorSettings[indicatorName]
         -- if indicatorName == "tankActiveMitigation" then
         --     tinsert(settingsTable, 1, "|cffb7b7b7"..L["Tank Active Mitigation refers to a single, specific ability that a Tank must use as a counter to specific Boss abilities. These Boss abilities are designated as Mitigation Checks."])
         -- end
     else
+        -- 自定义指示器：根据 indicatorType 动态构建设置项列表
+        -- 每种类型提供的设置项不同，例如 icon 有尺寸/位置/堆叠字体，glow 只有启用/渐隐/光环列表/发光选项
         if indicatorType == "icon" then
             settingsTable = {"enabled", "auras", "checkbutton3:showStack", "durationVisibility", "checkbutton4:showAnimation", "glowOptions", CELL_RECTANGULAR_CUSTOM_INDICATOR_ICONS and "size" or "size-square", "position", "frameLevel", "font1:stackFont", "font2:durationFont"}
         elseif indicatorType == "icons" then
@@ -1728,14 +1822,16 @@ local function ShowIndicatorSettings(id)
             settingsTable = {"enabled", "checkbutton3:fadeOut", "auras", "thickness", "frameLevel:50"}
         end
 
+        -- 为所有自定义指示器统一插入"施法者"过滤选项（在启用项之后）
         tinsert(settingsTable, 2, "castBy")
 
         if indicatorTable["auraType"] == "buff" then
+            -- 增益类额外提供"按名称追踪"选项
             tinsert(settingsTable, 3, "checkbutton2:trackByName")
             -- tinsert(settingsTable, 4, "showOn")
         end
 
-        -- tips
+        -- 在设置列表顶部插入提示信息：glow 类型提示无优先级，其他类型提示优先级从上到下递减
         if indicatorType == "glow" then
             tinsert(settingsTable, 1, "|cffb7b7b7"..L["The spells list of a icons indicator is unordered (no priority)."].." "..L["Indicator settings are part of Layout settings which are account-wide."])
         else
@@ -1757,7 +1853,9 @@ local function ShowIndicatorSettings(id)
 
         local currentSetting = settingsTable[i]
 
-        --! convert currentSetting to ACTUAL TABLE INDEX
+        --! 将设置面板中的显示名称映射到指示器表中实际的数据库字段名
+        -- 例如 "color-alpha"/"color-class"/"color-power" 都映射为 "color"
+        -- "size-square"/"size-normal-big" 映射为 "size" 等
         if currentSetting == "color-alpha" or currentSetting == "color-class" or currentSetting == "color-power" then currentSetting = "color" end
         if currentSetting == "customColors" or currentSetting == "overlayColors" or currentSetting == "blockColors" then currentSetting = "colors" end
         if currentSetting == "size-square" or currentSetting == "size-normal-big" then currentSetting = "size" end
@@ -2062,6 +2160,9 @@ local function ShowIndicatorSettings(id)
     selected = id
 end
 
+-- 移动指示器位置（拖拽排序）：将布局表中 from 位置的指示器移动到 to 位置
+-- 同时修正当前选中索引 selected，确保选中状态跟随移动后的正确条目
+-- 保持滚动条位置不变，移动完成后重新加载列表和高亮
 local function MoveIndicator(from, to)
     local scroll = listFrame.scrollFrame:GetVerticalScroll()
 
@@ -2092,6 +2193,10 @@ local function MoveIndicator(from, to)
     ListHighlightFn(selected)
 end
 
+-- 加载指示器列表：遍历当前布局表中的所有指示器，为每个条目创建/复用按钮控件
+-- 每个按钮显示指示器名称，自定义指示器额外显示类型图标（图标/条/块/颜色等）和光环类型颜色
+-- 内置指示器（built-in）不可拖拽排序，自定义指示器可拖拽重排
+-- 列表创建后调用 Cell.CreateButtonGroup 建立按钮组，实现单选高亮和预览切换
 LoadIndicatorList = function()
     F.Debug("|cffff7777LoadIndicatorList:|r", currentLayout)
     listFrame.scrollFrame:Reset()
@@ -2275,6 +2380,9 @@ end
 -- functions
 -------------------------------------------------
 local init
+-- 显示/隐藏指示器配置标签页的入口函数，由 ShowOptionsTab 回调触发
+-- 首次显示时创建所有UI面板（预览按钮、布局面板、同步面板、列表面板、设置面板）
+-- 每次切回时同步当前布局和指示器状态，若非同一布局则重新加载预览和列表
 local function ShowTab(tab)
     if tab == "indicators" then
         if not init then
@@ -2312,6 +2420,9 @@ local function ShowTab(tab)
 end
 Cell.RegisterCallback("ShowOptionsTab", "IndicatorsTab_ShowTab", ShowTab)
 
+-- 重新加载指示器列表（由外部导入/复制操作后调用）
+-- 如果标签页已显示则立即刷新列表并滚动到底部选中最后一个条目
+-- 否则在标签页下次显示时通过 OnShow 脚本延迟执行刷新
 function F.ReloadIndicatorList()
     if not init then return end
     if indicatorsTab:IsShown() then
@@ -2328,6 +2439,8 @@ function F.ReloadIndicatorList()
     end
 end
 
+-- 重新加载指定指示器的选项面板（由外部修改选项后调用）
+-- 仅当该指示器当前正在被选中时刷新
 function F.ReloadIndicatorOptions(index)
     if not init then return end
     if selected == index then
@@ -2336,6 +2449,7 @@ function F.ReloadIndicatorOptions(index)
 end
 
 
+-- 布局更新回调：当前布局的外观设置变化时，刷新预览按钮
 local function UpdateLayout()
     if previewButton and currentLayout == Cell.vars.currentLayout then
         UpdatePreviewButton()
@@ -2343,6 +2457,7 @@ local function UpdateLayout()
 end
 Cell.RegisterCallback("UpdateLayout", "IndicatorsTab_UpdateLayout", UpdateLayout)
 
+-- 外观更新回调：外观设置（如纹理、颜色）变化时，刷新预览按钮
 local function UpdateAppearance()
     if previewButton and currentLayout == Cell.vars.currentLayout then
         UpdatePreviewButton()
@@ -2350,13 +2465,14 @@ local function UpdateAppearance()
 end
 Cell.RegisterCallback("UpdateAppearance", "IndicatorsTab_UpdateAppearance", UpdateAppearance)
 
+-- 指示器变更回调：在指示器复制/导入后，若影响当前布局则重新加载预览和列表
 local function IndicatorsChanged(layout)
-    -- reload after indicator copy
+    -- 复制指示器后重新加载
     if currentLayout == layout then
         F.Debug("Reload Indicator List:", layout)
-        -- update indicators for preview button
+        -- 刷新预览按钮上的所有指示器
         UpdateIndicators(true)
-        -- reload list
+        -- 重新加载指示器列表
         LoadIndicatorList()
         listButtons[1]:Click()
     end

@@ -1,12 +1,32 @@
 local addonName, ns = ...
 
+-- ===========================================================================
+-- Supporters.lua - 支持者数据模块
+-- 本模块被 Cell/CellD 主插件加载，也可被其他插件通过 cellSupporters 字段引用。
+-- 包含三个核心数据结构：
+--   supporters1   - 按日期排序的当前支持者列表，包含魔兽角色名（含服务器和颜色标记）
+--   supporters2   - 早期支持者记录（部分已丢失），含赞助平台和日期
+--   wowSupporters - 从 supporters1 解析出的角色名->等级映射表，供游戏内显示
+-- ===========================================================================
+
 -------------------------------------------------
 -- supporters (order by date)
+-- 当前支持者列表，按赞助日期排序
+-- 每个条目是一个 table，包含同一支持者的多个魔兽角色名
+-- 角色名格式: "角色名-服务器 (区域)"，可选带颜色代码前缀
 -------------------------------------------------
--- mvp: ff8000
--- goat: 7fff00,b6f92
+-- 颜色代码含义（WoW UI escape 序列）：
+-- mvp: ff8000 (橙色) - 最高级支持者
+-- goat: 7fff00 (绿色) - 高级支持者
+-- goat: fb6f92 (粉色) - 高级支持者（另一种色调）
+-- 青色: 00ffff - 普通支持者
+-- 无颜色前缀: 默认颜色，普通支持者
 
+-- supporters1: 当前支持者角色列表（按赞助日期排序）
+-- 结构: 最外层 array，每个元素是一个 table 包含同一支持者的所有角色名
+-- 每个角色名可以是纯文本 "角色名-服务器 (区域)" 或带颜色前缀 "|cffRRGGBB角色名-服务器 (区域)|r"
 local supporters1 = { -- wowIDs
+    -- 每个子 table 包含同一支持者的多个魔兽角色名
     -- {"wowID1", "wowID2"...}
     {
         "|cff7fff00Palymoo-TwistingNether (EU)|r",
@@ -179,6 +199,10 @@ local supporters1 = { -- wowIDs
     } -- 爱发电用户_9Yqv (爱发电)
 }
 
+-- supporters2: 早期支持者记录（用于致谢展示）
+-- 部分早期赞助记录已经丢失，此列表仅作历史留存
+-- 格式: { "支持者名称（可含颜色代码）", "赞助平台" }, -- 日期 备注
+-- 不参与游戏内的角色名匹配，仅用于 UI 展示
 local supporters2 = { -- 有些早期的发电记录已经丢失了……
     {"|cfffb6f92钛锬|r", "爱发电"}, -- 2021-11-15
     {"|cffff8000呆小七|r", "爱发电"}, -- 2021-11-15
@@ -317,6 +341,11 @@ local supporters2 = { -- 有些早期的发电记录已经丢失了……
 
 -------------------------------------------------
 -- supporters (wow IDs)
+-- 游戏内匹配用的支持者测试/白名单
+-- key 为 "角色名-服务器" 格式（不含区域代码），value 为等级标记
+--   true  = 普通支持者
+--   "goat" = 高级支持者（绿色/粉色显示）
+-- 这些条目会合并到 wowSupporters 中，与 supporters1 解析结果一起用于游戏内识别
 -------------------------------------------------
 local tests = {
     ["Rutha-Lycanthoth"] = true,
@@ -327,21 +356,38 @@ local tests = {
     ["萝露-影之哀伤"] = "goat",
 }
 
+-- wowSupporters: 角色名到支持者等级的映射表
+-- key: "角色名-服务器" (不含区域代码，如 "Palymoo-TwistingNether")
+-- value: true (普通) / "goat" (高级) / "mvp" (最高级)
+-- 由 supporters1 解析生成，最终合并 tests 表后供 Cell 框架在游戏内进行角色名匹配和颜色显示
 local wowSupporters = {}
 
+-- 解析 supporters1 中的所有角色名，提取纯净的 "角色名-服务器" 并映射到对应等级
+-- 解析逻辑：
+--   1. 带颜色前缀 "|cffRRGGBB...|r" 的角色名 → 提取纯净名，根据颜色码分配等级
+--   2. 无颜色前缀的纯文本角色名 → 直接提取，标记为普通支持者 (true)
 do
     for _, t in pairs(supporters1) do
         for i, name in pairs(t) do
             local fullName
+            -- 判断角色名是否带有颜色前缀（以 "|cff" 开头是 WoW 颜色 escape 序列）
             if strfind(name, "^|") then
+                -- 从带颜色标记的字符串中提取纯角色名和服务器名
+                -- 匹配格式: |cffRRGGBB角色名-服务器 (区域)|r
                 fullName = strmatch(name, "^|cff......(.+%-.+) %(%u%u%)|r$")
+                -- 根据颜色代码分配支持者等级
                 if strfind(name, "^|cffff8000") then
+                    -- 橙色 (#ff8000) → mvp 最高级支持者
                     wowSupporters[fullName] = "mvp"
                 else
+                    -- 其他颜色 (绿色 #7fff00 / 粉色 #fb6f92 / 青色 #00ffff) → goat 高级支持者
                     wowSupporters[fullName] = "goat"
                 end
             else
+                -- 无颜色前缀的纯文本角色名
+                -- 匹配格式: 角色名-服务器 (区域)
                 fullName = strmatch(name, "^(.+%-.+) %(%u%u%)$")
+                -- 无颜色标记 → 普通支持者
                 wowSupporters[fullName] = true
             end
         end
@@ -350,13 +396,18 @@ end
 
 -------------------------------------------------
 -- 导出数据供外部访问
--- Cell/CellD 本体：导出 supporters1/supporters2/wowSupporters
--- 其他插件引用时：导出 cellSupporters
+-- 根据调用方身份（addonName）决定导出哪些字段：
+--   Cell/CellD 本体：导出完整的三组数据（supporters1/2 + wowSupporters）
+--   其他插件引用时：仅导出 cellSupporters（精简的角色名->等级映射）
 -------------------------------------------------
+-- Midnight/SecretValue 防护点：
+--   此文件中所有数据均为公开的支持者列表，不涉及隐私或密钥，
+--   因此无需 SecretValue 屏蔽。但若未来在此文件末尾添加任何
+--   涉及 API key / 用户身份的信息，需使用 F.Safe* 函数包装。
 if addonName == "Cell" or addonName == "CellD" then -- Cell / CellD 本体
-    ns.supporters1 = supporters1                                   -- 爱发电支持者列表
-    ns.supporters2 = supporters2                                   -- Ko-fi 支持者列表
-    ns.wowSupporters = Cell.funcs.TMergeOverwrite(wowSupporters, tests) -- 游戏内支持者文本显示
+    ns.supporters1 = supporters1                                   -- 当前支持者角色列表（含颜色标记）
+    ns.supporters2 = supporters2                                   -- 早期支持者历史记录
+    ns.wowSupporters = Cell.funcs.TMergeOverwrite(wowSupporters, tests) -- 合并 tests 白名单后的最终映射表，供游戏内角色名匹配和颜色显示
 else -- 被其他插件引用时
-    ns.cellSupporters = wowSupporters                              -- 提供支持者数据
+    ns.cellSupporters = wowSupporters                              -- 提供精简的支持者数据（角色名->等级映射）
 end
