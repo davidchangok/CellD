@@ -4023,11 +4023,15 @@ end
 function B.UpdateBackdrop(button)
     if CELL_BORDER_SIZE == 0 then
         button:SetBackdrop({bgFile = Cell.vars.whiteTexture})
-        button:SetBackdropColor(0, 0, 0, CellDB["appearance"]["bgAlpha"])
     else
         button:SetBackdrop({bgFile = Cell.vars.whiteTexture, edgeFile = Cell.vars.whiteTexture, edgeSize = P.Scale(CELL_BORDER_SIZE)})
-        button:SetBackdropColor(0, 0, 0, CellDB["appearance"]["bgAlpha"])
         button:SetBackdropBorderColor(unpack(CELL_BORDER_COLOR))
+    end
+    -- Respect dispel highlight coloring (Grid2 Square pattern)
+    if button._dispelsHighlightColor then
+        button:SetBackdropColor(unpack(button._dispelsHighlightColor))
+    else
+        button:SetBackdropColor(0, 0, 0, CellDB["appearance"]["bgAlpha"])
     end
 end
 

@@ -750,6 +750,9 @@ function I.CreateDispels(parent)
 
     dispels:SetScript("OnHide", function()
         dispels.highlight:Hide()
+        -- Reset backdrop when dispels indicator is hidden
+        dispels.parent._dispelsHighlightColor = nil
+        dispels.parent:SetBackdropColor(0, 0, 0, CellDB["appearance"]["bgAlpha"])
     end)
 
     -- Health bar highlight texture (original Cell design)
