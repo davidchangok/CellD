@@ -208,58 +208,59 @@ LoadList = function()
     -- user created
     for i, t in ipairs(CellDB["snippets"]) do
         if not buttons[i] then
-            buttons[i] = Cell.CreateButton(topPane, "", "accent-hover", {156, 20})
-            buttons[i].id = i -- for highlight
+            local index = i  -- capture loop var for closures (Lua 5.1 upvalue fix)
+            buttons[index] = Cell.CreateButton(topPane, "", "accent-hover", {156, 20})
+            buttons[index].id = index -- for highlight
 
             -- rename
-            buttons[i]:SetScript("OnDoubleClick", function()
+            buttons[index]:SetScript("OnDoubleClick", function()
                 renameEB:ClearAllPoints()
-                renameEB:SetAllPoints(buttons[i])
-                renameEB:SetFrameLevel(buttons[i]:GetFrameLevel() + 7)
-                renameEB:SetText(CellDB["snippets"][i]["name"])
+                renameEB:SetAllPoints(buttons[index])
+                renameEB:SetFrameLevel(buttons[index]:GetFrameLevel() + 7)
+                renameEB:SetText(CellDB["snippets"][index]["name"])
                 renameEB:Show()
                 renameEB:SetFocus(true)
                 renameEB:SetScript("OnEnterPressed", function()
                     renameEB:Hide()
-                    CellDB["snippets"][i]["name"] = strtrim(renameEB:GetText())
-                    buttons[i].label:SetText(i .. "." .. CellDB["snippets"][i]["name"])
+                    CellDB["snippets"][index]["name"] = strtrim(renameEB:GetText())
+                    buttons[index].label:SetText(index .. "." .. CellDB["snippets"][index]["name"])
                 end)
             end)
 
             -- checkbox
-            buttons[i].cb = Cell.CreateCheckButton(buttons[i], "", function(checked)
-                CellDB["snippets"][i]["autorun"] = checked
+            buttons[index].cb = Cell.CreateCheckButton(buttons[index], "", function(checked)
+                CellDB["snippets"][index]["autorun"] = checked
             end)
-            buttons[i].cb:SetPoint("LEFT", 3, 0)
-            buttons[i].cb:HookScript("OnEnter", function()
-                buttons[i]:GetScript("OnEnter")(buttons[i])
+            buttons[index].cb:SetPoint("LEFT", 3, 0)
+            buttons[index].cb:HookScript("OnEnter", function()
+                buttons[index]:GetScript("OnEnter")(buttons[index])
             end)
-            buttons[i].cb:HookScript("OnLeave", function()
-                buttons[i]:GetScript("OnLeave")(buttons[i])
+            buttons[index].cb:HookScript("OnLeave", function()
+                buttons[index]:GetScript("OnLeave")(buttons[index])
             end)
 
             -- delete
-            buttons[i].del = CreateFrame("Button", nil, buttons[i])
-            buttons[i].del:SetPoint("RIGHT", -1, 0)
-            buttons[i].del:SetSize(12, 12)
-            buttons[i].del.tex = buttons[i].del:CreateTexture(nil, "ARTWORK")
-            buttons[i].del.tex:SetAllPoints(buttons[i].del)
-            buttons[i].del.tex:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\close.tga")
-            buttons[i].del.tex:SetVertexColor(0.4, 0.4, 0.4, 1)
-            buttons[i].del:SetScript("OnEnter", function()
-                buttons[i]:GetScript("OnEnter")(buttons[i])
-                buttons[i].del.tex:SetVertexColor(1, 1, 1, 1)
+            buttons[index].del = CreateFrame("Button", nil, buttons[index])
+            buttons[index].del:SetPoint("RIGHT", -1, 0)
+            buttons[index].del:SetSize(14, 14)
+            buttons[index].del.tex = buttons[index].del:CreateTexture(nil, "ARTWORK")
+            buttons[index].del.tex:SetAllPoints(buttons[index].del)
+            buttons[index].del.tex:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\close.tga")
+            buttons[index].del.tex:SetVertexColor(0.4, 0.4, 0.4, 1)
+            buttons[index].del:SetScript("OnEnter", function()
+                buttons[index]:GetScript("OnEnter")(buttons[index])
+                buttons[index].del.tex:SetVertexColor(1, 1, 1, 1)
             end)
-            buttons[i].del:SetScript("OnLeave", function()
-                buttons[i]:GetScript("OnLeave")(buttons[i])
-                buttons[i].del.tex:SetVertexColor(0.4, 0.4, 0.4, 1)
+            buttons[index].del:SetScript("OnLeave", function()
+                buttons[index]:GetScript("OnLeave")(buttons[index])
+                buttons[index].del.tex:SetVertexColor(0.4, 0.4, 0.4, 1)
             end)
-            buttons[i].del:SetScript("OnClick", function()
-                tremove(CellDB["snippets"], i)
-                if selected == i then -- delete selected
+            buttons[index].del:SetScript("OnClick", function()
+                tremove(CellDB["snippets"], index)
+                if selected == index then
                     selected = 0
                     forceLoadSelected = true
-                elseif selected > i then -- before selected
+                elseif selected > index then
                     selected = selected - 1
                     renameEB:Hide()
                 end
