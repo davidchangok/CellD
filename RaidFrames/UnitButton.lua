@@ -1721,9 +1721,18 @@ local function UpdateMassBarrier(b, event)
 end
 
 -- CLEU-based indicator tracking (mirror image, mass barrier).
--- Midnight 12.0.0+: COMBAT_LOG_EVENT_UNFILTERED still fires and CombatLogGetCurrentEventInfo()
--- is still available. The event must be explicitly registered for the cleu frame to work.
-cleu:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+-- Midnight 12.0.0+: COMBAT_LOG_EVENT_UNFILTERED is still available but
+-- must not be registered in the main chunk if currently in combat (taint).
+if InCombatLockdown() then
+    local f = CreateFrame("Frame")
+    f:RegisterEvent("PLAYER_REGEN_ENABLED")
+    f:SetScript("OnEvent", function()
+        f:UnregisterAllEvents()
+        cleu:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+    end)
+else
+    cleu:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+end
 cleu:SetScript("OnEvent", function()
     local _, subEvent, _, sourceGUID, _, sourceFlags, _, _, _, destFlags, _, spellId = CombatLogGetCurrentEventInfo()
 
