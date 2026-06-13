@@ -403,4 +403,17 @@ local function ShowTab(tab)
 end
 Cell.RegisterCallback("ShowOptionsTab", "AboutTab_ShowTab", ShowTab)
 
-function Cell.UpdateAboutFont(offset) end
+UpdateFont = function(fs)
+    if not fs then return end
+    fs:SetFont(fs.font, fs.size + (CellDB["appearance"]["optionsFontSizeOffset"] or 0), "")
+    fs:SetTextColor(1, 1, 1, 1)
+    fs:SetShadowColor(0, 0, 0)
+    fs:SetShadowOffset(1, -1)
+end
+
+function Cell.UpdateAboutFont(offset)
+    UpdateFont(originalAuthorText)
+    UpdateFont(authorText)
+    UpdateFont(supportersText1)
+    UpdateFont(supportersText2)
+end
