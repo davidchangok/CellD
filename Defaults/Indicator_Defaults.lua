@@ -266,14 +266,14 @@ end
 -------------------------------------------------
 -- dispels: custom debuff type color
 -------------------------------------------------
--- Blizzard C API, internally resolves secrets — Grid2 StatusAuras.lua:79 reference
--- API: C_UnitAuras.GetAuraDispelTypeColor(unit, auraInstanceID [, colorCurve])
-function I.GetAuraDispelColor(unit, auraInstanceID)
-    if not C_UnitAuras or not C_UnitAuras.GetAuraDispelTypeColor or not unit or not auraInstanceID then
+-- Blizzard C API (Midnight 12.0.5): C_UnitAuras.GetAuraDispelTypeColor(auraInstanceID [, curve])
+-- internally resolves secrets. pcall guards against stale auraInstanceID.
+function I.GetAuraDispelColor(auraInstanceID)
+    if not C_UnitAuras or not C_UnitAuras.GetAuraDispelTypeColor or not auraInstanceID then
         return nil
     end
-    local c = C_UnitAuras.GetAuraDispelTypeColor(unit, auraInstanceID)
-    if c then return c.r, c.g, c.b end
+    local ok, c = pcall(C_UnitAuras.GetAuraDispelTypeColor, auraInstanceID)
+    if ok and c then return c.r, c.g, c.b end
     return nil
 end
 
