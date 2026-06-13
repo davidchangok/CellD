@@ -1,5 +1,3 @@
--- UnitButton.lua — CellD 团队框架按钮核心模块
--- 负责单个单位按钮的完整生命周期：显示、更新、事件处理、光环渲染等
 local _, Cell = ...
 local L = Cell.L
 ---@type CellFuncs
@@ -14,12 +12,11 @@ local U = Cell.uFuncs
 local P = Cell.pixelPerfectFuncs
 ---@type CellAnimations
 local A = Cell.animations
-local DebuffStatus = Cell.DebuffStatus -- DebuffStatus 工具模块：在 secret time 环境下提供 DurationObject 获取光环剩余时间
-local LGI = LibStub:GetLibrary("LibGroupInfo") -- 小队信息库：用于获取玩家职责(role)等缓存信息
+local DebuffStatus = Cell.DebuffStatus
+local LGI = LibStub:GetLibrary("LibGroupInfo")
 
 CELL_FADE_OUT_HEALTH_PERCENT = nil
 
--- 本地化缓存魔兽世界 API 函数，避免频繁全局查找，提升性能
 local UnitGUID = UnitGUID
 -- local UnitHealth = LibCLHealth.UnitHealth
 local UnitName = UnitName
@@ -71,8 +68,6 @@ local UnitGetDetailedHealPrediction = UnitGetDetailedHealPrediction  -- nil pre-
 local CreateUnitHealPredictionCalculator = CreateUnitHealPredictionCalculator  -- nil pre-12.0
 
 --! for AI followers, UnitClassBase is buggy
--- UnitClassBase 替代实现：UnitClassBase() 对 AI follower 有 bug，
--- 改用 select(2, UnitClass(unit)) 来正确获取职业英文名
 local UnitClassBase = function(unit)
     return select(2, UnitClass(unit))
 end
@@ -90,13 +85,6 @@ local fadeOutHealthCurve_alpha -- track last outOfRangeAlpha to know when to reb
 -- Builds/rebuilds the fade-out health curve when threshold or alpha changes.
 -- health% < threshold â†’ alpha 1.0 (fully visible, needs healing)
 -- health% >= threshold â†’ outOfRangeAlpha (faded out, healthy enough)
--- RebuildFadeOutHealthCurve: 构建/重建渐隐生命值曲线。
--- 当 fadeOutHealthCurve 功能启用时（CELL_FADE_OUT_HEALTH_PERCENT 非空），
--- 使用 C_CurveUtil.CreateCurve 将生命值百分比映射到透明度 alpha。
--- 生命值低于阈值 -> alpha 1.0（完全可见，需要治疗）
--- 生命值高于阈值 -> outOfRangeAlpha（淡出，血量足够健康）
--- Midnight 优势：通过曲线 EvaluateCurrentHealthPercent 可直接传入秘密生命值百分比，
--- 无需在 Lua 中做数值比较，从而规避 secret value 比较报错。
 local function RebuildFadeOutHealthCurve()
     if not Cell.isMidnight or not C_CurveUtil then return end
     local threshold = CELL_FADE_OUT_HEALTH_PERCENT
@@ -133,8 +121,6 @@ local CheckPowerEventRegistration, ShouldShowPowerText, ShouldShowPowerBar
 
 -------------------------------------------------
 -- unit button init indicators
--- 单位按钮指示器初始化：遍历当前布局表中的所有指示器配置，
--- 将启用状态、数量、颜色、自定义过滤器等缓存到局部表中供快速访问
 -------------------------------------------------
 local enabledIndicators = {}
 local indicatorNums, indicatorBooleans, indicatorColors, indicatorCustoms = {}, {}, {}, {}
@@ -158,10 +144,6 @@ local function UpdateIndicatorParentVisibility(b, indicatorName, enabled)
     end
 end
 
--- ResetIndicators: 重置所有指示器缓存表（enabledIndicators, indicatorNums 等），
--- 然后从当前布局的 indicators 配置表中重新读取每个指示器的启用状态、数量、
--- 颜色、过滤器等设置，更新到对应的局部缓存表中。
--- 同时调用对应的 I.Enable* 函数同步指示器模块的全局状态。
 local function ResetIndicators()
     wipe(enabledIndicators)
     wipe(indicatorNums)
@@ -236,12 +218,6 @@ local function ResetIndicators()
     end
 end
 
--- HandleIndicators: 处理单个按钮的指示器初始化/更新。
--- 遍历按钮的 _config（当前布局的指示器配置），对每个指示器执行：
--- 1. 创建或获取指示器实例 (I.CreateIndicator)
--- 2. 应用位置、锚点、大小、字体、颜色等所有配置属性
--- 3. 更新可见性（名称文本、血量文本、raid 图标等特殊处理）
--- 完成后设置 _indicatorsReady = true，并更新像素完美对齐。
 local function HandleIndicators(b)
     b._indicatorsReady = nil
 
@@ -465,11 +441,6 @@ end
 
 -------------------------------------------------
 -- indicator update queue
--- 指示器更新队列：使用一个隐藏的 OnUpdate Frame 分批处理按钮的指示器初始化/更新。
--- 队列中的按钮有两种状态：
---   WAITING_FOR_INIT  - 需要完全重新创建指示器（首次加载或布局切换）
---   WAITING_FOR_UPDATE - 仅需更新光环数据（配置变更但布局未变）
--- 每帧处理 2 个按钮，避免一次性处理大量按钮导致卡顿。
 -------------------------------------------------
 local updater = CreateFrame("Frame")
 updater:Hide()
@@ -478,9 +449,6 @@ local queue = {}
 local WAITING_FOR_INIT = "WAITING_FOR_INIT"
 local WAITING_FOR_UPDATE = "WAITING_FOR_UPDATE"
 
--- Process: 从队列中取出一个按钮并执行实际的指示器处理逻辑。
--- 根据按钮的 _status 状态决定执行初始化或更新操作。
--- 处理完成后更新 CellLoadingBar 进度条，清除按钮状态。
 local function Process(b)
     if b then
         -- print("Process", GetTime(), b:GetName(), b._status)
@@ -541,14 +509,7 @@ local function AddToUpdateQueue(b)
 end
 
 -------------------------------------------------
--- UpdateIndicators: 指示器设置变更的统一入口回调。
--- 当用户在设置面板中修改任何指示器的配置（启用/禁用、位置、大小、
--- 颜色、字体、过滤器等）时，通过 Cell.Fire("UpdateIndicators", ...) 触发此函数。
--- 参数:
---   layout       - (可选) 布局名称，为 nil 时表示布局切换
---   indicatorName - 被修改的指示器名称
---   setting      - 被修改的设置项名称（如 "enabled", "position", "color" 等）
---   value/value2 - 新的设置值
+-- UpdateIndicators
 -------------------------------------------------
 local activeLayouts = {
     solo = nil,
@@ -1108,8 +1069,6 @@ Cell.RegisterCallback("UpdateIndicators", "UnitButton_UpdateIndicators", UpdateI
 -- ForEachAura
 -- Grid2 StatusAuras.lua:69 pattern:
 -- "self.aura_func(unit, self.aura_filter, ...)" where aura_func = C_UnitAuras.GetUnitAuras
--- 遍历指定过滤类型的光环（HARMFUL/HELPFUL），对每个光环调用处理函数。
--- 直接调用 C_UnitAuras.GetUnitAuras API 获取最新数据（全量刷新用）。
 -------------------------------------------------
 local function ForEachAura(button, filter, func)
     local auras = GetUnitAuras(button.states.displayedUnit, filter)
@@ -1122,8 +1081,6 @@ end
 
 -------------------------------------------------
 -- ForEachAuraCache
--- 遍历缓存中的光环（_buffs_cache 或 _debuffs_cache），对每个光环调用处理函数。
--- 用于增量更新：避免重新扫描全部光环，仅遍历已有缓存数据（增量刷新用）。
 -------------------------------------------------
 local function ForEachAuraCache(button, filter, func)
     if filter == "HARMFUL" then
@@ -1140,13 +1097,6 @@ end
 -------------------------------------------------
 -- UpdateAuraRefreshState
 -------------------------------------------------
--- UpdateAuraRefreshState: 判断光环是否被刷新（用于图标刷新动画）。
--- 根据 Cell.vars.iconAnimation 配置决定刷新判断方式：
---   "duration" - 持续时间增加或层数增加都视为刷新
---   "stack"    - 仅层数增加视为刷新
---   (其他)     - 不播放刷新动画
--- Midnight 安全：当 duration/applications/expirationTime 为秘密值时，
--- 无法做数值比较，安全降级为不刷新（refreshing = false）。
 local function UpdateAuraRefreshState(auraInfo)
     if Cell.vars.iconAnimation == "duration" then
         local timeIncreased, countIncreased
@@ -1196,25 +1146,14 @@ end
 -- end
 
 
--- HandleDebuff: 处理单个有害光环（debuff），将光环数据分类存储到按钮的内部缓存中。
--- 处理流程:
--- 1. Midnight 安全处理: 检查 debuffType（驱散类型）和 duration/expirationTime 是否秘密值，
---    秘密 debuffType 降级为 "Magic"，秘密时间值则跳过冷却动画但保留 debuff 显示。
--- 2. 判断是否为 Bleed 类型。
--- 3. 将 debuff 分类到 _debuffs_cache（缓存）、_debuffs_big（大图标）、
---    _debuffs_normal（普通）、_debuffs_dispel（可驱散）、_debuffs_raid（团队debuff）。
--- 4. 检查 crowdControls（控制技能）、resurrection（复活）、BG orbs（战场宝珠）。
--- 5. 触发用户自定义指示器的更新 (I.UpdateCustomIndicators)。
 local function HandleDebuff(self, auraInfo)
     local auraInstanceID = auraInfo.auraInstanceID
     local name = auraInfo.name
     -- auraInfo.icon may be a secret fileID on Midnight 12.0.0+
     -- SetTexture() accepts secret numbers, so this works as-is
-    -- icon 可能是秘密 fileID（Midnight 12.0.0+），但 SetTexture() 接受秘密值，直接透传即可
     local icon = auraInfo.icon
     local count = auraInfo.applications
     -- Midnight 12.0.0+: dispelName may be secret — fallback to "Magic" instead of ""
-    -- debuffType 可能是秘密值（Midnight 12.0.0+），秘密时降级为 "Magic" 作为安全回退
     -- Grid2 avoids this by using GetAuraDispelTypeColor(unit, auraInstanceID) which
     -- internally resolves secrets; but CellD needs the type string for indicatorBooleans filtering.
     local debuffType
@@ -1232,8 +1171,6 @@ local function HandleDebuff(self, auraInfo)
     -- Midnight 12.0.0+: expirationTime and duration may be secret even when spellId is not.
     -- Guard per-field: non-secret temporal fields get proper duration/cooldown display.
     -- When secret, we still classify/show the debuff — just without cooldown animation.
-    -- expirationTime/duration 在 Midnight 上可能为秘密值（即使 spellId 为非秘密），
-    -- 逐字段守卫: 非秘密时间字段正常计算冷却显示；秘密时跳过冷却动画但仍显示 debuff。
     local start
     local hasSecretTime = false
     if F.IsValueNonSecret(expirationTime) and F.IsValueNonSecret(duration) then
@@ -1262,8 +1199,6 @@ local function HandleDebuff(self, auraInfo)
     -- Midnight 12.0.0+: pre-compute dispel color via GetAuraDispelTypeColor API
     -- when debuffType came from secret fallback ("Magic"). Grid2 uses this API
     -- to get secret-safe colors without knowing the type string.
-    -- 预计算驱散颜色: 当 debuffType 来自秘密回退 ("Magic") 时，
-    -- 调用 GetAuraDispelColor API（内部解析秘密值）获取安全的驱散类型颜色。
     if debuffType == "Magic" and auraInfo.dispelName and issecretvalue and issecretvalue(auraInfo.dispelName) then
         local cr, cg, cb = I.GetAuraDispelColor(auraInstanceID)
         if cr then
@@ -1273,7 +1208,6 @@ local function HandleDebuff(self, auraInfo)
 
     -- Midnight 12.0.0+: when time values are secret, duration is set to 0 (falsy),
     -- but we still need to classify/show the debuff. Use hasSecretTime flag instead.
-    -- 秘密时间值时 duration 设为 0（假值），但仍需分类/显示 debuff，使用 hasSecretTime 标志代替。
     if hasSecretTime or (duration and duration > 0) then
         UpdateAuraRefreshState(auraInfo)
         self._debuffs_cache[auraInstanceID] = auraInfo
@@ -1376,10 +1310,6 @@ end
 
 local RAID_DEBUFFS_GLOW_TYPES = {"Normal", "Pixel", "Shine", "Proc"}
 
--- UnitButton_UpdateDebuffs: 刷新按钮上所有 debuff 指示器的显示。
--- isFullUpdate 为 true 时重新扫描全部光环；否则仅遍历缓存。
--- 更新顺序：raidDebuffs（团队debuff）-> 大图标 -> 普通图标 -> 可驱散 -> 群体控制。
--- 完成后清理临时表 _debuffs_normal, _debuffs_big, _debuffs_dispel, _debuffs_raid。
 local function UnitButton_UpdateDebuffs(self, isFullUpdate)
     local unit = self.states.displayedUnit
 
@@ -1555,13 +1485,6 @@ end
 -- buffs
 -------------------------------------------------
 
--- HandleBuff: 处理单个有益光环（buff），将光环数据分类存储到按钮的内部缓存中。
--- 处理流程:
--- 1. Midnight 安全处理: 检查 duration/expirationTime 是否秘密值，秘密时间值跳过冷却动画。
--- 2. 分类检测: defensiveCooldowns（个人减伤）、externalCooldowns（外部减伤）、
---    allCooldowns（全部冷却）、tankActiveMitigation（坦克主动减伤）、drinking（饮水）。
--- 3. 检查 BG flags（战场旗帜）用于 statusIcon。
--- 4. 触发用户自定义指示器的更新 (I.UpdateCustomIndicators)。
 local function HandleBuff(self, auraInfo)
     local unit = self.states.displayedUnit
 
@@ -1649,10 +1572,6 @@ local function HandleBuff(self, auraInfo)
     end
 end
 
--- UnitButton_UpdateBuffs: 刷新按钮上所有 buff 指示器的显示。
--- isFullUpdate 为 true 时重新扫描全部光环；否则仅遍历缓存。
--- 更新 defensiveCooldowns、externalCooldowns、allCooldowns 的大小和显示，
--- 处理 tankActiveMitigation 和 drinking 状态的显示/隐藏。
 local function UnitButton_UpdateBuffs(self, isFullUpdate)
     local unit = self.states.displayedUnit
 
@@ -1699,10 +1618,6 @@ end
 -------------------------------------------------
 -- aura tables
 -------------------------------------------------
--- InitAuraTables: 初始化按钮的光环相关内部数据结构。
--- 创建 _buffs（buff 临时表）、_debuffs（debuff 临时表）、
--- _buffs_cache / _debuffs_cache（光环缓存，用于增量更新）、
--- _debuffs_normal / _debuffs_big / _debuffs_dispel / _debuffs_raid / _debuffs_glow_current。
 local function InitAuraTables(self)
     -- vars
     self._buffs = {}
@@ -1721,9 +1636,6 @@ local function InitAuraTables(self)
     self._debuffs_glow_current = {}
 end
 
--- ResetAuraTables: 重置按钮的光环缓存和临时分类表。
--- 在按钮隐藏 (OnHide) 或单位切换时调用，清空所有缓存数据防止残留。
--- 同时隐藏 raidDebuffs 的 glow 效果。
 local function ResetAuraTables(self)
     wipe(self._buffs_cache)
     wipe(self._debuffs_cache)
@@ -1745,9 +1657,6 @@ end
 -------------------------------------------------
 -- Mirror Image & Mass Barrier
 -- Midnight 12.0.0+: COMBAT_LOG_EVENT_UNFILTERED is unavailable (tainted).
--- Midnight 12.0.0+ 说明: COMBAT_LOG_EVENT_UNFILTERED 在安全限制环境中不可用（被污染），
--- 因此镜像法术 (55342) 和群体屏障的检测改为通过 UNIT_AURA 事件触发 ->
--- HandleBuff -> IsDefensiveCooldown/IsExternalCooldown 路径实现。
 -- Mirror Image (55342) is now detected via UNIT_AURA → HandleBuff →
 -- IsDefensiveCooldown. Mass Barrier parent + sub-barriers are all detected
 -- via UNIT_AURA → HandleBuff → IsExternalCooldown (already in externals list).
@@ -1756,15 +1665,6 @@ end
 -------------------------------------------------
 -- functions
 -------------------------------------------------
--- UnitButton_UpdateAuras: 光环更新的统一入口，根据 updateInfo 决定全量或增量更新。
--- 全量更新 (isFullUpdate=true): 重新扫描所有 buff/debuff。
--- 增量更新: 仅处理 updateInfo 中变更的光环（新增、更新、移除）。
---   - addedAuras: 新出现的光环，按 isHelpful/isHarmful 分类加入缓存。
---   - updatedAuraInstanceIDs: 更新的光环实例ID列表，重新获取数据后更新缓存。
---   - removedAuraInstanceIDs: 被移除的光环实例ID列表，从缓存中删除。
---   - 无法归类的光环放入 _missing_auras，尝试按 isHelpful/isHarmful 重新分配。
---     Midnight: 秘密的 missing aura 静默丢弃，等待下次全量更新拾取。
--- 最后更新 statusIcon。
 UnitButton_UpdateAuras = function(self, updateInfo)
     if not self._indicatorsReady then return end
 
@@ -1872,8 +1772,6 @@ UnitButton_UpdateAuras = function(self, updateInfo)
 end
 
 -- Updates the health prediction calculator for a button (Midnight 12.0.0+)
--- 刷新 healthCalculator 的数据：调用 UnitGetDetailedHealPrediction 将当前单位的
--- 生命值、吸收量等数据填充到 calculator 中，供后续安全读取使用。
 local function UnitButton_UpdateCalculator(self)
     local unit = self.states.displayedUnit
     if not unit then return end
@@ -1882,13 +1780,6 @@ local function UnitButton_UpdateCalculator(self)
     UnitGetDetailedHealPrediction(unit, "player", calc)
 end
 
--- UnitButton_UpdateHealthStates: 更新按钮的生命值状态数据。
--- Midnight 路径 (Patch 12.0.0+): 使用 healthCalculator 读取安全值，
---   生命值百分比可能为秘密值，秘密时保留上次缓存值避免血条颜色闪烁。
---   死亡检测使用 UnitIsDeadOrGhost（始终为非秘密布尔值）。
---   健康文本通过 healthCalculator 的 GetCurrentHealth/GetMaximumHealth 等方法获取。
--- 经典路径: 直接调用 UnitHealth/UnitHealthMax 等 API 做数值计算。
--- 同时处理死亡/复活状态变更的回调触发。
 local function UnitButton_UpdateHealthStates(self, diff)
     local unit = self.states.displayedUnit
 
@@ -1987,10 +1878,6 @@ local function UnitButton_UpdateHealthStates(self, diff)
     end
 end
 
--- UnitButton_UpdatePowerStates: 更新按钮的能量值状态数据（法力/怒气/能量等）。
--- 调用 UnitPower 和 UnitPowerMax 获取当前值和最大值。
--- Midnight 安全: powerMax 在 PvP 宠物/敌方目标上可能为秘密值，
--- 此时跳过 <= 0 的检查以避免对秘密值做比较运算。
 local function UnitButton_UpdatePowerStates(self)
     local unit = self.states.displayedUnit
     if not unit then return end
@@ -2005,9 +1892,6 @@ end
 
 -------------------------------------------------
 -- power filter funcs
--- 能量显示过滤函数：根据单位类型（玩家/宠物/NPC/载具）和职责（坦克/治疗/输出）
--- 决定是否显示能量文本 (ShouldShowPowerText) 和能量条 (ShouldShowPowerBar)。
--- CheckPowerEventRegistration 根据可见性和显示需求动态注册/注销能量相关事件。
 -------------------------------------------------
 local function GetRole(b)
     if b.states.role and b.states.role ~= "NONE" then
@@ -2127,9 +2011,6 @@ CheckPowerEventRegistration = function(b)
     end
 end
 
--- ShowPowerBar: 显示能量条并调整布局。
--- 根据按钮方向 (horizontal/vertical/vertical_health) 调整血条和能量条的锚点位置。
--- 显示后立即注册能量事件并执行一次完整更新（powerStates, powerType, powerMax, power）。
 local function ShowPowerBar(b)
     b.widgets.powerBar:Show()
     b.widgets.powerBarLoss:Show()
@@ -2159,9 +2040,6 @@ local function ShowPowerBar(b)
     end
 end
 
--- HidePowerBar: 隐藏能量条并恢复血条的原始布局。
--- 注销能量相关事件以节省性能，隐藏能量条控件和间隙纹理，
--- 将血条重新锚定到按钮的完整区域。
 local function HidePowerBar(b)
     CheckPowerEventRegistration(b)
     b.widgets.powerBar:Hide()
@@ -2434,15 +2312,6 @@ local function UnitButton_UpdateHealthMax(self)
     end
 end
 
--- UnitButton_UpdateHealth: 更新血条的显示值（核心渲染函数）。
--- 两套路径:
---   Midnight: 使用 healthCalculator:GetCurrentHealth() 获取秘密安全值，
---     始终使用原生 SetValue（避免 SetSmoothedValue 的 Clamp 报错）。
---     Flash 动画在秘密值环境下跳过精确差值计算。
---     健康阈值检测: 秘密生命值百分比时隐藏阈值指示器。
---     CELL_FADE_OUT_HEALTH_PERCENT: 使用 Curve 求值透明度。
---   经典路径: 手动计算 healthPercent，支持 Flash 动画差值、平滑过渡、
---     健康阈值检测和渐隐效果。
 local function UnitButton_UpdateHealth(self, diff, skipStateUpdates)
     local unit = self.states.displayedUnit
     if not unit then return end
@@ -2526,11 +2395,6 @@ local function UnitButton_UpdateHealth(self, diff, skipStateUpdates)
     end
 end
 
--- UnitButton_UpdateHealPrediction: 更新治疗预估条的显示。
--- Midnight 路径: 使用独立的 healPredictionCalculator 计算器（与 healthCalculator 隔离），
---   设置 IncomingHealClampMode=0 限制在血量缺口范围内，然后用 SetMinMaxValues + SetValue 原生渲染。
---   锚定到血条填充边缘，由 C++ widget 计算比例填充（秘密值安全）。
--- 经典路径: 使用 UnitGetIncomingHeals 获取数值后手动计算比例并设置纹理尺寸。
 local function UnitButton_UpdateHealPrediction(self, skipStateUpdates)
     if Cell.isMidnight and self.widgets.healPredictionCalculator then
         -- MIDNIGHT PATH: use a DEDICATED calculator for heal prediction.
@@ -2587,13 +2451,6 @@ local function UnitButton_UpdateHealPrediction(self, skipStateUpdates)
     self.widgets.incomingHeal:SetValue(value / self.states.healthMax, self.states.healthPercent)
 end
 
--- UnitButton_UpdateShieldAbsorbs: 更新护盾条的显示。
--- 显示单位当前的伤害吸收护盾量（如戒律牧的真言术盾）。
--- Midnight 路径: 通过 healthCalculator:GetDamageAbsorbs() 获取秘密值，
---   直接传入 StatusBar:SetValue（C 引擎原生处理，无 Lua 算术溢出问题）。
---   overshield（过量护盾）检测: 当吸收量超过血量上限时为 overshield 状态，
---   显示额外的 overshield glow 和反向填充条。
--- 经典路径: 通过 UnitGetTotalAbsorbs 计算比例后手动设置纹理尺寸。
 UnitButton_UpdateShieldAbsorbs = function(self, skipStateUpdates)
     if Cell.isMidnight and self.widgets.healthCalculator then
         -- MIDNIGHT PATH: use calculator secret values
@@ -2701,11 +2558,6 @@ UnitButton_UpdateShieldAbsorbs = function(self, skipStateUpdates)
     end
 end
 
--- UnitButton_UpdateHealAbsorbs: 更新治疗吸收条的显示。
--- 显示单位当前的治疗吸收量（如降低治疗效果减益的数值可视化）。
--- Midnight 路径: 通过 healthCalculator:GetHealAbsorbs() 获取秘密值，
---   直接传入 StatusBar:SetValue 原生处理。
--- 经典路径: 通过 UnitGetTotalHealAbsorbs 计算比例后手动设置纹理。
 local function UnitButton_UpdateHealAbsorbs(self, skipStateUpdates)
     if Cell.isMidnight and self.widgets.healthCalculator then
         -- MIDNIGHT PATH: use calculator secret values
@@ -2747,9 +2599,6 @@ local function UnitButton_UpdateHealAbsorbs(self, skipStateUpdates)
     end
 end
 
--- UnitButton_UpdateThreat: 更新仇恨指示器（闪烁/边框）。
--- 当单位有仇恨状态 (status >= 1) 时根据仇恨等级颜色显示 aggroBlink 或 aggroBorder。
--- 无仇恨时隐藏。
 local function UnitButton_UpdateThreat(self)
     local unit = self.states.displayedUnit
     if not unit or not UnitExists(unit) then return end
@@ -2768,10 +2617,6 @@ local function UnitButton_UpdateThreat(self)
     end
 end
 
--- UnitButton_UpdateThreatBar: 更新仇恨条指示器（aggroBar）。
--- 使用 UnitDetailedThreatSituation 获取对当前目标的详细仇恨数据。
--- 显示仇恨百分比条和对应仇恨等级的颜色。
--- Midnight 安全: 仇恨百分比可能为秘密值，此时使用原生 SetValue 代替 SetSmoothedValue。
 local function UnitButton_UpdateThreatBar(self)
     if not enabledIndicators["aggroBar"] then
         self.indicators.aggroBar:Hide()
@@ -2798,8 +2643,6 @@ local function UnitButton_UpdateThreatBar(self)
     end
 end
 
--- UnitButton_UpdateCombatIcon: 更新战斗图标指示器。
--- 当单位处于战斗状态 (UnitAffectingCombat) 且未被战斗中隐藏配置限制时显示。
 local function UnitButton_UpdateCombatIcon(self)
     if not enabledIndicators["combatIcon"] then return end
 
@@ -2814,14 +2657,6 @@ local function UnitButton_UpdateCombatIcon(self)
 end
 
 -- UNIT_IN_RANGE_UPDATE: unit, inRange
--- UnitButton_UpdateInRange: 更新按钮的距离淡入淡出效果。
--- 根据单位是否在有效距离内调整按钮透明度。
--- 在范围内:
---   - 若启用 CELL_FADE_OUT_HEALTH_PERCENT: Midnight 下使用曲线求值（秘密值安全），
---     经典路径下方差比较生命值百分比决定透明度。
---   - 否则渐入到完全不透明。
--- 在范围外: 渐出到 outOfRangeAlpha（默认 0.4）。
--- Nil 安全: IsInRange 异常时默认在范围内，避免按钮错误灰显。
 local IsInRange = F.IsInRange
 local function UnitButton_UpdateInRange(self, ir)
     local unit = self.states.displayedUnit
@@ -2863,9 +2698,6 @@ local function UnitButton_UpdateInRange(self, ir)
     end
 end
 
--- UnitButton_UpdateVehicleStatus: 检测并处理载具状态切换。
--- 当单位进入载具时，将 displayedUnit 切换为载具对应的 pet 单位以正确显示光环。
--- 同时更新名称文本的载具名显示位置。
 local function UnitButton_UpdateVehicleStatus(self)
     local unit = self.states.unit
     if not unit then return end
@@ -2887,10 +2719,6 @@ local function UnitButton_UpdateVehicleStatus(self)
     end
 end
 
--- UnitButton_UpdateStatusText: 更新按钮的状态文本显示。
--- 按优先级检测并显示: 离线 > AFK(暂离) > 假死 > 死亡/鬼魂 > 召唤(传入) > 饮水。
--- Midnight 安全: UnitIsAFK 在 Midnight 上可能返回秘密布尔值，跳过检测防止比较报错。
--- 召唤状态 Accepted/Declined 显示 6 秒后自动重新检测。
 UnitButton_UpdateStatusText = function(self)
     local statusText = self.indicators.statusText
     if not enabledIndicators["statusText"] then
@@ -2951,10 +2779,6 @@ UnitButton_UpdateStatusText = function(self)
     end
 end
 
--- UnitButton_UpdateName: 更新按钮上显示的单位名称。
--- 获取 UnitName, UnitFullName, UnitClassBase, UnitGUID 等信息存储到 states 表。
--- Midnight 安全: 名称可能是秘密字符串（Midnight 12.0.0+），FontString:SetText() 接受秘密值。
--- 但名称比较（name == something）会报错，因此避免任何名称字符串比较。
 local function UnitButton_UpdateName(self)
     local unit = self.states.unit
     if not unit then return end
@@ -2994,12 +2818,6 @@ UnitButton_UpdateHealthTextColor = function(self)
     end
 end
 
--- UnitButton_UpdateHealthColor: 根据单位类型、状态和配置计算并设置血条颜色。
--- 玩家 (含 AI): 离线灰色 / 被控制紫色 / 载具中特殊色 / 正常职业色
--- 宠物: 蓝紫色调
--- NPC: 绿色调
--- 同时更新 incomingHeal 和 loss bar 的颜色。
--- Midnight 安全: 血条颜色计算仅使用非秘密数据（class, UnitIsPlayer, 配置等），安全。
 UnitButton_UpdateHealthColor = function(self)
     local unit = self.states.unit
     if not unit then return end
@@ -3083,11 +2901,6 @@ end)
 -------------------------------------------------
 -- update all
 -------------------------------------------------
--- UnitButton_UpdateAll: 按钮的完全刷新入口，按顺序调用所有子更新函数。
--- 仅在按钮可见时执行。更新顺序: 载具状态 -> 名称 -> 颜色 -> 血量 ->
--- 治疗预估 -> 状态文本 -> 目标高亮 -> 团队图标 -> 护盾/吸收 ->
--- 距离淡入淡出 -> 职责/队长 -> 就绪检查 -> 仇恨 -> 能量 -> 光环。
--- 能量相关更新（power bar/text）仅在 Cell 加载完成且 _powerUpdateRequired 时执行。
 UnitButton_UpdateAll = function(self)
     if not self:IsVisible() then return end
 
@@ -3147,12 +2960,6 @@ end
 -------------------------------------------------
 -- unit button events
 -------------------------------------------------
--- UnitButton_RegisterEvents: 注册按钮需要的所有游戏事件。
--- 事件分为两类:
---   单位事件 (unit 参数匹配当前单位): UNIT_HEALTH, UNIT_AURA, UNIT_POWER 等
---   全局事件 (无需 unit 匹配): GROUP_ROSTER_UPDATE, PLAYER_REGEN_ENABLED, READY_CHECK 等
--- 部分事件（RAID_TARGET_UPDATE, READY_CHECK 等）仅在对应指示器启用时注册以节省性能。
--- 注册完成后立即通过 pcall 执行一次 UnitButton_UpdateAll 进行初始刷新。
 local function UnitButton_RegisterEvents(self)
     -- self:RegisterEvent("PLAYER_ENTERING_WORLD")
     self:RegisterEvent("GROUP_ROSTER_UPDATE")
@@ -3233,14 +3040,6 @@ local function UnitButton_UnregisterEvents(self)
     self:UnregisterAllEvents()
 end
 
--- UnitButton_OnEvent: 按钮的主事件处理器。
--- 事件处理分为两条路径:
---   unit 匹配路径: 当事件的 unit 参数与当前按钮的 displayedUnit 或 unit 匹配时，
---     根据事件类型调用对应的更新函数（如 UNIT_HEALTH -> UpdateHealth）。
---   unit 不匹配/全局事件路径: 处理 GROUP_ROSTER_UPDATE（标记需要全量更新）、
---     PLAYER_TARGET_CHANGED（更新目标和仇恨条）、READY_CHECK 等全局事件。
--- 特殊处理: UNIT_ENTERED_VEHICLE/UNIT_EXITED_VEHICLE/UNIT_CONNECTION 等
---   重置性事件设置 _updateRequired=1 和 _powerUpdateRequired=1 触发全量刷新。
 local function UnitButton_OnEvent(self, event, unit, arg)
     if unit and (self.states.displayedUnit == unit or self.states.unit == unit) then
         if  event == "UNIT_ENTERED_VEHICLE" or event == "UNIT_EXITED_VEHICLE" or event == "UNIT_CONNECTION" then
@@ -3386,13 +3185,6 @@ end
 Cell.RegisterCallback("EnterInstance", "UnitButton_EnterInstance", EnterLeaveInstance)
 Cell.RegisterCallback("LeaveInstance", "UnitButton_LeaveInstance", EnterLeaveInstance)
 
--- UnitButton_OnAttributeChanged: 按钮属性变更回调，主要处理 unit 属性的变化。
--- 当 secure header 为按钮分配新单位时触发:
--- 1. 清理旧单位的 GUID/名称映射 (Cell.vars.guids/names)。
--- 2. 清空 states 表并重置 healthCalculator 的预测值防止残留数据。
--- 3. 更新 privateAuras 指示器的锚点。
--- 4. 对于 raid 单位，注册到 Cell.unitButtons.raid.units 表。
--- 5. 设置 _G["CellRaidFrameMember"..i] 全局变量供 OmniCD 等外部插件使用。
 local function UnitButton_OnAttributeChanged(self, name, value)
     if name == "unit" then
         if not value or value ~= self.states.unit then
@@ -3449,9 +3241,6 @@ end
 Cell.vars.guids = {} -- guid to unitid
 Cell.vars.names = {} -- name to unitid
 
--- UnitButton_OnShow: 按钮显示时的回调。
--- 清除 _updateRequired 标志（防止 GROUP_ROSTER_UPDATE 在队伍/团队转换时导致重复刷新），
--- 设置 _powerUpdateRequired=1 确保能量条正确更新，然后注册所有事件。
 local function UnitButton_OnShow(self)
     -- print(GetTime(), "OnShow", self:GetName())
     self._updateRequired = nil -- prevent UnitButton_UpdateAll twice. when convert party <-> raid, GROUP_ROSTER_UPDATE fired.
@@ -3479,10 +3268,6 @@ local function UnitButton_OnShow(self)
     ]]
 end
 
--- UnitButton_OnHide: 按钮隐藏时的回调。
--- 注销所有事件、重置光环表、清理 GUID/名称映射。
--- Midnight 安全: GUID 和名称可能为秘密值，在用作 table key 前检查 IsSecretValue。
--- 清空 states 表（保留 unit 和 displayedUnit），重置 healthCalculator 预测值。
 local function UnitButton_OnHide(self)
     -- print(GetTime(), "OnHide", self:GetName())
     UnitButton_UnregisterEvents(self)
@@ -3513,8 +3298,6 @@ local function UnitButton_OnHide(self)
     end
 end
 
--- UnitButton_OnEnter: 鼠标进入按钮回调。
--- 非战斗中刷新状态文本，显示鼠标悬停高亮，并调用 ShowTooltips 显示单位提示信息。
 local function UnitButton_OnEnter(self)
     if not IsEncounterInProgress() then UnitButton_UpdateStatusText(self) end
 
@@ -3526,8 +3309,6 @@ local function UnitButton_OnEnter(self)
     F.ShowTooltips(self, "unit", unit)
 end
 
--- UnitButton_OnLeave: 鼠标离开按钮回调。
--- 隐藏鼠标悬停高亮和游戏提示框。
 local function UnitButton_OnLeave(self)
     self.widgets.mouseoverHighlight:Hide()
     GameTooltip:Hide()
@@ -3535,16 +3316,6 @@ end
 
 local UNKNOWN = _G.UNKNOWN
 local UNKNOWNOBJECT = _G.UNKNOWNOBJECT
--- UnitButton_OnTick: 按钮的定时轮询逻辑（每 0.5 秒执行一次）。
--- 执行以下检测:
--- 1. 检测 displayedUnit 的 GUID 是否变更（实体切换），变更时标记需要全量刷新。
--- 2. 检测 unit 的 GUID 是否变更，变更时更新 Cell.vars.guids 映射表。
---    Midnight 安全: GUID 为秘密值时跳过比较和缓存存储。
--- 3. 玩家名称获取与重试机制: 刚加入队伍时可能无法立即获取有效名称，
---    通过 __nameRetries 最多重试 4 次（国服可起名为"未知目标"，故限制重试次数）。
--- 4. 更新距离淡入淡出 (UnitButton_UpdateInRange)。
--- 5. 如果 _updateRequired 标记为真且指示器就绪，执行全量刷新。
--- 6. 对于 refreshOnUpdate 属性的按钮（如 Xtarget），每次 tick 都全量刷新。
 local function UnitButton_OnTick(self)
     -- print(GetTime(), "OnTick", self._updateRequired, self:GetAttribute("refreshOnUpdate"), self:GetName())
     local e = (self.__tickCount or 0) + 1
@@ -3618,8 +3389,6 @@ local function UnitButton_OnTick(self)
     end
 end
 
--- UnitButton_OnUpdate: 每帧调用的更新函数。
--- 累积 elapsed 时间，每 0.25 秒执行一次 OnTick（状态轮询）和 UpdateCombatIcon（战斗图标更新）。
 local function UnitButton_OnUpdate(self, elapsed)
     local e = (self.__updateElapsed or 0) + elapsed
     if e > 0.25 then
@@ -3651,11 +3420,6 @@ function B.SetPowerSize(button, size)
     CheckPowerEventRegistration(button)
 end
 
--- B.UpdateShields: 更新护盾/吸收条的颜色和启用状态配置。
--- 从 CellDB 读取 healPrediction, shield, overshield, healAbsorb 等设置，
--- 应用到 StatusBar（Midnight）或 Texture（经典）的颜色设置。
--- Midnight: StatusBar 使用 SetStatusBarColor；经典: Texture 使用 SetVertexColor。
--- 设置完成后触发一次全量更新。
 function B.UpdateShields(button)
     predictionEnabled = CellDB["appearance"]["healPrediction"][1]
     shieldEnabled = CellDB["appearance"]["shield"][1]
@@ -3893,14 +3657,6 @@ local function DamageFlashTex_SetValue_Vertical(self, lostPercent)
     self:SetHeight(barHeight * lostPercent)
 end
 
--- B.SetOrientation: 设置按钮的方向（horizontal/vertical/vertical_health）。
--- 根据方向调整所有控件的位置、锚点、纹理旋转。
--- horizontal: 横向血条，左侧填充
--- vertical: 纵向血条，底部填充（血条和能量条同向）
--- vertical_health: 纵向血条，底部填充，能量条横向在底部
--- Midnight: incomingHeal/shieldBar/shieldBarR/absorbsBar 使用原生 StatusBar，
---   锚定到血条填充边缘（而非固定位置），利用 StatusBar 原生方向渲染。
--- 经典: 手动计算纹理尺寸和位置。
 function B.SetOrientation(button, orientation, rotateTexture)
     local healthBar = button.widgets.healthBar
     local healthBarLoss = button.widgets.healthBarLoss
@@ -4233,11 +3989,6 @@ function B.UpdateShield(button)
 end
 
 -- animation
--- B.UpdateAnimation: 更新血条和能量条的动画类型。
--- Smooth 模式: SetBarValue 映射到 SetSmoothedValue（Lua Mixin 的平滑过渡），
---   但 Midnight 上 SetSmoothedValue 的 Clamp() 可能因秘密值报错，此时使用原生 SetValue。
--- 其他模式: 重置平滑值，SetBarValue 映射到 SetValue。
--- Flash 模式停止时结束伤害闪烁动画。
 function B.UpdateAnimation(button)
     barAnimationType = CellDB["appearance"]["barAnimation"]
 
@@ -4314,7 +4065,6 @@ function B.UpdatePixelPerfect(button, updateIndicators)
     button.widgets.srIcon:UpdatePixelPerfect()
 end
 
--- 将核心更新函数导出到 B (Cell.bFuncs) 供外部模块调用
 B.UpdateAll = UnitButton_UpdateAll
 B.UpdateHealth = UnitButton_UpdateHealth
 B.UpdateHealthMax = UnitButton_UpdateHealthMax
@@ -4328,36 +4078,22 @@ B.UpdateName = UnitButton_UpdateName
 local startTimeCache = {}
 
 -- Layers ---------------------------------------
--- 按钮各控件的绘制层级（DrawLayer）规划:
--- 数值越小越靠前（上方），越大越靠后（下方）
--- OVERLAY（最上层）
--- ARTWORK（中上层）
---  -2 overAbsorbGlow     -- 过量治疗吸收光效
---  -3 absorbsBar          -- 治疗吸收条
---  -4 overShieldGlow, overShieldGlowR  -- 过量护盾光效
---  -5 shieldBar, shieldBarR           -- 护盾条
---	-6 incomingHeal, damageFlashTex   -- 治疗预估条、伤害闪烁
---	-7 healthBar, healthBarLoss       -- 血条、血量损失
+-- OVERLAY
+-- ARTWORK
+--  -2 overAbsorbGlow
+--  -3 absorbsBar
+--  -4 overShieldGlow, overShieldGlowR
+--  -5 shieldBar, shieldBarR
+--	-6 incomingHeal, damageFlashTex
+--	-7 healthBar, healthBarLoss
 -- BORDER
---  0 gapTexture          -- 能量条间隙纹理
--- BACKGROUND（最下层）
+--  0 gapTexture
+-- BACKGROUND
 -------------------------------------------------
 
--- 占位空函数：用于在控件创建初期设置 SetValue 等方法，避免在首次更新前因 nil method 报错
+-- NOTE: prevent a nil method error
 local DumbFunc = function() end
 
--- CellUnitButton_OnLoad: 按钮加载入口，完成完整的初始化流程。
--- 1. 创建内部数据结构: widgets, states, indicators 表。
--- 2. Midnight 12.0.0+: 创建 healthCalculator（生命值计算器）和
---    healPredictionCalculator（治疗预估计算器），用于安全读取秘密生命值。
---    创建 healthColorCurve（血量颜色曲线）供后续颜色渐变使用。
--- 3. 初始化光环缓存表 (InitAuraTables)。
--- 4. 混入 Ping 系统 (PingableType_UnitFrameMixin)。
--- 5. 创建所有 UI 控件: 血条、能量条、护盾条、吸收条、各种指示器等。
---    Midnight: StatusBar 替代 Texture，利用 C 引擎原生处理秘密值。
--- 6. 混入平滑动画 (SmoothStatusBarMixin)。
--- 7. 设置脚本: OnAttributeChanged, OnShow, OnHide, OnEnter, OnLeave, OnUpdate, OnEvent。
--- 8. 注册点击 (RegisterForClicks)。
 function CellUnitButton_OnLoad(button)
     local name = button:GetName()
 

@@ -7,37 +7,6 @@ local I = Cell.iFuncs
 ---@type PixelPerfectFuncs
 local P = Cell.pixelPerfectFuncs
 
--- ============================================================================
--- 模块概述：指示器基础控件工厂
--- ============================================================================
--- 本文件定义了 Cell 所有光环指示器类型的底层控件创建与更新逻辑。
--- 支持的指示器类型包括：
---   BorderIcon  - 带边框的图标（用于 debuff 等）
---   BarIcon     - 带状态条动画的图标
---   Icons       - 多图标容器（自动布局）
---   Text        - 纯文本指示器
---   Rect        - 矩形色块指示器
---   Bar         - 单个进度条指示器
---   Bars        - 多个进度条容器（自动布局）
---   Color       - 颜色覆盖层（支持纯色/渐变/随时间变色/职业色/debuff类型色）
---   Texture     - 自定义纹理指示器
---   Glow        - 发光效果指示器
---   Overlay     - 状态条覆盖层（支持平滑过渡）
---   Block       - 带冷却动画的块指示器
---   Blocks      - 多个块容器（自动布局）
---   Border      - 边框发光指示器
---   QuickAssistBars - 快速协助条
---
--- 每个指示器类型遵循统一模式：
---   1. 本地函数定义 OnUpdate 回调、SetCooldown、SetFont 等
---   2. 工厂函数 I.CreateAura_<Type> 创建控件并装配方法
---   3. OnUpdate 通过 elapsed 累加实现 0.1 秒节流
---
--- Midnight 12.0.0+ 防护要点：
---   - 光环堆叠数(count)可能为 secret value，通过 _SanitizeCount 清洗
---   - 冷却时间(duration)可能为 secret，通过 DurationObject 模式绕过直接读取
---   - SetText/SetFormattedText 原生接受 secret value，无需额外处理
-
 -- NOTE (Midnight 12.0.0+): Health text formatting with arithmetic on health/maxHealth
 -- is guarded for secret values in Indicators/Built-in.lua (HealthText_SetValue).
 -- All other numeric display in this file uses SetText/SetFormattedText which accept secrets.
@@ -45,33 +14,24 @@ local P = Cell.pixelPerfectFuncs
 local LCG = LibStub("LibCustomGlow-1.0")
 
 -- Midnight 12.0.0+: aura count (applications) may be secret; sanitize for safe comparisons/table-key use
--- 光环堆叠数可能在 Midnight 版本中被标记为 secret value，此函数将其清洗为普通的 0
--- 以避免在数值比较、表索引等场景中因 secret value 触发 UI 错误
 local function _SanitizeCount(count)
     if issecretvalue and issecretvalue(count) then return 0 end
     return count or 0
 end
 
 -- Midnight 12.0.0+: helper for stack text display (most common pattern)
--- 生成堆叠数显示文本：0 或 1 层时不显示数字，2 层及以上显示层数
--- 所有堆叠数显示均通过此函数清洗，确保 secret value 不会意外泄漏
 local function _StackText(count)
     count = _SanitizeCount(count)
     return (count == 0 or count == 1) and "" or count
 end
 
--- 全局常量：单元格边框大小(像素)、边框颜色、默认冷却样式
 CELL_BORDER_SIZE = 1
 CELL_BORDER_COLOR = {0, 0, 0, 1}
 CELL_COOLDOWN_STYLE = "VERTICAL"
 
 -------------------------------------------------
--- SetFont / JustifyText — 字体配置与文本对齐
+-- SetFont
 -------------------------------------------------
--- 根据锚点(anchor point)名称推断水平/垂直对齐方式
--- 例如 "TOPLEFT" -> 水平左对齐 + 垂直顶对齐
--- "CENTER" -> 水平居中 + 垂直居中
--- 锚点命名须遵循 WoW 标准：<VERTICAL><HORIZONTAL> 格式
 function I.JustifyText(text, point)
     if strfind(point, "LEFT$") then
         text:SetJustifyH("LEFT")
@@ -90,16 +50,6 @@ function I.JustifyText(text, point)
     end
 end
 
--- 配置字体字符串的完整样式：字体文件、大小、描边、阴影、锚点位置、颜色
--- @param fs 字体字符串对象(FontString)
--- @param anchorTo 相对锚定目标
--- @param font 字体名称（通过 F.GetFont 解析为路径）
--- @param size 字号
--- @param outline "None" | "Outline" | "Outline+Monochrome"
--- @param shadow 是否启用阴影
--- @param anchor 锚点名称（同时用于定位和对齐推断）
--- @param xOffset, yOffset 锚点偏移
--- @param color {r, g, b} 或 nil（默认白色）
 function I.SetFont(fs, anchorTo, font, size, outline, shadow, anchor, xOffset, yOffset, color)
     font = F.GetFont(font)
 
@@ -137,10 +87,8 @@ function I.SetFont(fs, anchorTo, font, size, outline, shadow, anchor, xOffset, y
 end
 
 -------------------------------------------------
--- Shared — 多个指示器类型共用的辅助函数
--- 这些函数通过 frame 上的方法表装配到不同指示器实例
+-- Shared
 -------------------------------------------------
--- 共用字体设置：font1 配置 stack（堆叠数），font2 配置 duration（持续时间）
 local function Shared_SetFont(frame, font1, font2)
     I.SetFont(frame.stack, frame, unpack(font1))
     I.SetFont(frame.duration, frame, unpack(font2))
@@ -156,12 +104,8 @@ local function Shared_ShowDuration(frame, show)
 end
 
 -------------------------------------------------
--- VerticalCooldown — 垂直填充冷却动画系统
--- 使用 StatusBar 模拟垂直方向填充的冷却效果（而非 WoW 原生 Cooldown 帧的径向扫描）
--- 组件结构：StatusBar + Spark(闪烁线) + Mask(遮罩) + Icon(褪色图标)
--- 与 ClockCooldown（时钟式）互为替代方案，通过 CELL_COOLDOWN_STYLE 切换
+-- VerticalCooldown
 -------------------------------------------------
--- 当 frame 尺寸改变时重新计算图标 UV 裁剪坐标，确保图标按比例显示
 local function ReCalcTexCoord(self, width, height)
     local texCoord = F.GetTexCoord(width, height)
     self.icon:SetTexCoord(unpack(texCoord))
@@ -170,8 +114,6 @@ local function ReCalcTexCoord(self, width, height)
     end
 end
 
--- 垂直冷却条的 OnUpdate：每 0.1 秒累加一次已用时间，驱动 StatusBar 的 Value 从 0 增长到 duration
--- 注意：与大多数指示器的 OnUpdate 不同，这里累加的是 elapsed 而非直接计算剩余时间
 local function VerticalCooldown_OnUpdate(self, elapsed)
     self.elapsed = (self.elapsed or 0) + elapsed
     if self.elapsed >= 0.1 then
@@ -181,16 +123,10 @@ local function VerticalCooldown_OnUpdate(self, elapsed)
 end
 
 -- for LCG.ButtonGlow_Start
--- 返回 0 以跳过 LibCustomGlow 的 ButtonGlow 冷却逻辑（垂直冷却条自行管理显示）
 local function VerticalCooldown_GetCooldownDuration()
     return 0
 end
 
--- 显示垂直冷却动画
--- @param start 光环开始时间(GetTime() 时间戳)
--- @param duration 总持续时间(秒)
--- @param icon 褪色图标纹理
--- @param debuffType debuff 类型字符串（决定 spark 颜色），nil 时为灰色
 local function VerticalCooldown_ShowCooldown(self, start, duration, _, icon, debuffType)
     if debuffType then
         self.spark:SetColorTexture(I.GetDebuffTypeColor(debuffType))
@@ -274,9 +210,7 @@ local function Shared_CreateCooldown_Vertical_NoIcon(frame)
 end
 
 -------------------------------------------------
--- ClockCooldown — WoW 原生径向扫描冷却动画
--- 使用 Blizzard Cooldown 帧实现时钟式冷却覆盖层
--- 防御性措施：禁用 OmniCC 等第三方冷却文字插件对 cooldown 帧的文字注入
+-- ClockCooldown
 -------------------------------------------------
 local function Shared_CreateCooldown_Clock(frame)
     local cooldown = CreateFrame("Cooldown", nil, frame)
@@ -292,23 +226,16 @@ local function Shared_CreateCooldown_Clock(frame)
     -- cooldown:SetEdgeTexture([[Interface\Cooldown\UI-HUD-ActionBar-SecondaryCooldown]])
 
     -- cooldown text
-    -- 隐藏 Blizzard 原生冷却倒计时数字（由指示器自身的 duration 字体字符串接管）
     cooldown:SetHideCountdownNumbers(true)
     -- disable omnicc
-    -- OmniCC 通过 noCooldownCount 标记跳过此帧
     cooldown.noCooldownCount = true
     -- prevent some dirty addons from adding cooldown text
-    -- 保存原始 SetCooldown 到 ShowCooldown（供 Grid2 DurationObject 模式使用），
-    -- 然后置空 SetCooldown 阻止其他插件向此帧注入冷却文字
     cooldown.ShowCooldown = cooldown.SetCooldown
     cooldown.SetCooldown = nil
 end
 
 -------------------------------------------------
--- SetCooldownStyle — 切换冷却显示风格
--- "CLOCK" -> 时钟式（原生 Cooldown 帧）
--- 其他 -> 垂直填充式（StatusBar 模拟），noIcon 决定是否带褪色图标层
--- 切换时会销毁旧冷却帧并重建新风格的冷却帧
+-- SetCooldownStyle
 -------------------------------------------------
 local function Shared_SetCooldownStyle(frame, style, noIcon)
     if frame.style == style then return end
@@ -332,9 +259,7 @@ local function Shared_SetCooldownStyle(frame, style, noIcon)
 end
 
 --------------------------------------------------
--- glow — LibCustomGlow 发光效果系统
--- 支持五种发光类型：None / Normal(按钮式) / Pixel(像素式) / Shine(自动施法式) / Proc(触发式)
--- 通过 StartGlow/StopGlow 分发表实现策略模式，在切换发光类型时自动切换实现
+-- glow
 --------------------------------------------------
 ---@type function
 local ButtonGlow_Start = LCG.ButtonGlow_Start
@@ -353,8 +278,6 @@ local ProcGlow_Start = LCG.ProcGlow_Start
 ---@type function
 local ProcGlow_Stop = LCG.ProcGlow_Stop
 
--- 发光启动分发表：根据 glowType 字符串路由到对应的 LCG 启动函数
--- "none" 为空操作，允许在无发光时仍可通过统一接口调用
 local StartGlow = {
     ["none"] = function(frame)
     end,
@@ -372,7 +295,6 @@ local StartGlow = {
     end,
 }
 
--- 发光停止分发表：与 StartGlow 对称
 local StopGlow = {
     ["none"] = function(frame)
     end,
@@ -382,11 +304,6 @@ local StopGlow = {
     ["proc"] = ProcGlow_Stop,
 }
 
--- 配置并启动发光效果
--- glowOptions 结构: {type, ...} 其中 type 为 "Normal"/"Pixel"/"Shine"/"Proc"/"None"
--- 后续参数根据类型不同携带颜色、频率、长度等配置
--- 重要：每次调用先停止所有旧发光效果，再启动新效果，防止叠加
--- Hook OnSizeChanged 确保缩放后发光效果自动重绘
 local function Shared_SetupGlow(frame, glowOptions)
     frame.glowType = glowOptions[1]
     frame.glowOptions = {}
@@ -434,13 +351,8 @@ function I.Glow_SetupForChildren(parent, glowOptions)
 end
 
 -------------------------------------------------
--- Icon_OnUpdate — 图标持续时间显示更新逻辑（倒计时模式）
--- 每 0.1 秒节流更新一次：先检查颜色切换阈值，再格式化剩余时间文本
--- 颜色分三档：从 durationColors[3]（紧急）-> [2]（警告）-> [1]（正常）按剩余时间回退
--- 格式化策略：>60秒显示"Xm"，否则根据 iconDurationRoundUp / iconDurationDecimal 决定取整或小数
--- 注意：_remain 通过 GetTime() - _start 实时计算，而非 delta 累加，避免累积误差
+-- Icon_OnUpdate
 -------------------------------------------------
--- 倒计时模式 OnUpdate：显示剩余时间（duration - elapsed）
 local function Icon_OnUpdate(frame, elapsed)
     frame._remain = frame._duration - (GetTime() - frame._start)
     if frame._remain < 0 then frame._remain = 0 end
@@ -483,8 +395,6 @@ local function Icon_OnUpdate(frame, elapsed)
     end
 end
 
--- 已用时间模式 OnUpdate：显示已过时间（elapsed since start），而非剩余时间
--- 用于需要展示"已持续多久"的场景（如 HoT 的已用时间）
 local function Icon_OnUpdate_ElapsedTime(frame, elapsed)
     frame._remain = frame._duration - (GetTime() - frame._start)
     if frame._remain < 0 then frame._remain = 0 end
@@ -523,17 +433,8 @@ local function Icon_OnUpdate_ElapsedTime(frame, elapsed)
 end
 
 -------------------------------------------------
--- CreateAura_BorderIcon — 带边框的图标指示器
--- 结构: 背景底板 + 边框纹理 + 冷却动画 + 图标 + 堆叠数/持续时间文字
--- 边框在有 debuffType 时显示对应颜色，有持续时间时切换为冷却动画
+-- CreateAura_BorderIcon
 -------------------------------------------------
--- BorderIcon 的冷却/状态设置核心函数
--- Midnight 12.0.0+ 关键防护点：
---   当 duration 为 secret value 时，Blizzard API 可能提供 DurationObject 作为替代，
---   此时无法读取具体的数值用于倒计时文本，因此：
---     - 使用 cooldown:SetCooldownFromDurationObject(durationObject) 渲染冷却动画
---     - 隐藏 duration 文本（因为无法读取 secret number 来格式化显示）
---   这是 Grid2 风格的兼容方案，确保 secret value 下指示器仍能正常显示冷却动画
 local function BorderIcon_SetCooldown(frame, start, duration, debuffType, texture, count, refreshing, useElapsedTime, durationObject)
     -- Grid2-style DurationObject fallback (Midnight 12.0.0+):
     -- when time values are secret, C_UnitAuras.GetAuraDuration provides
@@ -545,7 +446,6 @@ local function BorderIcon_SetCooldown(frame, start, duration, debuffType, textur
         r, g, b = 0, 0, 0
     end
 
-    -- 分支1: 无持续时间(静态光环，如被动buff) -> 显示纯色边框，隐藏冷却和倒计时
     if duration == 0 and not durationObject then
         frame.border:Show()
         frame.border:SetColorTexture(r, g, b)
@@ -558,13 +458,10 @@ local function BorderIcon_SetCooldown(frame, start, duration, debuffType, textur
         frame._elapsed = nil
         frame._threshold = nil
         frame._elapsedTime = nil
-    -- 分支2: 有持续时间(有时限光环) -> 显示冷却动画
     else
         frame.border:Hide()
         frame.cooldown:Show()
         frame.cooldown:SetSwipeColor(r, g, b)
-        -- Midnight 防护：有 DurationObject 时使用 SetCooldownFromDurationObject（安全路径）
-        -- 无 DurationObject 时使用保存的原始 _SetCooldown（兼容旧版本/普通光环）
         if durationObject then
             -- Grid2 pattern: SetCooldownFromDurationObject for secret auras
             frame.cooldown:SetCooldownFromDurationObject(durationObject)
@@ -610,11 +507,6 @@ local function BorderIcon_SetBorder(frame, thickness)
     P.Point(frame.iconFrame, "BOTTOMRIGHT", frame, "BOTTOMRIGHT", -thickness, thickness)
 end
 
--- showDuration 支持三种模式：
---   false/nil -> 不显示倒计时
---   true      -> 从开始就显示
---   数字 >=1  -> 剩余秒数 <= 该值时显示（绝对阈值）
---   数字 <1   -> 剩余时间 <= duration * 该值时显示（比例阈值）
 local function BorderIcon_ShowDuration(frame, show)
     frame.showDuration = show
     if show then
@@ -624,7 +516,6 @@ local function BorderIcon_ShowDuration(frame, show)
     end
 end
 
--- 像素完美模式下的重新布局：重定位 frame 自身 + 子控件
 local function BorderIcon_UpdatePixelPerfect(frame)
     P.Resize(frame)
     P.Repoint(frame)
@@ -633,10 +524,6 @@ local function BorderIcon_UpdatePixelPerfect(frame)
     P.Repoint(frame.duration)
 end
 
--- BorderIcon 工厂：创建带边框的图标指示器
--- 组件层级：Frame(背景) -> Border(边框纹理) -> Cooldown(冷却) -> IconFrame -> Icon + Stack + Duration
--- iconFrame 抬高一级 frameLevel 使图标绘制在冷却覆盖层之上
--- 包含一个上下弹跳 AnimationGroup(ag)，用于光环刷新时的视觉反馈
 function I.CreateAura_BorderIcon(name, parent, borderSize)
     local frame = CreateFrame("Frame", name, parent, "BackdropTemplate")
     frame:Hide()
@@ -698,12 +585,8 @@ function I.CreateAura_BorderIcon(name, parent, borderSize)
 end
 
 -------------------------------------------------
--- CreateAura_BarIcon — 带垂直冷却动画的状态条图标
--- 与 BorderIcon 的区别：冷却使用垂直 StatusBar 模式（可选关闭动画），
--- 背景颜色由 debuffType 决定而非固定
+-- CreateAura_BarIcon
 -------------------------------------------------
--- BarIcon 的冷却设置：无冷却时隐藏冷却条和倒计时，有冷却时配置 StatusBar 冷却动画
--- showAnimation 控制是否使用 StatusBar 冷却（开启时 stack/duration 挂载到 cooldown 上）
 local function BarIcon_SetCooldown(frame, start, duration, debuffType, texture, count, refreshing)
     if duration == 0 then
         frame.cooldown:Hide()
@@ -783,10 +666,6 @@ local function BarIcon_UpdatePixelPerfect(frame)
     end
 end
 
--- BarIcon 工厂：创建带垂直冷却条动画的图标指示器
--- 默认冷却风格由 CELL_COOLDOWN_STYLE 全局常量决定（当前为 "VERTICAL"）
--- 通过 OnSizeChanged 自动重算图标 UV 裁剪坐标
--- 与 BorderIcon 共享 animation group 的弹跳动画逻辑
 function I.CreateAura_BarIcon(name, parent)
     local frame = CreateFrame("Frame", name, parent, "BackdropTemplate")
     frame:Hide()
@@ -841,13 +720,8 @@ function I.CreateAura_BarIcon(name, parent)
 end
 
 -------------------------------------------------
--- CreateAura_Icons — 多图标容器（自动网格布局）
--- 核心设计：icons 本身是一个 Frame，包含 maxNum 个子 BarIcon
--- 布局引擎通过 orientation + numPerLine + spacing 自动计算每个子图标的位置
--- 容器尺寸随可见子图标的数量和行数动态调整
+-- CreateAura_Icons
 -------------------------------------------------
--- 更新容器尺寸：根据可见光环数量计算所需行数，并通过 P.SetGridSize 调整网格
--- @param numAuras nil 时自动统计可见子图标数；传入数字时用于预览/外部强制设置
 local function Icons_UpdateSize(icons, numAuras)
     if not (icons.width and icons.orientation) then return end -- not init
 
@@ -888,13 +762,6 @@ local function Icons_SetNumPerLine(icons, numPerLine)
     end
 end
 
--- 设置排列方向：支持 "left-to-right" / "right-to-left" / "top-to-bottom" / "bottom-to-top"
--- 根据锚点位置（BOTTOM/TOP/RIGHT/LEFT）自动选择换行方向和偏移量
--- 布局算法：
---   第1个图标放在 point1 锚点
---   每行内相邻图标间距 spacingX/spacingY
---   每行第1个图标相对于上一行首个图标偏移 newLineX/newLineY
--- 换行判断：i % numPerLine == 1 表示新行开始
 local function Icons_SetOrientation(icons, orientation)
     icons.orientation = orientation
 
@@ -1003,7 +870,6 @@ local function Icons_SetSize(icons, width, height)
     icons:UpdateSize()
 end
 
--- 设置图标间距：spacing[1]=水平间距, spacing[2]=垂直间距，设置后自动重新布局
 local function Icons_SetSpacing(icons, spacing)
     icons.spacingX = spacing[1]
     icons.spacingY = spacing[2]
@@ -1054,10 +920,6 @@ local function Icons_UpdatePixelPerfect(icons)
     end
 end
 
--- Icons 工厂：创建多图标容器
--- 保存原始 SetSize/Hide 方法为 _SetSize/_Hide，然后替换为自定义布局感知版本
--- 每个子图标通过 I.CreateAura_BarIcon 创建，存储在 icons[1..num] 中
--- 通过 SetupGlow = I.Glow_SetupForChildren 实现遍历所有子图标应用发光效果
 function I.CreateAura_Icons(name, parent, num)
     local icons = CreateFrame("Frame", name, parent)
     icons:Hide()
@@ -1093,10 +955,7 @@ function I.CreateAura_Icons(name, parent, num)
 end
 
 -------------------------------------------------
--- CreateAura_Text — 纯文本指示器
--- 支持显示堆叠数（普通数字或带圈数字 ①②③...㊿）和/或持续时间
--- 颜色随时间分三档变化（动态颜色模式），由 colors 表驱动
--- 当 durationTbl[1] 为 true 时显示倒计时，否则只显示堆叠数+动态颜色
+-- CreateAura_Text
 -------------------------------------------------
 local function Text_SetFont(frame, font, size, outline, shadow)
     font = F.GetFont(font)
@@ -1130,36 +989,20 @@ local function Text_SetPoint(frame, point, relativeTo, relativePoint, x, y)
     I.JustifyText(frame.text, point)
 end
 
--- 设置持续时间显示配置
--- durationTbl = {showDuration, roundUp, decimalThreshold}
---   [1]: true/false 是否显示倒计时
---   [2]: true=向上取整, false=根据阈值显示小数
---   [3]: 低于此秒数时显示一位小数
 local function Text_SetDuration(frame, durationTbl)
     frame.durationTbl = durationTbl
 end
 
--- 设置堆叠数显示配置: stack[1]=是否显示, stack[2]=是否使用带圈数字
 local function Text_SetStack(frame, stack)
     frame.showStack = stack[1]
     frame.circledStackNums = stack[2]
 end
 
--- 设置颜色表
--- colors 结构: {[1]={r,g,b,a}, [2]={enabled, ratio, {r,g,b,a}}, [3]={enabled, threshold, {r,g,b,a}}}
---   [1] 正常状态颜色
---   [2] 阶段2颜色: enabled 开关, ratio 占 duration 的比例阈值, 颜色
---   [3] 阶段3颜色: enabled 开关, threshold 绝对秒数阈值, 颜色
 local function Text_SetColors(frame, colors)
     frame.state = nil
     frame.colors = colors
 end
 
--- 根据剩余时间更新文本颜色（三档优先级从高到低）
--- [3] 紧急色: colors[3][1] 启用且 _remain <= colors[3][2] 绝对阈值
--- [2] 警告色: colors[2][1] 启用且 _remain <= _duration * colors[2][2] 比例阈值
--- [1] 正常色: 其他情况（默认）
--- 通过 frame.state 缓存当前状态避免重复调用 SetTextColor
 local function Text_OnUpdateColor(frame)
     if frame.colors[3][1] and frame._remain <= frame.colors[3][2] then
         if frame.state ~= 3 then
@@ -1177,8 +1020,6 @@ local function Text_OnUpdateColor(frame)
     end
 end
 
--- 带倒计时文本的 OnUpdate：颜色更新 + 时间格式化（_count.. 前缀拼接堆叠数）
--- 格式化逻辑与 Icon_OnUpdate 一致，但在文本前拼接 _count（堆叠数 + 空格）
 local function Text_OnUpdateDuration(frame, elapsed)
     frame._remain = frame._duration - (GetTime() - frame._start)
     if frame._remain < 0 then frame._remain = 0 end
@@ -1206,8 +1047,6 @@ local function Text_OnUpdateDuration(frame, elapsed)
     end
 end
 
--- 纯堆叠数+动态颜色模式的 OnUpdate：只更新颜色，不更新文本内容（文本在 SetCooldown 时已设定）
--- 适用于不显示倒计时、仅根据剩余时间变色的场景
 local function Text_OnUpdate(frame, elapsed)
     frame._elapsed = frame._elapsed + elapsed
     if frame._elapsed >= 0.1 then
@@ -1219,10 +1058,7 @@ local function Text_OnUpdate(frame, elapsed)
     end
 end
 
--- 带圈数字字符表：索引1-50 对应 ①-㊿，用于 circledStackNums 模式
 local circled = {"①","②","③","④","⑤","⑥","⑦","⑧","⑨","⑩","⑪","⑫","⑬","⑭","⑮","⑯","⑰","⑱","⑲","⑳","㉑","㉒","㉓","㉔","㉕","㉖","㉗","㉘","㉙","㉚","㉛","㉜","㉝","㉞","㉟","㊱","㊲","㊳","㊴","㊵","㊶","㊷","㊸","㊹","㊺","㊻","㊼","㊽","㊾","㊿"}
--- Text 指示器的冷却设置：根据是否显示倒计时选择不同的 OnUpdate 处理
--- Midnight 防护：所有 count 通过 _SanitizeCount 清洗后再使用
 local function Text_SetCooldown(frame, start, duration, debuffType, texture, count)
     if duration == 0 then
         -- always show stack
@@ -1273,9 +1109,6 @@ local function Text_SetCooldown(frame, start, duration, debuffType, texture, cou
     frame:Show()
 end
 
--- Text 工厂：创建纯文本指示器
--- 保存原始 SetPoint 为 _SetPoint，替换为同时设置 frame 和 text 锚点的包装版本
--- text 字体字符串默认定位在 frame 的 CENTER (1, 0) 偏移
 function I.CreateAura_Text(name, parent)
     local frame = CreateFrame("Frame", name, parent)
     frame:Hide()
@@ -1297,10 +1130,7 @@ function I.CreateAura_Text(name, parent)
 end
 
 -------------------------------------------------
--- CreateAura_Rect — 矩形色块指示器
--- 一个带边框的矩形 Frame，内部填充纯色纹理(tex)，颜色随时间三档变化
--- 与 Bar 不同，Rect 不使用 StatusBar 而是一个普通的带纹理 Frame
--- colors 结构: {[1]正常色, [2]{enabled,ratio,color}, [3]{enabled,threshold,color}, [4]边框色}
+-- CreateAura_Rect
 -------------------------------------------------
 local function Rect_SetFont(frame, font1, font2)
     I.SetFont(frame.stack, frame, unpack(font1))
@@ -1403,9 +1233,6 @@ local function Rect_UpdatePixelPerfect(frame)
     P.Repoint(frame)
 end
 
--- Rect 工厂：创建矩形色块指示器
--- tex 纹理层级为 BORDER（绘制在背景之上），drawLayer 为 -7 使其在所有指示器下层
--- 使用 Backdrop 边框而非独立的 border 纹理
 function I.CreateAura_Rect(name, parent)
     local frame = CreateFrame("Frame", name, parent, "BackdropTemplate")
     frame:Hide()
@@ -1432,11 +1259,7 @@ function I.CreateAura_Rect(name, parent)
 end
 
 -------------------------------------------------
--- CreateAura_Bar — 单个进度条指示器
--- StatusBar 控件，颜色随时间三档变化，支持 maxValue 上限配置
--- colors 结构: {[1]正常色, [2]{enabled,ratio,color}, [3]{enabled,threshold,color}, [4]边框色, [5]背景色}
--- maxValue 配置: {enabled, value, allowSmaller}
---   allowSmaller=true 时，如果光环持续时间 < maxValue，则按实际 duration 设上限
+-- CreateAura_Bar
 -------------------------------------------------
 local function Bar_SetFont(bar, font1, font2)
     I.SetFont(bar.stack, bar, unpack(font1))
@@ -1547,8 +1370,6 @@ local function Bar_SetColors(bar, colors)
     bar.colors = colors
 end
 
--- Bar 工厂：通过 Cell.CreateStatusBar 创建带背景/边框的 StatusBar
--- 参数: 18=宽度, 4=高度, 100=最大缩放值
 function I.CreateAura_Bar(name, parent)
     local bar = Cell.CreateStatusBar(name, parent, 18, 4, 100)
     bar:Hide()
@@ -1569,12 +1390,8 @@ function I.CreateAura_Bar(name, parent)
 end
 
 -------------------------------------------------
--- CreateAura_Bars — 多个进度条容器（复用 Icons 的布局引擎）
--- 与 CreateAura_Icons 共享 SetSize/Hide/SetFont/UpdateSize/SetOrientation 等布局方法
--- 区别：每个子元素是 Bar 而非 BarIcon，且 Bars_SetCooldown 额外接收 color 参数用于染色
+-- CreateAura_Bars
 -------------------------------------------------
--- Bars 容器的子 Bar OnUpdate：仅更新 StatusBar 值和持续时间文本（不做颜色切换）
--- 颜色切换由外部 Bars_SetCooldown 一次性设定
 local function Bars_OnUpdate(bar, elapsed)
     bar._remain = bar._duration - (GetTime() - bar._start)
     if bar._remain < 0 then bar._remain = 0 end
@@ -1648,9 +1465,6 @@ local function Bars_SetMaxValue(bars, maxValue)
     end
 end
 
--- Bars 工厂：创建多个进度条容器（复用 Icons 的布局引擎）
--- 每个子元素通过 I.CreateAura_Bar 创建，然后替换其 SetCooldown 为 Bars_SetCooldown
--- 子 Bar 的边框色统一设为黑色，背景色由 Bars_SetCooldown 中的 color 参数派生（主色的 20% 亮度）
 function I.CreateAura_Bars(name, parent, num)
     local bars = CreateFrame("Frame", name, parent)
     bars:Hide()
@@ -1687,19 +1501,8 @@ function I.CreateAura_Bars(name, parent, num)
 end
 
 -------------------------------------------------
--- CreateAura_Color — 颜色覆盖层指示器
--- 支持六种颜色模式：
---   "solid"             纯色填充
---   "gradient-vertical"  垂直渐变
---   "gradient-horizontal" 水平渐变
---   "debuff-type"        debuff类型色（需配合 debuffType 参数动态获取）
---   "change-over-time"   随时间变色（三档颜色随时间变化）
---   "class-color"        职业色（从 parent.states.class 获取）
--- 锚点支持：healthbar-current / healthbar-loss / healthbar-entire / unitbutton
--- 帧层级偏移：baseFrameLevel + 5，防止与其他指示器重叠
+-- CreateAura_Color
 -------------------------------------------------
--- change-over-time 模式的 OnUpdate：根据剩余时间切换三档颜色
--- [6][2] 紧急色, [5][2] 警告色, [4] 正常色
 local function Color_OnUpdate(color, elapsed)
     color._elapsed = color._elapsed + elapsed
     if color._elapsed >= 0.1 then
@@ -1748,17 +1551,10 @@ local function Color_SetCooldown(color, start, duration, debuffType)
 end
 
 -- +6 ~ +55
--- 帧层级偏移：在原始 frameLevel 基础上 +5，确保颜色层在不低于原控件的层级绘制
--- 但不超过其他更高优先级的指示器
 local function Color_SetFrameLevel(color, frameLevel)
     color:_SetFrameLevel(frameLevel + 5)
 end
 
--- 设置锚点：决定颜色层覆盖的范围
---   "healthbar-current"  -> 仅覆盖当前血量纹理
---   "healthbar-loss"     -> 仅覆盖损失血量纹理
---   "healthbar-entire"   -> 覆盖整个血条
---   其他                  -> 覆盖整个 unitbutton（内缩 CELL_BORDER_SIZE）
 local function Color_SetAnchor(color, anchorTo)
     color:ClearAllPoints()
     if anchorTo == "healthbar-current" then
@@ -1778,10 +1574,6 @@ local function Color_SetAnchor(color, anchorTo)
     -- color:SetFrameLevel(color:GetParent():GetFrameLevel() + color.configs.frameLevel)
 end
 
--- 设置颜色模式并立即更新纹理
--- 状态清零后根据 type 选择显示 solidTex 或 gradientTex（两者互斥）
--- "debuff-type" 和 "class-color" 模式不在此处设置最终颜色，
--- 而是在 Color_SetCooldown 中根据实际 debuffType / class 动态获取
 local function Color_SetColors(self, colors)
     self.state = nil
     self.type = colors[1]
@@ -1851,12 +1643,8 @@ function I.CreateAura_Color(name, parent)
 end
 
 -------------------------------------------------
--- CreateAura_Texture — 自定义纹理指示器
--- 支持通过 SetTexture 设置任意纹理路径或 Atlas，可旋转，可配置颜色
--- 可选 fadeOut 模式：持续时间流逝时 alpha 从 colorAlpha 渐变到 colorAlpha*0.1
---   公式: alpha = _remain / _duration * 0.9 + 0.1 （保证最小 0.1 可见度）
+-- CreateAura_Texture
 -------------------------------------------------
--- 淡出模式的 OnUpdate：剩余时间越少，透明度越低
 local function Texture_OnUpdate(texture, elapsed)
     texture._elapsed = texture._elapsed + elapsed
     if texture._elapsed >= 0.1 then
@@ -1889,10 +1677,6 @@ local function Texture_SetFadeOut(texture, fadeOut)
     texture.fadeOut = fadeOut
 end
 
--- 设置纹理：texTbl = {path/atlas, rotation(度), {r,g,b,a}}
--- 以 "interface" 开头的路径视为文件路径（SetTexture），否则视为 Atlas（SetAtlas）
--- rotation 以度为单位，内部转换为弧度
--- colorAlpha 缓存用于 fadeOut 模式的起始 alpha 值
 local function Texture_SetTexture(texture, texTbl) -- texture, rotation, color
     if strfind(strlower(texTbl[1]), "^interface") then
         texture.tex:SetTexture(texTbl[1])
@@ -1904,7 +1688,6 @@ local function Texture_SetTexture(texture, texTbl) -- texture, rotation, color
     texture.colorAlpha = texTbl[3][4]
 end
 
--- Texture 工厂：简单的纹理承载 Frame，默认隐藏
 function I.CreateAura_Texture(name, parent)
     local texture = CreateFrame("Frame", name, parent)
     texture:Hide()
@@ -1922,12 +1705,8 @@ function I.CreateAura_Texture(name, parent)
 end
 
 -------------------------------------------------
--- CreateAura_Glow — 发光效果指示器
--- 基于 LibCustomGlow，覆盖整个 parent 区域，配合 Shared_SetupGlow 选择发光类型
--- 支持 fadeOut 淡出模式：与 Texture 相同的 alpha 渐变公式
--- 重要：此 Frame 必须 SetAllPoints(parent) 以完全覆盖目标区域
+-- CreateAura_Glow
 -------------------------------------------------
--- 发光淡出的 OnUpdate：与 Texture_OnUpdate 相同的 alpha 衰减逻辑
 local function Glow_OnUpdate(glow, elapsed)
     glow._elapsed = glow._elapsed + elapsed
     if glow._elapsed >= 0.1 then
@@ -1957,10 +1736,6 @@ local function Glow_SetCooldown(glow, start, duration)
     glow:Show()
 end
 
--- Glow 工厂：创建发光效果覆盖层
--- 通过 SetAllPoints(parent) 完全覆盖目标区域
--- 发光类型通过 Shared_SetupGlow 配置，支持 None/Normal/Pixel/Shine/Proc 五种模式
--- SetFadeOut 以闭包方式附加（非外部函数引用），控制淡出行为
 function I.CreateAura_Glow(name, parent)
     local glow = CreateFrame("Frame", name, parent)
     glow:SetAllPoints(parent)
@@ -1986,15 +1761,8 @@ function I.CreateAura_Glow(name, parent)
 end
 
 -------------------------------------------------
--- CreateAura_QuickAssistBars — 快速协助进度条容器
--- 专为快速协助（QuickAssist）功能设计的多 Bar 容器
--- 与 Bars 的区别：
---   1. 使用自定义 UpdateSize：根据可见条数动态计算容器总高度
---   2. 没有图标/堆叠数/倒计时文本，纯进度条
---   3. 排列方向仅支持 top-to-bottom / bottom-to-top
---   4. 子 Bar 的 SetCooldown 接收 color 参数直接染色
+-- CreateAura_QuickAssistBars
 -------------------------------------------------
--- 快速协助条 OnUpdate：仅更新 StatusBar 值（不做颜色和文本更新）
 local function QuickAssistBars_OnUpdate(bar, elapsed)
     bar._remain = bar._duration - (GetTime() - bar._start)
     if bar._remain < 0 then bar._remain = 0 end
@@ -2092,9 +1860,6 @@ local function QuickAssistBars_UpdatePixelPerfect(bars)
     end
 end
 
--- QuickAssistBars 工厂：快速协助专用进度条容器
--- 与 Bars 不同，堆叠数和持续时间文字默认隐藏，子 Bar 的 SetCooldown 被替换为简化版本
--- 容器高度动态计算：barsShown * height - (barsShown-1) * 1px（留出间隔）
 function I.CreateAura_QuickAssistBars(name, parent, num)
     local bars = CreateFrame("Frame", name, parent)
     bars:Hide()
@@ -2123,12 +1888,8 @@ function I.CreateAura_QuickAssistBars(name, parent, num)
 end
 
 -------------------------------------------------
--- CreateAura_Overlay — 血量条覆盖层指示器
--- 直接创建在 healthBar 上的 StatusBar 覆盖层，可平滑过渡（SmoothStatusBarMixin）
--- 帧层级偏移 +55，确保在所有指示器中处于较高层级
--- 支持 EnableSmooth 动态切换平滑/瞬时更新模式
+-- CreateAura_Overlay
 -------------------------------------------------
--- Overlay 的 OnUpdate：同时更新 StatusBar 值和三档颜色
 local function Overlay_OnUpdate(overlay, elapsed)
     overlay._remain = overlay._duration - (GetTime() - overlay._start)
     if overlay._remain < 0 then overlay._remain = 0 end
@@ -2176,9 +1937,6 @@ local function Overlay_SetCooldown(overlay, start, duration, debuffType, texture
     overlay:Show()
 end
 
--- 启用/禁用平滑过渡：通过替换内部方法实现
--- 平滑模式：使用 SmoothStatusBarMixin 提供的 SetMinMaxSmoothedValue / SetSmoothedValue
--- 普通模式：使用原生 SetMinMaxValues / SetValue
 local function Overlay_EnableSmooth(overlay, smooth)
     if smooth then
         overlay._SetMinMaxValues = overlay.SetMinMaxSmoothedValue
@@ -2189,21 +1947,16 @@ local function Overlay_EnableSmooth(overlay, smooth)
     end
 end
 
--- 设置颜色表：与 Bar/Rect 的三档颜色结构相同
 local function Overlay_SetColors(overlay, colors)
     overlay.state = nil
     overlay.colors = colors
 end
 
 -- +56 ~ +110
--- Overlay 的帧层级偏移：+55，是所有指示器中层级最高的
--- 这样覆盖层在血条上可见但不会阻挡更高优先级的 UI 元素
 local function Overlay_SetFrameLevel(overlay, frameLevel)
     overlay:_SetFrameLevel(frameLevel + 55)
 end
 
--- Overlay 工厂：基于 StatusBar + SmoothStatusBarMixin，直接挂载到 healthBar 上
--- 通过替换 _SetMinMaxValues/_SetValue 方法实现平滑/瞬时切换
 function I.CreateAura_Overlay(name, parent)
     local overlay = CreateFrame("StatusBar", name, parent.widgets.healthBar)
     overlay:SetStatusBarTexture(Cell.vars.whiteTexture)
@@ -2226,15 +1979,8 @@ function I.CreateAura_Overlay(name, parent)
 end
 
 -------------------------------------------------
--- CreateAura_Block — 块状指示器（带冷却动画和背景色切换）
--- 独特的双模式颜色切换系统：
---   "duration" 模式 (Block_SetCooldown_Duration)：
---     颜色根据剩余时间三档变化，与 Bar/Rect 逻辑一致
---   "stack" 模式 (Block_SetCooldown_Stack)：
---     颜色根据堆叠层数三档变化（count >= 阈值），仅在 SetCooldown 时切换
--- 两种模式的 OnUpdate 逻辑不同，通过 SetColors 动态切换 SetCooldown 函数引用
+-- CreateAura_Block
 -------------------------------------------------
--- duration 模式 OnUpdate：颜色随剩余时间变化 + 倒计时文本
 local function Block_OnUpdate_Duration(frame, elapsed)
     frame._remain = frame._duration - (GetTime() - frame._start)
     if frame._remain < 0 then frame._remain = 0 end
@@ -2280,7 +2026,6 @@ local function Block_OnUpdate_Duration(frame, elapsed)
     end
 end
 
--- duration 模式冷却设置：颜色在 OnUpdate 中动态切换，此处仅配置冷却动画和阈值
 local function Block_SetCooldown_Duration(frame, start, duration, debuffType, texture, count, refreshing)
     -- local r, g, b
     -- if debuffType then
@@ -2330,7 +2075,6 @@ local function Block_SetCooldown_Duration(frame, start, duration, debuffType, te
     end
 end
 
--- stack 模式 OnUpdate：仅更新倒计时文本（颜色在 SetCooldown 时根据 count 一次性设定）
 local function Block_OnUpdate_Stack(frame, elapsed)
     frame._remain = frame._duration - (GetTime() - frame._start)
     if frame._remain < 0 then frame._remain = 0 end
@@ -2356,8 +2100,6 @@ local function Block_OnUpdate_Stack(frame, elapsed)
     end
 end
 
--- stack 模式冷却设置：颜色在此时根据 count 一次性切换（colors[4]=紧急/colors[3]=警告/colors[2]=正常）
--- 注意：count 参数在调用方已通过 _SanitizeCount 清洗，但此处颜色比较使用的是原始数值逻辑
 local function Block_SetCooldown_Stack(frame, start, duration, debuffType, texture, count, refreshing)
     if duration == 0 then
         frame.cooldown:Hide()
@@ -2407,9 +2149,6 @@ local function Block_SetCooldown_Stack(frame, start, duration, debuffType, textu
     end
 end
 
--- 通过替换 SetCooldown 函数引用来切换 duration/stack 模式（策略模式）
--- colors[1] 为 "duration" 时使用持续时间变色，否则使用堆叠数变色
--- colors 结构: {type, [2]=正常色, [3]={enabled, threshold, color}, [4]={enabled, threshold, color}, [5]=边框色}
 local function Block_SetColors(frame, colors)
     if colors[1] == "duration" then
         frame.SetCooldown = Block_SetCooldown_Duration
@@ -2421,7 +2160,6 @@ local function Block_SetColors(frame, colors)
     frame.colors = colors
 end
 
--- Block 的像素完美重布局：除自身外还需重定位子控件和冷却动画的 spark
 local function Block_UpdatePixelPerfect(frame)
     P.Resize(frame)
     P.Repoint(frame)
@@ -2434,10 +2172,6 @@ local function Block_UpdatePixelPerfect(frame)
     end
 end
 
--- Block 工厂：带背景和边框的块状指示器，内置冷却动画
--- 默认冷却风格由 CELL_COOLDOWN_STYLE 决定，noIcon=true（无褪色图标层）
--- stack/duration 字体字符串直接挂载在 cooldown 帧上
--- 包含弹跳 AnimationGroup 用于刷新视觉反馈
 function I.CreateAura_Block(name, parent)
     local frame = CreateFrame("Frame", name, parent, "BackdropTemplate")
     frame:Hide()
@@ -2475,12 +2209,8 @@ function I.CreateAura_Block(name, parent)
 end
 
 -------------------------------------------------
--- CreateAura_Blocks — 多个块容器（复用 Icons 的布局引擎）
--- 与 Bars 类似，使用 Blocks_SetCooldown 替代子 Block 的默认 SetCooldown
--- 区别：子元素是 Block（非 Bar），且 Blocks_SetCooldown 额外接收 color 参数
--- color 用于直接染色背景，而非依赖 Block 自身的 colors 配置
+-- CreateAura_Blocks
 -------------------------------------------------
--- Blocks 容器的子 Block OnUpdate：仅更新倒计时文本（不做颜色切换）
 local function Blocks_OnUpdate(frame, elapsed)
     frame._remain = frame._duration - (GetTime() - frame._start)
     if frame._remain < 0 then frame._remain = 0 end
@@ -2546,9 +2276,6 @@ local function Blocks_SetCooldown(frame, start, duration, debuffType, texture, c
     end
 end
 
--- Blocks 工厂：创建多个块容器（复用 Icons 布局引擎）
--- 每个子 Block 通过 I.CreateAura_Block 创建，替换 SetCooldown 为 Blocks_SetCooldown
--- 子 Block 的边框色统一设为黑色，背景色由 Blocks_SetCooldown 中的 color 参数直接染色
 function I.CreateAura_Blocks(name, parent, num)
     local blocks = CreateFrame("Frame", name, parent)
     blocks:Hide()
@@ -2583,15 +2310,8 @@ function I.CreateAura_Blocks(name, parent, num)
 end
 
 -------------------------------------------------
--- CreateAura_Border — 边框发光指示器
--- 通过双层 Mask 纹理实现镂空边框效果：
---   mask 层：留出 thickness 宽度的边框区域（白色=可见）
---   mask2 层：比 mask 多 CELL_BORDER_SIZE 的额外区域（用于绘制黑色外边框）
---   tex 层：白色纹理 + mask 遮罩 -> 显示彩色边框
---   tex2 层：黑色纹理 + mask2 遮罩 -> 显示黑色外边框（层级-1在下方）
--- 支持 fadeOut 淡出模式
+-- CreateAura_Border
 -------------------------------------------------
--- 边框淡出的 OnUpdate：与 Texture 相同的 alpha 衰减公式
 local function Border_OnUpdate(border, elapsed)
     border._elapsed = border._elapsed + elapsed
     if border._elapsed >= 0.1 then
@@ -2640,9 +2360,6 @@ local function Border_SetThickness(border, thickness)
     P.Point(border.mask2, "BOTTOMRIGHT", -thickness-CELL_BORDER_SIZE, thickness+CELL_BORDER_SIZE)
 end
 
--- Border 工厂：创建双层 Mask 镂空边框效果
--- mask 使用 emptyTexture（中间透明四周白色），通过 CLAMPTOWHITE 模式在边框区域显示纹理
--- 双层设计：tex 显示彩色边框，tex2 在底层显示黑色外边框增强对比
 function I.CreateAura_Border(name, parent)
     local border = CreateFrame("Frame", name, parent)
     border:Hide()
@@ -2651,7 +2368,6 @@ function I.CreateAura_Border(name, parent)
     P.Point(border, "TOPLEFT", CELL_BORDER_SIZE, -CELL_BORDER_SIZE)
     P.Point(border, "BOTTOMRIGHT", -CELL_BORDER_SIZE, CELL_BORDER_SIZE)
 
-    -- mask: 用于彩色边框的镂空遮罩
     local mask = border:CreateMaskTexture()
     border.mask = mask
     mask:SetTexture(Cell.vars.emptyTexture, "CLAMPTOWHITE","CLAMPTOWHITE")

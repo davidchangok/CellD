@@ -12,18 +12,13 @@ Cell.frames.layoutsTab = layoutsTab
 layoutsTab:SetAllPoints(Cell.frames.optionsFrame)
 layoutsTab:Hide()
 
--- 当前在UI面板中选中的布局名称及其完整设置表
 local selectedLayout, selectedLayoutTable
--- 当前在布局设置面板中查看的子页面：main（主框架）/ pet（宠物）/ npc（NPC）/ spotlight（焦点框架）
 local selectedPage = "main"
 -------------------------------------------------
--- 预览框架：在布局设置面板中显示模拟的单位按钮，实时预览当前布局的视觉外观
+-- preview frame
 -------------------------------------------------
--- 预览按钮：在布局设置面板中模拟实际单位按钮，实时反映当前布局、血条方向和指示器的外观变更
 local previewButton
 
--- 创建预览按钮：生成一个模拟的单位按钮用于实时预览当前布局和指示器的外观
--- 使用 CellPreviewButtonTemplate 模板，设置血量条和能量条初始值，触发 CreatePreview 事件
 local function CreatePreviewButton()
     previewButton = CreateFrame("Button", "CellLayoutsPreviewButton", layoutsTab, "CellPreviewButtonTemplate")
     B.UpdateBackdrop(previewButton)
@@ -55,9 +50,6 @@ local function CreatePreviewButton()
     Cell.Fire("CreatePreview", previewButton)
 end
 
--- 更新预览按钮：根据当前布局设置刷新预览按钮的各项属性
--- which 参数指定要更新的部分（nameText/appearance/size/barOrientation/power），为 nil 时更新全部
--- value 参数为相关的新值
 local function UpdatePreviewButton(which, value)
     if not previewButton then
         CreatePreviewButton()
@@ -116,14 +108,11 @@ local function UpdatePreviewButton(which, value)
 end
 
 -------------------------------------------------
--- 布局预览：在主界面上以半透明色块叠加显示整个团队/小队布局的排列效果
+-- layout preview
 -------------------------------------------------
--- 预览模式控制：0=关闭预览，1=小队模式预览，2=团队模式预览
 local previewMode = 0
--- 布局预览框架、锚点及名称标签，用于在主界面上以半透明色块展示布局排列效果
 local layoutPreview, layoutPreviewAnchor, layoutPreviewName
 
--- 饱和度表：为不同小队编号提供递减的饱和度值（1.0 ~ 0.4），实现颜色深浅渐变以区分各小队
 local desaturation = {
     [1] = 1,
     [2] = 0.85,
@@ -132,8 +121,6 @@ local desaturation = {
     [5] = 0.4,
 }
 
--- 创建布局预览框架：在主界面上生成半透明的模拟单元格网格，展示团队/小队排列效果
--- 支持分离小组（separatedHeaders）和合并小组（combinedHeader）两种预览模式
 local function CreateLayoutPreview()
     layoutPreview = Cell.CreateFrame("CellLayoutPreviewFrame", Cell.frames.mainFrame, nil, nil, true)
     layoutPreview:EnableMouse(false)
@@ -258,8 +245,6 @@ local function CreateLayoutPreview()
     end
 end
 
--- 更新布局预览：根据当前布局设置刷新预览框架的位置、尺寸和单元格排列
--- previewMode=0 时预览显示一秒后自动淡出；previewMode=1/2 对应小队/团队模式持续显示
 local function UpdateLayoutPreview()
     if not layoutPreview then
         CreateLayoutPreview()
@@ -492,11 +477,9 @@ local function UpdateLayoutPreview()
 end
 
 -------------------------------------------------
--- NPC预览：在主界面上以半透明色块叠加显示NPC单位框架的排列效果
+-- npc preview
 -------------------------------------------------
--- NPC预览框架、锚点及名称标签，用于在主界面上展示NPC单位框架的布局效果
 local npcPreview, npcPreviewAnchor, npcPreviewName
--- 创建NPC预览框架：生成可拖拽的锚点和5个白色半透明单元格，用于展示NPC框架的布局效果
 local function CreateNPCPreview()
     npcPreview = Cell.CreateFrame("CellNPCPreviewFrame", Cell.frames.mainFrame, nil, nil, true)
     npcPreview:EnableMouse(false)
@@ -560,7 +543,6 @@ local function CreateNPCPreview()
     end
 end
 
--- 更新NPC框架预览：根据当前布局设置刷新NPC框架预览的尺寸、位置、排列和可见性
 local function UpdateNPCPreview()
     if not npcPreview then
         CreateNPCPreview()
@@ -742,14 +724,10 @@ local function UpdateNPCPreview()
 end
 
 -------------------------------------------------
--- 宠物框架预览，以半透明色块在主界面上展示宠物框架单元的位置和排列
 -- pet preview
 -------------------------------------------------
--- 宠物框架预览对象、锚点及名称标签，用于在主界面上展示宠物单位框架的排列效果
 local petPreview, petPreviewAnchor, petPreviewName
--- 宠物单位数量上限：正式服为20个，怀旧服为25个
 local petNums = Cell.isRetail and 20 or 25
--- 创建宠物框架预览：生成可拖拽的锚点和最多20/25个半透明单元格，用于展示宠物框架的布局效果
 local function CreatePetPreview()
     petPreview = Cell.CreateFrame("CellPetPreviewFrame", Cell.frames.mainFrame, nil, nil, true)
     petPreview:EnableMouse(false)
@@ -814,7 +792,6 @@ local function CreatePetPreview()
     end
 end
 
--- 更新宠物框架预览：根据当前布局设置刷新宠物框架预览的尺寸、位置、排列、可见性和团队宠物数量
 local function UpdatePetPreview()
     if not petPreview then
         CreatePetPreview()
@@ -1028,12 +1005,9 @@ local function UpdatePetPreview()
 end
 
 -------------------------------------------------
--- 焦点框架预览，以半透明色块在主界面上展示焦点框架中15个单元的位置和大小
 -- spotlight preview
 -------------------------------------------------
--- 焦点框架预览对象、锚点及名称标签，用于在主界面上展示焦点框架单元的排列效果
 local spotlightPreview, spotlightPreviewAnchor, spotlightPreviewName
--- 创建焦点框架预览：生成可拖拽的锚点和15个半透明单元格，用于展示焦点框架的布局效果
 local function CreateSpotlightPreview()
     spotlightPreview = Cell.CreateFrame("CellSpotlightPreviewFrame", Cell.frames.mainFrame, nil, nil, true)
     spotlightPreview:EnableMouse(false)
@@ -1097,7 +1071,6 @@ local function CreateSpotlightPreview()
     end
 end
 
--- 更新焦点框架预览：根据当前布局设置刷新焦点框架预览的尺寸、位置、排列和可见性
 local function UpdateSpotlightPreview()
     if not spotlightPreview then
         CreateSpotlightPreview()
@@ -1288,10 +1261,8 @@ local function UpdateSpotlightPreview()
 end
 
 -------------------------------------------------
--- 预览隐藏控制，统一处理所有预览框架的淡出和清理
 -- hide previews
 -------------------------------------------------
--- 隐藏所有预览：取消定时器并播放淡出动画，同时隐藏布局/NPC/宠物/焦点四个预览框架
 local function HidePreviews()
     if not layoutPreview then
         return
@@ -1343,20 +1314,13 @@ local function HidePreviews()
 end
 
 -------------------------------------------------
--- 布局管理区，处理布局的创建、删除、重命名、导入导出等操作
 -- layout
 -------------------------------------------------
--- 布局自动切换面板容器框架
 local autoSwitchFrame
--- 专精/职责切换开关和当前配置文件显示框
 local typeSwitch, currentProfileBox
--- 各游戏场景对应的布局选择下拉框
 local layoutDropdown, soloDropdown, partyDropdown, raidOutdoorDropdown, raidInstanceDropdown, raidMythicDropdown, arenaDropdown, bg15Dropdown, bg40Dropdown
--- 怀旧服特有的10人/25人团队下拉框
 local raid10Dropdown, raid25Dropdown -- wrath
--- 经典旧世特有的战场下拉框
 local bgDropdown -- vanilla
--- 延迟加载函数引用：加载布局下拉、加载自动切换下拉、加载布局数据库、更新按钮状态、加载自动切换数据库
 local LoadLayoutDropdown, LoadAutoSwitchDropdowns
 local LoadLayoutDB, UpdateButtonStates, LoadLayoutAutoSwitchDB
 
@@ -1365,7 +1329,6 @@ local LoadLayoutDB, UpdateButtonStates, LoadLayoutAutoSwitchDB
 --     enabledLayoutText:SetText("|cFF777777"..L["Current"]..": "..(Cell.vars.currentLayout == "default" and _G.DEFAULT or Cell.vars.currentLayout))
 -- end
 
--- 验证布局名称合法性：不可为空、不可为默认布局名、不可与已有布局重名、不可为"hide"
 local function IsValidLayoutName(name)
     return name and name ~= ""
         and strlower(name) ~= "default" and name ~= _G.DEFAULT
@@ -1374,7 +1337,6 @@ local function IsValidLayoutName(name)
         and not CellDB["layouts"][name]
 end
 
--- 创建布局管理面板：包含布局选择下拉框、新建/重命名/删除/导入/导出/分享按钮
 local function CreateLayoutPane()
     local layoutPane = Cell.CreateTitledPane(layoutsTab, L["Layout"], 205, 80)
     layoutPane:SetPoint("TOPLEFT", 5, -5)
@@ -1619,7 +1581,6 @@ local function CreateLayoutPane()
         F.ShowLayoutExportFrame(selectedLayout, selectedLayoutTable)
     end)
 
-    -- 更新按钮状态：当选中默认布局时禁用删除/重命名按钮；选中自定义布局时启用
     UpdateButtonStates = function()
         if selectedLayout == "default" then
             deleteBtn:SetEnabled(false)
@@ -1642,7 +1603,6 @@ local function CreateLayoutPane()
 end
 
 -- drop down
--- 加载布局下拉列表：遍历CellDB中所有已保存的布局，按名称排序后填充到下拉框中
 LoadLayoutDropdown = function()
     local indices = {}
     for name, _ in pairs(CellDB["layouts"]) do
@@ -1668,21 +1628,17 @@ LoadLayoutDropdown = function()
 end
 
 -------------------------------------------------
--- 布局自动切换设置，根据当前游戏场景自动切换到对应的布局配置
 -- layout auto switch
 -------------------------------------------------
--- 各游戏场景对应的标签文本字体字符串，用于显示并高亮当前激活的场景
 local soloText, partyText, raidOutdoorText, raidInstanceText, raidMythicText
 local arenaText, bg15Text, bg40Text
 local raid10Text, raid25Text -- wrath
 local bgText -- vanilla
 
--- 各场景的本地化标签前缀文本
 local raidOutdoor = L["Raid"].." "..L["Outdoor"]
 local raidInstance = L["Raid"].." ".._G.BATTLEGROUND_INSTANCE
 local raidMythic = L["Raid"].." ".._G.PLAYER_DIFFICULTY6
 
--- 创建布局自动切换面板：为不同游戏场景（单人/小队/团队/竞技场/战场）配置各自的布局自动切换规则
 local function CreateAutoSwitchPane()
     autoSwitchFrame = Cell.CreateFrame("CellLayoutAutoSwitchFrame", layoutsTab, 160, 465)
     autoSwitchFrame:SetPoint("TOPLEFT", layoutsTab, "TOPRIGHT", 5, 0)
@@ -1853,7 +1809,6 @@ local function CreateAutoSwitchPane()
     end
 end
 
--- 构建下拉列表项：将布局名称数组转换为下拉框所需的 {text, value, onClick} 格式
 local function GetDropdownItems(indices, groupType)
     local items = {}
     for _, value in pairs(indices) do
@@ -1883,7 +1838,6 @@ local function GetDropdownItems(indices, groupType)
     return items
 end
 
--- 加载自动切换下拉框：遍历所有布局名称并填充到各场景的自动切换下拉列表中
 LoadAutoSwitchDropdowns = function()
     local indices = {}
     for name, _ in pairs(CellDB["layouts"]) do
@@ -1934,10 +1888,8 @@ LoadAutoSwitchDropdowns = function()
 end
 
 -------------------------------------------------
--- 小组筛选设置，控制布局中显示哪些小组编号的单位
 -- group filter
 -------------------------------------------------
--- 更新按钮边框颜色：flag为true时高亮为悬停色，false时恢复为黑色
 local function UpdateButtonBorderColor(flag, b)
     local borderColor
     if flag then
@@ -1948,9 +1900,7 @@ local function UpdateButtonBorderColor(flag, b)
     b:SetBackdropBorderColor(unpack(borderColor))
 end
 
--- 小组筛选按钮数组（索引1-8对应小组1-8），用于切换各小组的启用/禁用状态
 local groupButtons = {}
--- 创建小组筛选面板：提供8个小组的启用/禁用按钮和预览模式切换（关闭/小队/团队）
 local function CreateGroupFilterPane()
     local groupFilterPane = Cell.CreateTitledPane(layoutsTab, L["Group Filters"], 205, 80)
     groupFilterPane:SetPoint("TOPLEFT", 222, -5)
@@ -2014,7 +1964,6 @@ local function CreateGroupFilterPane()
     end)
 end
 
--- 更新小组筛选按钮边框：根据各小组是否启用，高亮或取消按钮的边框颜色
 local function UpdateGroupFilter()
     for i = 1, 8 do
         UpdateButtonBorderColor(selectedLayoutTable["groupFilter"][i], groupButtons[i])
@@ -2022,23 +1971,18 @@ local function UpdateGroupFilter()
 end
 
 -------------------------------------------------
--- 布局详细设置面板，包含主框架、宠物、NPC、焦点框架四个子页面的所有布局参数
 -- layout setup
 -------------------------------------------------
--- 尺寸相关滑块：宽度、高度、能量条高度
 local widthSlider, heightSlider, powerSizeSlider
--- 排列相关控件：行/列数滑块、小组间距滑块、每列单位数滑块、方向下拉框、锚点下拉框、X/Y间距滑块
+
 local rcSlider, groupSpacingSlider, unitsSlider
 local orientationDropdown, anchorDropdown, spacingXSlider, spacingYSlider
--- 复选框：继承主框架尺寸、继承主框架排列、合并小组、按职责排序、角色排序控件、隐藏自己
+
 local sameSizeAsMainCB, sameArrangementAsMainCB
 local combineGroupsCB, sortByRoleCB, roleOrderWidget, hideSelfCB
--- 复选框：显示NPC框架、分离NPC框架、启用焦点框架、隐藏占位框、焦点框架方向下拉框
 local showNpcCB, separateNpcCB, spotlightCB, hidePlaceholderCB, spotlightOrientationDropdown
--- 复选框：显示单人宠物、显示小队宠物、分离小队宠物、显示团队宠物
 local soloPetCB, partyPetsCB, partyPetsDetachedCB, raidPetsCB
 
--- 更新尺寸设置：当布局应用到当前使用的布局时触发UpdateLayout事件，并刷新所有关联页面的预览
 local function UpdateSize()
     if selectedLayout == Cell.vars.currentLayout then
         Cell.Fire("UpdateLayout", selectedLayout, selectedPage.."-size")
@@ -2065,7 +2009,6 @@ local function UpdateSize()
     end
 end
 
--- 更新排列设置：当布局应用到当前使用的布局时触发UpdateLayout事件，并刷新对应页面的预览
 local function UpdateArrangement()
     if selectedLayout == Cell.vars.currentLayout then
         Cell.Fire("UpdateLayout", selectedLayout, selectedPage.."-arrangement")
@@ -2091,7 +2034,6 @@ local function UpdateArrangement()
     end
 end
 
--- 更新滑块状态：根据当前方向（水平/垂直）和合并小组设置，动态调整列数/行数/间距滑块的标签和可见性
 local function UpdateSliderStatus()
     if selectedLayoutTable["main"]["orientation"] == "vertical" then
         rcSlider:SetLabel(L["Group Columns"])
@@ -2117,7 +2059,6 @@ local function UpdateSliderStatus()
 end
 
 -- TODO: move to Widgets.lua
--- 创建角色排序控件：允许通过拖拽调整坦克/治疗/输出的排列顺序，用于按职责排序单位
 local function CreateRoleOrderWidget(parent)
     local f = CreateFrame("Frame", nil, parent)
     P.Size(f, 66, 20)
@@ -2172,7 +2113,6 @@ local function CreateRoleOrderWidget(parent)
     return f
 end
 
--- 创建布局设置主面板：包含尺寸、排列方向、锚点、间距等核心布局参数，以及 main/pet/npc/spotlight 四个子页面
 local function CreateLayoutSetupPane()
     local layoutSetupPane = Cell.CreateTitledPane(layoutsTab, L["Layout Setup"], 422, 290)
     layoutSetupPane:SetPoint("TOPLEFT", 5, -110)
@@ -2353,7 +2293,6 @@ local function CreateLayoutSetupPane()
     spacingYSlider:SetPoint("TOPLEFT", anchorDropdown, 0, -55)
 
     -- pages
-    -- 子页面表：main=主框架 / pet=宠物框架 / npc=NPC框架 / spotlight=焦点框架，通过按钮组切换显示
     local pages = {}
 
     --* main ------------------------------------
@@ -2667,18 +2606,14 @@ end
 
 
 -------------------------------------------------
--- 血条方向设置面板，控制血条和能量条的排列方向及纹理角度
 -- bar orientation
 -------------------------------------------------
--- 血条方向下拉框和旋转纹理复选框
 local barOrientationDropdown, rotateTexCB
 
--- 创建血条方向面板：包含血条水平/垂直方向选择和纹理旋转选项
 local function CreateBarOrientationPane()
     local barOrientationPane = Cell.CreateTitledPane(layoutsTab, L["Bar Orientation"], 205, 80)
     barOrientationPane:SetPoint("TOPLEFT", 5, -445)
 
-    -- 内部函数：设置血条方向并触发更新事件和预览刷新
     local function SetOrientation(orientation)
         selectedLayoutTable["barOrientation"][1] = orientation
         if selectedLayout == Cell.vars.currentLayout then
@@ -2733,10 +2668,8 @@ local function CreateBarOrientationPane()
 end
 
 -------------------------------------------------
--- 杂项设置面板，收纳其他分类之外的设置项
 -- misc
 -------------------------------------------------
--- 创建杂项面板：包含能量条过滤器按钮等不属于其他分类的设置入口
 local function CreateMiscPane()
     local miscPane = Cell.CreateTitledPane(layoutsTab, L["Misc"], 205, 80)
     miscPane:SetPoint("TOPLEFT", 222, -445)
@@ -2752,7 +2685,6 @@ local function CreateMiscPane()
 end
 
 -------------------------------------------------
--- 操作提示文本，显示在面板底部
 -- tips
 -------------------------------------------------
 local tips = layoutsTab:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
@@ -2761,13 +2693,10 @@ tips:SetJustifyH("LEFT")
 tips:SetText("|cffababab"..L["Tip: Every layout has its own position setting"])
 
 -------------------------------------------------
--- 核心数据加载函数，负责在布局数据库与UI控件之间同步数据
 -- functions
 -------------------------------------------------
--- 延迟初始化标志：首次切换到布局标签页时才创建所有UI子面板，避免不必要的资源消耗
 local init
 
--- 加载页面数据库：根据当前选中的子页面（main/pet/npc/spotlight），将对应的布局设置同步到各控件
 LoadPageDB = function(page)
     -- size
     widthSlider:SetValue(selectedLayoutTable[page]["size"][1])
@@ -2816,7 +2745,6 @@ LoadPageDB = function(page)
     end
 end
 
--- 加载布局数据库到界面：将选中布局的所有设置同步到面板上的各个滑块、下拉框和复选框，并刷新所有预览
 LoadLayoutDB = function(layout, dontShowPreview)
     if layout == "hide" then
         selectedLayout = "default"
@@ -2876,7 +2804,6 @@ LoadLayoutDB = function(layout, dontShowPreview)
     end
 end
 
--- 加载自动切换数据库到界面：根据当前游戏版本和个人状态，设置各场景下拉框的选中值和当前配置文件描述
 LoadLayoutAutoSwitchDB = function()
     if Cell.isRetail then
         P.Height(autoSwitchFrame, 513)
@@ -2935,7 +2862,6 @@ LoadLayoutAutoSwitchDB = function()
     arenaDropdown:SetSelectedValue(Cell.vars.layoutAutoSwitch["arena"])
 end
 
--- 布局自动切换更新处理：根据当前所在的队伍类型（单人/小队/团队/竞技场/战场）高亮对应的自动切换标签
 local function UpdateLayoutAutoSwitch(layout, which)
     if not init then return end
     if which then return end
@@ -2997,19 +2923,15 @@ local function UpdateLayoutAutoSwitch(layout, which)
         end
     end
 end
--- 注册布局更新回调：当团队类型或专精切换导致布局自动切换时，刷新面板状态
 Cell.RegisterCallback("UpdateLayout", "LayoutsTab_UpdateLayout", UpdateLayoutAutoSwitch)
 
--- 外观更新处理：当前选中布局为当前使用的布局时，刷新预览按钮的血条颜色和背景透明度
 local function UpdateAppearance()
     if previewButton and selectedLayout == Cell.vars.currentLayout then
         UpdatePreviewButton("appearance")
     end
 end
--- 注册外观更新回调：当血条纹理、颜色等外观设置变更时，刷新预览按钮的视觉表现
 Cell.RegisterCallback("UpdateAppearance", "LayoutsTab_UpdateAppearance", UpdateAppearance)
 
--- 指示器更新处理：当前选中布局为当前使用的布局时，刷新预览按钮上的名字文本等指示器显示
 local function UpdateIndicators(layout, indicatorName, setting, value)
     if previewButton and selectedLayout == Cell.vars.currentLayout then
         if not layout or indicatorName == "nameText" then
@@ -3020,10 +2942,8 @@ local function UpdateIndicators(layout, indicatorName, setting, value)
         end
     end
 end
--- 注册指示器更新回调：当nameText或statusText指示器设置变更时，刷新预览按钮
 Cell.RegisterCallback("UpdateIndicators", "LayoutsTab_UpdateIndicators", UpdateIndicators)
 
--- 布局导入处理：检查导入的布局名，更新下拉列表和自动切换选项，并加载该布局
 local function LayoutImported(name)
     if Cell.vars.currentLayout == name then -- update overwrite
         F.UpdateLayout(Cell.vars.layoutGroupType, true)
@@ -3045,10 +2965,8 @@ local function LayoutImported(name)
         UpdateButtonStates()
     end
 end
--- 注册布局导入回调：当布局通过分享字符串导入后，更新下拉列表并加载该布局
 Cell.RegisterCallback("LayoutImported", "LayoutsTab_LayoutImported", LayoutImported)
 
--- 显示布局标签页：首次显示时延迟创建所有子面板，后续切换时刷新当前布局和自动切换数据
 local function ShowTab(tab)
     if tab == "layouts" then
         if not init then
@@ -3095,10 +3013,8 @@ local function ShowTab(tab)
         layoutsTab:Hide()
     end
 end
--- 注册标签页显示回调：切换到布局标签页时，延迟初始化所有子面板并加载当前布局数据
 Cell.RegisterCallback("ShowOptionsTab", "LayoutsTab_ShowTab", ShowTab)
 
--- 布局标签页隐藏时的清理处理：保存当前布局、隐藏所有预览并重置 OnShow 脚本
 layoutsTab:SetScript("OnHide", function()
     if layoutsTab:IsShown() then
         layoutsTab:SetScript("OnShow", function()
@@ -3113,10 +3029,8 @@ layoutsTab:SetScript("OnHide", function()
 end)
 
 -------------------------------------------------
--- Cell 对外暴露的分享/导入相关函数，供其他模块调用
 -- sharing functions
 -------------------------------------------------
--- 导入布局后调用：打印提示信息，切换到布局设置标签页，刷新下拉列表并加载新布局
 function F.ShowLayout(name)
     F.Print(L["Layout imported: %s."]:format(name))
     F.ShowLayousTab()

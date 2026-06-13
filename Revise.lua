@@ -1,57 +1,40 @@
--- Revise.lua - CellD 数据库版本迁移模块
--- 负责将旧版本 CellD 的存档数据 (CellDB / CellCharacterDB) 迁移到当前版本格式
--- 遍历各版本修订记录，对数据结构进行增、删、改、重命名等操作，确保数据与新代码兼容
--- 通过 CellDB["revise"] 字符串中的版本号与 Cell.MIN_VERSION 的比较来决定是否执行迁移
 local addonName, Cell = ...
 local L = Cell.L
-local F = Cell.funcs  -- 通用工具函数表
-local I = Cell.iFuncs -- 初始化/默认值相关函数表
-local U = Cell.uFuncs -- 工具函数表(补充)
+local F = Cell.funcs
+local I = Cell.iFuncs
+local U = Cell.uFuncs
 
--- F.Revise(): 核心版本迁移入口函数
--- 在 ADDON_LOADED 事件中调用，负责整个 CellDB 的版本升级逻辑
--- 返回值: 无
--- 副作用: 直接修改全局 CellDB / CellCharacterDB 表结构
 function F.Revise()
-    -- 提取全局数据库中的版本号，用于判断是否需要执行迁移
-    -- CellDB["revise"] 格式示例: "r275-release"，通过正则 "%d+" 提取纯数字版本号
     local dbRevision = CellDB["revise"] and tonumber(string.match(CellDB["revise"], "%d+")) or 0
     F.Debug("DBRevision:", dbRevision)
 
-    -- 提取角色专属数据库的版本号（如果存在），用于角色级别配置的迁移判定
     local charaDbRevision
     if CellCharacterDB then
         charaDbRevision = CellCharacterDB["revise"] and tonumber(string.match(CellCharacterDB["revise"], "%d+")) or 0
         F.Debug("CharaDBRevision:", charaDbRevision)
     end
 
-    -- 全局数据库版本过低（低于 Cell.MIN_VERSION）：提示用户重置全部数据
-    -- 使用延迟弹出窗口避免 ADDON_LOADED 阶段阻塞 UI
     if CellDB["revise"] and dbRevision < Cell.MIN_VERSION then -- update from an unsupported version
-        -- 创建仅用于事件注册的临时 Frame，等待进入世界后弹出确认对话框
         local f = CreateFrame("Frame")
         f:RegisterEvent("PLAYER_ENTERING_WORLD")
         f:SetScript("OnEvent", function()
             f:UnregisterAllEvents()
             local popup = Cell.CreateConfirmPopup(CellAnchorFrame, 260, L["RESET"].."\n"..L["RESET_YES_NO"], function()
-                -- 确认重置：清空全局和数据表，触发 ReloadUI 重新加载界面
                 CellDB = nil
                 CellCharacterDB = nil
                 ReloadUI()
             end)
             popup:SetPoint("TOPLEFT")
         end)
-        return -- 中止后续迁移逻辑，等待用户决策
+        return
     end
 
-    -- 角色专属数据库版本过低：仅需重置角色级别配置，保留全局布局等数据
     if CellCharacterDB and CellCharacterDB["revise"] and charaDbRevision < Cell.MIN_VERSION then -- update from an unsupported version
         local f = CreateFrame("Frame")
         f:RegisterEvent("PLAYER_ENTERING_WORLD")
         f:SetScript("OnEvent", function()
             f:UnregisterAllEvents()
             local popup = Cell.CreateConfirmPopup(CellAnchorFrame, 260, L["RESET_CHARACTER"].."\n|cFFB7B7B7"..L["RESET_INCLUDES"].."|r\n"..L["RESET_YES_NO"], function()
-                -- 仅清空角色数据表，保留全局 CellDB 不变
                 CellCharacterDB = nil
                 ReloadUI()
             end)
@@ -61,11 +44,6 @@ function F.Revise()
     end
 
     --[=[
-    -- ===========================================================================
-    -- 以下是已被废弃的旧版本迁移代码块（r4-alpha 至 r246-release）
-    -- 使用 Lua 多行注释 --[=[ ... ]=] 包裹，保留作为历史参考
-    -- 这些迁移逻辑已在更早版本中执行完毕，当前不再需要
-    -- ===========================================================================
     -- r4-alpha add "castByMe"
     if not(CellDB["revise"]) or CellDB["revise"] < "r4-alpha" then
         for _, layout in pairs(CellDB["layouts"]) do
@@ -3328,12 +3306,12 @@ function F.Revise()
     end
     ]=]
 
-    -- r247-release: 新增全局缩放系数 scale，统一控制整体 UI 尺寸
+    -- r247-release
     if CellDB["revise"] and dbRevision < 247 then
         CellDB["appearance"]["scale"] = 1
     end
 
-    -- r250-release: 修复 healers 的 icons 类型指示器缺少 glowOptions 的问题
+    -- r250-release
     if CellDB["revise"] and dbRevision < 250 then
         for _, layout in pairs(CellDB["layouts"]) do
             for _, i in pairs(layout["indicators"]) do
@@ -3346,26 +3324,25 @@ function F.Revise()
         end
     end
 
-    -- 254-release: Mists of Pandaria 怀旧服特殊处理 - 重置能量过滤器、启用治疗吸收、重置布局自动切换
-    -- 注意：此处的 portal 判断区分了中美客户端，仅在 CN 地区执行额外重置
+    -- 254-release
     if CellDB["revise"] and dbRevision < 254 then
         if Cell.isMists then
             for _, layout in pairs(CellDB["layouts"]) do
                 for _, i in pairs(layout["indicators"]) do
                     if i.indicatorName == "powerText" then
-                        -- 重置能量文本指示器的过滤器为默认值
+                        -- reset powerText filter
                         i.filters = F.Copy(Cell.defaults.layout.indicators[Cell.defaults.indicatorIndices.powerText].filters)
                     end
                 end
 
-                -- 重置布局级别的能量过滤器为默认值
+                -- reset power filters
                 layout["powerFilters"] = F.Copy(Cell.defaults.layout.powerFilters)
             end
 
-            -- 启用治疗吸收显示
+            -- enable healAbsorb
             CellDB["appearance"]["healAbsorb"][1] = true
 
-            -- 重置布局自动切换配置（被注释掉，可能已通过其他方式处理）
+            -- reset layoutAutoSwitch
             -- if not CellDB["layoutAutoSwitch"] then
             --     CellDB["layoutAutoSwitch"] = {}
             -- end
@@ -3380,15 +3357,13 @@ function F.Revise()
             --     CellDB["layoutAutoSwitch"][Cell.vars.playerClass] = {}
             -- end
 
-            -- 如果动作表为空，则用默认值填充
             if not next(CellDB["actions"]) then
                 CellDB["actions"] = I.GetDefaultActions()
             end
         end
     end
 
-    -- r262-release: 关闭 alwaysUpdateAuras 以减少性能开销，新增隐藏暴雪团队管理器选项
-    -- 为自定义 debuff 指示器补充 castBy 默认值（"anyone" 表示任何人的施法都显示）
+    -- r262-release
     if CellDB["revise"] and dbRevision < 262 then
         CellDB["general"]["alwaysUpdateAuras"] = false
 
@@ -3399,25 +3374,22 @@ function F.Revise()
         for _, layout in pairs(CellDB["layouts"]) do
             for _, i in pairs(layout["indicators"]) do
                 if i.auraType == "debuff" and not i.castBy then
-                    i.castBy = "anyone" -- 旧版没有 castBy 字段，默认显示所有人的 debuff
+                    i.castBy = "anyone"
                 end
             end
         end
     end
 
-    -- r264-release: 添加默认 targetedSpells 列表，导入 BuffTracker 默认配置数据
+    -- r264-release
     if CellDB["revise"] and dbRevision < 264 then
         if Cell.isRetail then
-            -- 使用安全插入方法避免重复添加已存在的法术 ID
             F.TInsertIfNotExists(CellDB["targetedSpellsList"], unpack(I.GetDefaultTargetedSpellsList()))
         end
 
-        -- 将 BuffTracker 的新默认值追加到现有配置数组中
         CellDB["tools"]["buffTracker"][5] = U.GetBuffTrackerDefaults()
     end
 
-    -- 269-release: Mists of Pandaria 怀旧服限定 - 仅中文客户端 (portal == "CN") 执行
-    -- 再次重置 powerText / powerFilters 以应对之前版本可能遗留的旧格式
+    -- 269-release
     if CellDB["revise"] and dbRevision < 269 then
         if Cell.isMists and GetCVar("portal") == "CN" then
             for _, layout in pairs(CellDB["layouts"]) do
@@ -3441,33 +3413,25 @@ function F.Revise()
         end
     end
 
-    -- r275-release: Midnight (12.0.0) 兼容性迁移
-    -- CLEU-based health updater 在 12.0.0 中被移除，清理相关配置项
-    -- Midnight/SecretValue 防护点：此版本后所有存储的 secret value 会被 WoW 自动清空
+    -- Migration for Cell r275 (Midnight 12.0.0 compatibility)
     if not CellDB["revise"] or dbRevision < 275 then
         -- Remove useCleuHealthUpdater setting (CLEU-based health updater removed in 12.0.0)
-        -- 移除 useCleuHealthUpdater 设置项（12.0.0 中 CLEU 健康更新器已移除）
         if CellDB["general"] then
             CellDB["general"]["useCleuHealthUpdater"] = nil
         end
         -- Note: profile import compatibility warning added elsewhere.
         -- Saved variable secrets: any secrets stored before this version will be nil'd by WoW.
-        -- 注意：此版本之前存储的 SecretValue 类敏感值会被 WoW 自动清空为 nil，属于 Midnight 引擎的隐私保护机制
     end
 
-    -- ===========================================================================
-    -- 指示器完整性校验与修复（所有版本迁移完成后执行）
-    -- 此段代码负责验证每个布局中的所有 built-in 指示器是否正确放置于预期位置
-    -- 对于缺失的指示器，从 Cell.defaults 中复制默认配置补充
-    -- 对于位置错误的内建指示器，重置为默认值
-    -- ===========================================================================
+    -- ----------------------------------------------------------------------- --
+    --            update from old versions, validate all indicators            --
+    -- ----------------------------------------------------------------------- --
     if CellDB["revise"] and CellDB["revise"] ~=  Cell.version then
         for layoutName, layout in pairs(CellDB["layouts"]) do
-            -- toValidate: 待校验的指示器名->期望索引的映射表，初始时包含所有内建指示器
             local toValidate = F.Copy(Cell.defaults.indicatorIndices)
             local temp = {}
 
-            -- 第一轮遍历：将已有内建指示器放到其正确位置
+            -- built-ins
             for i, t in ipairs(layout["indicators"]) do
                 local name = t["indicatorName"]
                 local correctIndex = toValidate[name]
@@ -3475,36 +3439,34 @@ function F.Revise()
                 if t["type"] == "built-in" and correctIndex then
                     F.Debug(layoutName, "CORRECT_FOUND", correctIndex, name)
                     temp[correctIndex] = t
-                    -- 标记为已验证，从待校验列表中移除
+                    -- remove validated
                     toValidate[name] = nil
                 end
             end
 
-            -- 第二轮：填充缺失的内建指示器（使用默认配置）
+            -- fix missing indicators
             for name, index in pairs(toValidate) do
                 F.Debug(layoutName, "FIXED_MISSING", index, name)
                 temp[index] = F.Copy(Cell.defaults.layout.indicators[index])
             end
 
-            -- 第三轮复核：确保每个内建索引位置上的指示器正确无误
+            --? check again
             local maxKey = 0
             for i in pairs(temp) do
                 maxKey = max(maxKey, i)
             end
             for i = 1, maxKey do
                 if i <= Cell.defaults.builtIns then
-                    -- 内建指示器范围内：验证名称与索引是否匹配，若不匹配则重置
                     if not temp[i] or i ~= Cell.defaults.indicatorIndices[temp[i]["indicatorName"]] then
                         F.Debug(layoutName, "RESET_WRONG", i, name)
                         temp[i] = F.Copy(Cell.defaults.layout.indicators[i])
                     end
                 else
-                    -- 超出内建范围：清除（确保后续重新排列）
                     temp[i] = nil
                 end
             end
 
-            -- 追加自定义指示器（type ~= "built-in"），放在所有内建指示器之后
+            -- customs
             for i, t in pairs(layout["indicators"]) do
                 if t["type"] ~= "built-in" then
                     tinsert(temp, t)
@@ -3515,7 +3477,7 @@ function F.Revise()
         end
     end
 
-    -- 重新为所有自定义指示器分配顺序编号名称（indicator1, indicator2, ...）
+    --! update custom indicator names
     for _, layout in pairs(CellDB["layouts"]) do
         local index = 1
         for i, t in ipairs(layout["indicators"]) do
@@ -3526,7 +3488,6 @@ function F.Revise()
         end
     end
 
-    -- 版本迁移完成：将当前版本号写入数据库，防止下次启动重复执行迁移
     CellDB["revise"] = Cell.version
     if CellCharacterDB then
         CellCharacterDB["revise"] = Cell.version

@@ -1,75 +1,27 @@
 local _, Cell = ...
 local I = Cell.iFuncs
 
--- ============================================================================
--- 模块：Indicator_Bleeds（流血减益指示器）
--- 用途：提供流血类 Debuff 的判定逻辑。
---       当游戏中某些技能的 debuffType 字段缺失或不准确时，
---       通过本模块的 SpellID 查表机制，将缺失类型的 Debuff
---       归类为 "Bleed" 类型，确保 Cell 框架能正确识别和显示
---       流血类减益效果。
--- ============================================================================
-
--- 流血法术 ID 查找表（本地缓存，稍后赋值并导出到全局变量）
 local bleedList
 
--- ---------------------------------------------------------------------------
--- I.CheckDebuffType(debuffType, spellId)
--- 功能：检测并修正 Debuff 类型，确保流血类 Debuff 被正确归类。
--- 参数：
---   debuffType (string/nil) — 游戏客户端返回的 Debuff 类型字符串，
---                             可能为空字符串 "" 或 nil（表示类型缺失）。
---   spellId    (number)     — 法术 ID，用于在 bleedList 查表中进行
---                             二次确认是否为流血类技能。
--- 返回值：
---   原 debuffType，或在 debuffType 缺失且 spellId 在流血表中时
---   返回 "Bleed"。
--- 调用场景：由 Cell 框架的 Debuff 类型检测流程调用，
---           用于补充游戏 API 可能遗漏的类型信息。
--- ---------------------------------------------------------------------------
 function I.CheckDebuffType(debuffType, spellId)
     -- Midnight 12.0.0+: debuffType and spellId may be secret — can't compare or use as table key
-    -- [Midnight/SecretValue 防护]
-    -- 暴雪在 12.0.0+ 版本引入了 SecretValue 机制：某些敏感战斗数据
-    -- （如 debuffType、spellId）可能被标记为 secret value。
-    -- secret value 不能用于比较运算（==、~=）或作为 table 的 key，
-    -- 否则会触发 Lua 错误（attempt to compare secret values）。
-    -- 因此在使用这些值之前，必须先用 issecretvalue() 检测是否为
-    -- secret value，如果是则直接原样返回 debuffType 不做任何处理。
     if issecretvalue and (issecretvalue(spellId) or issecretvalue(debuffType)) then
         return debuffType
     end
-    -- 如果 debuffType 缺失（nil 或空字符串），但 spellId 在流血表中存在，
-    -- 则将其类型修正为 "Bleed"，确保 Cell 框架能正确识别此 Debuff。
     if (not debuffType or debuffType == "") and bleedList[spellId] then
         return "Bleed"
     end
-    -- 所有其他情况：原样返回 debuffType
     return debuffType
 end
 
--- ============================================================================
--- 数据来源与筛选逻辑
--- ============================================================================
 -- data from https://wago.tools/db2/SpellEffect
--- 从 SpellEffect 数据库表中筛选满足以下条件的法术：
---   EffectMechanic == 15 （流血机制类型）
---   Effect == 6          （光环效果类型，即 Debuff/Buff 类技能）
+-- EffectMechanic == 15
+-- Effect == 6
 --
 -- Some bleeds do not have proper EffectMechanic flag
--- 部分流血技能在 SpellEffect 表中没有正确设置 EffectMechanic 标记。
 -- Those can however be found here https://wago.tools/db2/SpellCategories
--- 这些缺失标记的技能可以通过 SpellCategories 表补充查找：
---   Mechanic == 15       （流血机制类型）
+-- Mechanic == 15
 -- Crossreference with SpellEffect.Effect == 6
--- （与 SpellEffect.Effect == 6 做交叉比对，确认是光环类技能）
---
--- 数据格式：
---   bleedList = { [spellId] = true, ... }
---   以法术 ID 为键，true 为值的哈希查找表。
---   用于 O(1) 时间复杂度快速判断某个法术 ID 是否为流血类技能。
---   每个条目附带注释标明技能的中英文名称。
--- ============================================================================
 
 bleedList = {
     [1227293] = true, -- Gushing Wound
@@ -1248,6 +1200,4 @@ bleedList = {
     [703] = true, -- 锁喉 - Garrote
 }
 
--- 将流血法术查找表导出到 Cell.vars 全局变量，
--- 供 Cell 框架其他模块（如指示器渲染、Debuff 过滤等）使用。
 Cell.vars.bleedList = bleedList

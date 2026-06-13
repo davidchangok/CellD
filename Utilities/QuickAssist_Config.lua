@@ -1,25 +1,14 @@
--- =========================================================================== --
---  QuickAssist 配置面板 (QuickAssist_Config.lua)
---  ----------------------------------------------------------------------- --
---  功能：为 Cell 的 QuickAssist 功能提供完整的配置界面
---  包含四个子页面：Layout(布局) / Style(样式) / Spells(法术) + 过滤器自动切换面板
---  所有配置按专精(specID)独立存储于 CellDB["quickAssist"][specID]
---  通过 Cell 回调系统响应显示/重载/更新事件
--- =========================================================================== --
 local _, Cell = ...
 local L = Cell.L
 local F = Cell.funcs
 local U = Cell.uFuncs
 local A = Cell.animations
 local P = Cell.pixelPerfectFuncs
--- LCG: LibCustomGlow 库，用于给按钮添加自定义光效
 local LCG = LibStub("LibCustomGlow-1.0")
 
 -- ----------------------------------------------------------------------- --
 --                                 defaults                                --
 -- ----------------------------------------------------------------------- --
--- 以下默认配置表定义了各职业的爆发增益(Buffs)和爆发施法(Casts)列表
--- 格式：buff为法术ID，cast为"法术ID:持续时间"
 local defaultOffensiveBuffs = {
     ["DEATHKNIGHT"] = {
         47568, -- Empower Rune Weapon, 符文武器增效
@@ -104,21 +93,17 @@ local defaultOffensiveCasts = {
     },
 }
 
--- 默认职责过滤：仅显示伤害输出(DAMAGER)，隐藏坦克和治疗
 local defaultRoleFilter = {
     ["TANK"] = false,
     ["HEALER"] = false,
     ["DAMAGER"] = true,
 }
 
--- 默认职业过滤：遍历所有职业，全部启用
 local defaultClassFilter = {}
 for class in F.IterateClasses() do
     tinsert(defaultClassFilter, {class, true})
 end
 
--- 默认专精过滤：所有职业的所有专精全部启用
--- 结构: {{"CLASSNAME", {{specID, enabled}, ...}}, ...}
 local defaultSpecFilter = {
     {
         "DEATHKNIGHT",
@@ -225,7 +210,6 @@ local defaultSpecFilter = {
         },
     },
 }
--- 预加载所有专精图标到 specIcons 表，key 为 specID
 local specIcons = {}
 for _, t in pairs(defaultSpecFilter) do
     for _, st in pairs(t[2]) do
@@ -242,11 +226,9 @@ end
 --     tinsert(defaultSpecFilter, t)
 -- end
 
--- QuickAssist 默认配置表，用作新专精的初始化模板
--- 结构：enabled(总开关) -> layout(布局) -> filters(单位过滤) -> filterAutoSwitch(场景自动切换) -> style(样式) -> spells(法术监控)
 local defaultQuickAssistTable = {
     ["enabled"] = false,
-    -- layout：按钮排列布局设置
+    -- layout
     ["layout"] = {
         ["size"] = {75, 25},
         ["position"] = {},
@@ -352,15 +334,12 @@ local defaultQuickAssistTable = {
     },
 }
 
--- 获取 QuickAssist 默认配置表的深拷贝，避免多个专精共用同一表引用
 function F.GetDefaultQuickAssistTable()
     return F.Copy(defaultQuickAssistTable)
 end
 
 -- ----------------------------------------------------------------------- --
 --                               config pane                               --
---  QuickAssist 配置选项卡，锚定在 utilitiesTab 上
---  所有配置子面板均创建在此选项卡内
 -- ----------------------------------------------------------------------- --
 local quickAssistTab = Cell.CreateFrame("CellOptionsFrame_QuickAssistTab", Cell.frames.utilitiesTab, nil, nil, true)
 Cell.frames.quickAssistTab = quickAssistTab
@@ -370,13 +349,11 @@ quickAssistTab:Hide()
 -- ----------------------------------------------------------------------- --
 --                                  shared                                 --
 -- ----------------------------------------------------------------------- --
--- 全局配置表引用（指向 CellDB 中当前专精的配置子表）
 local quickAssistTable, layoutTable, styleTable, spellTable
--- 当前选中的过滤器编号、当前选中职业、当前活跃的过滤器编号
 local selectedFilter, selectedClass, activeFilter
--- 延迟绑定的加载函数（在文件末尾定义，此处声明以支持相互引用）
+
 local LoadDB, LoadLayout, LoadStyle, LoadSpells, LoadList, LoadMyBuff, ShowFilter, LoadAutoSwitch, UpdateAutoSwitch
--- UI 常量：锚点列表、排列方向、字体描边、光效类型
+
 local anchorPoints = {"BOTTOM", "BOTTOMLEFT", "BOTTOMRIGHT", "CENTER", "LEFT", "RIGHT", "TOP", "TOPLEFT", "TOPRIGHT"}
 local orientations = {"left-to-right", "right-to-left", "top-to-bottom", "bottom-to-top"}
 local outlines = {"None", "Outline", "Monochrome"}
@@ -384,17 +361,10 @@ local glows = {"None", "Normal", "Pixel", "Shine", "Proc"}
 
 -- ----------------------------------------------------------------------- --
 --                              button preview                             --
---  右侧预览按钮：实时反映 Layout / Style / Spells 配置变更
---  previewButton: 预览按钮本体（使用 CellQuickAssistPreviewButtonTemplate）
---  previewButtonBG: 预览按钮的背景框
---  showIndicatorPreview: 是否在预览中循环展示法术指示器动画
 -- ----------------------------------------------------------------------- --
 local previewButton, previewButtonBG, showIndicatorPreview
 
 local function GetHealthColor(r, g, b)
-    -- 根据样式配置计算血条颜色和背景（损失血量）颜色
-    -- r, g, b 为职业色，用于 class_color / class_color_dark 模式
-    -- 返回值：hpR, hpG, hpB, hpA, lossR, lossG, lossB, lossA
     local hpR, hpG, hpB, lossR, lossG, lossB
 
     -- hp
@@ -427,9 +397,6 @@ local function GetHealthColor(r, g, b)
 end
 
 local function UpdatePreviewButton()
-    -- 在配置界面右侧创建/更新 QuickAssist 按钮的实时预览
-    -- 应用当前的布局尺寸、样式颜色、名字文本、法术图标等所有配置到预览按钮上
-    -- 如果 QuickAssist 未启用，则隐藏预览
     if not quickAssistTab:IsVisible() then return end
 
     if not previewButton then
@@ -471,7 +438,6 @@ local function UpdatePreviewButton()
     end
 
     if not quickAssistTable or not quickAssistTable["enabled"] then
-        -- QuickAssist 未启用时隐藏预览
         previewButton:Hide()
         previewButtonBG:Hide()
         return
@@ -481,11 +447,9 @@ local function UpdatePreviewButton()
     previewButtonBG:Show()
 
     -- size ------------------------------------------------------------------ --
-    -- 应用布局尺寸到预览按钮
     P.Size(previewButton, layoutTable["size"][1], layoutTable["size"][2])
 
     -- color ----------------------------------------------------------------- --
-    -- 应用状态条纹理
     local tex = F.GetBarTextureByName(styleTable["texture"])
     previewButton.healthBar:SetStatusBarTexture(tex)
     previewButton.healthLoss:SetTexture(tex)
@@ -495,15 +459,12 @@ local function UpdatePreviewButton()
     previewButton.healthLoss:SetVertexColor(lossR, lossG, lossB, lossA)
 
     if styleTable["name"]["color"][1] == "class_color" then
-        -- 名字使用职业色
         previewButton.nameText:SetTextColor(F.GetClassColor(Cell.vars.playerClass))
     else
-        -- 名字使用自定义颜色
         previewButton.nameText:SetTextColor(unpack(styleTable["name"]["color"][2]))
     end
 
     -- update nameText ------------------------------------------------------- --
-    -- 更新预览按钮上的名字文本位置、字体、字号、描边和阴影
     previewButton.nameText:ClearAllPoints()
     previewButton.nameText:SetPoint(unpack(styleTable["name"]["position"]))
 
@@ -533,7 +494,7 @@ local function UpdatePreviewButton()
     previewButton.nameText.width = styleTable["name"]["width"]
     previewButton.nameText:UpdateName()
 
-    -- offensiveIcons：更新爆发法术图标指示器的位置、尺寸、排列方向和字体
+    -- offensiveIcons
     local oit = spellTable["offensives"]["icon"]
     local offensiveIcons = previewButton.offensiveIcons
     -- point
@@ -549,13 +510,13 @@ local function UpdatePreviewButton()
     offensiveIcons:ShowAnimation(oit["showAnimation"])
     offensiveIcons:ShowStack(oit["showStack"])
 
-    -- offensiveGlow：更新爆发法术光效设置
+    -- offensiveGlow
     local ogt = spellTable["offensives"]["glow"]
     local offensiveGlow = previewButton.offensiveGlow
     offensiveGlow:SetFadeOut(ogt["fadeOut"])
     offensiveGlow:SetupGlow(ogt["options"])
 
-    -- buffIcons：更新自身增益图标指示器的位置、尺寸、排列方向和字体
+    -- buffIcons
     local bit = spellTable["mine"]["icon"]
     local buffIcons = previewButton.buffIcons
     -- point
@@ -571,7 +532,7 @@ local function UpdatePreviewButton()
     buffIcons:ShowAnimation(bit["showAnimation"])
     buffIcons:ShowStack(bit["showStack"])
 
-    -- buffBars：更新自身增益计时条指示器的位置、尺寸和排列方向
+    -- buffBars
     local bbt = spellTable["mine"]["bar"]
     local buffBars = previewButton.buffBars
     -- point
@@ -582,13 +543,11 @@ local function UpdatePreviewButton()
     -- orientation
     buffBars:SetOrientation(bbt["orientation"])
 
-    -- show indicators：每13秒循环展示预览用的法术指示器动画
-    -- 当 spell 标签页激活时(showIndicatorPreview=true)，循环显示爆发和自身增益的冷却动画
+    -- show indicators
     previewButton.elapsed = 13
     previewButton:SetScript("OnUpdate", function(self, elapsed)
         self.elapsed = (self.elapsed or 0) + elapsed
         if self.elapsed >= 13 then
-            -- 每13秒重置计时器，循环播放冷却动画预览
             self.elapsed = 0
 
             if showIndicatorPreview then
@@ -620,23 +579,16 @@ local function UpdatePreviewButton()
         end
     end)
 end
--- 注册回调：配置重载或更新时刷新预览按钮
 Cell.RegisterCallback("ReloadQuickAssist", "UpdatePreviewButton", UpdatePreviewButton)
 Cell.RegisterCallback("UpdateQuickAssist", "UpdatePreviewButton", UpdatePreviewButton)
 
 -- ----------------------------------------------------------------------- --
 --                              layout preview                             --
---  在 CellQuickAssistFrame 上叠加的布局预览层
---  创建最多40个可拖拽的方块来展示按钮在团队框架中的排列效果
---  拖拽方块可移动整个 QuickAssist 框架的位置
 -- ----------------------------------------------------------------------- --
 local layoutPreviewFrame
 local layoutPreviewButtons = {}
 
 local function UpdateLayoutPreview()
-    -- 创建/更新布局预览框架，展示按钮在团队框架中的排列方式
-    -- 根据锚点、排列方向、单位数、列数等参数计算每个预览方块的位置
-    -- 预览方块支持拖拽以调整整个 QuickAssist 框架的位置
     if not layoutPreviewFrame then
         layoutPreviewFrame = CreateFrame("Frame", "CellQuickAssistPreviewFrame", CellQuickAssistFrame)
         layoutPreviewFrame:SetAllPoints(CellQuickAssistFrame)
@@ -672,7 +624,6 @@ local function UpdateLayoutPreview()
     local point, relativePoint, groupRelativePoint, unitSpacing, groupSpacing
     local spacing, x, y = layoutTable["spacingX"], layoutTable["spacingY"]
 
-    -- 根据排列方向和锚点计算每个预览方块的锚点、相对锚点和间距方向
     if layoutTable["orientation"] == "horizontal" then
         if layoutTable["anchor"] == "BOTTOMLEFT" then
             point, relativePoint, groupRelativePoint = "BOTTOMLEFT", "BOTTOMRIGHT", "TOPLEFT"
@@ -711,7 +662,6 @@ local function UpdateLayoutPreview()
         end
     end
 
-    -- 按最大列数和每列单位数循环排列预览方块
     local n = 1
     local first
 
@@ -761,7 +711,6 @@ local function UpdateLayoutPreview()
 end
 
 local function ShowLayoutPreview()
-    -- 显示布局预览（带淡入动画），当 layout 标签页激活时调用
     if not layoutTable then return end
     if not layoutPreviewFrame then
         UpdateLayoutPreview()
@@ -770,7 +719,6 @@ local function ShowLayoutPreview()
 end
 
 local function HideLayoutPreview()
-    -- 隐藏布局预览（带淡出动画），当离开 layout 标签页时调用
     if not layoutPreviewFrame then return end
     layoutPreviewFrame:FadeOut()
 end
@@ -800,8 +748,6 @@ local classButtons, buffButtons, castButtons = {}, {}, {}
 local buffsPane, buffsAddBtn, castsPane, castsAddBtn, offensivesEnabledCB
 
 local function UpdateWidgets(enabled)
-    -- 根据 QuickAssist 启用状态，统一启用/禁用所有配置控件
-    -- 当禁用时切换到 layout 标签页，并隐藏所有弹出面板
     Cell.SetEnabled(enabled, layoutBtn, styleBtn, spellBtn)
 
     -- NOTE: switch to layout on disable
@@ -823,11 +769,6 @@ end
 --                            quick assist pane                            --
 -- ----------------------------------------------------------------------- --
 local function CreateQuickAssistPane()
-    -- 创建 QuickAssist 主配置面板，包含：
-    -- - 启用/禁用复选框
-    -- - 导入/导出按钮
-    -- - 法术ID输入弹窗(qaPopup)：输入ID时实时预览法术信息
-    -- - 双输入弹窗(qaDualPopup)：同时输入法术ID和持续时间
     qaPane = Cell.CreateTitledPane(quickAssistTab, L["Quick Assist"].." |cFF777777"..L["only in group"], 422, 80)
     qaPane:SetPoint("TOPLEFT", 5, -5)
 
@@ -839,10 +780,6 @@ local function CreateQuickAssistPane()
 
     -- enabled ----------------------------------------------------------------------
     qaEnabledCB = Cell.CreateCheckButton(qaPane, L["Enabled"], function(checked, self)
-        -- QuickAssist 启用/禁用回调：
-        -- 1. 首次启用时为当前专精创建配置表
-        -- 2. 更新数据库、预览和整体状态
-        -- 3. 启用时显示布局预览，禁用时隐藏并切换到 layout 标签页
         if not CellDB["quickAssist"][Cell.vars.playerSpecID] then
             CellDB["quickAssist"][Cell.vars.playerSpecID] = F.Copy(defaultQuickAssistTable)
         end
@@ -867,7 +804,6 @@ local function CreateQuickAssistPane()
     export:SetPoint("TOPRIGHT")
     export:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\export", {15, 15}, {"CENTER", 0, 0})
     export:SetScript("OnClick", function()
-        -- 导出：将当前 QuickAssist 配置序列化为可分享的字符串
         F.ShowQuickAssistExportFrame(quickAssistTable)
     end)
 
@@ -875,7 +811,6 @@ local function CreateQuickAssistPane()
     import:SetPoint("TOPRIGHT", export, "TOPLEFT", -1, 0)
     import:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\import", {15, 15}, {"CENTER", 0, 0})
     import:SetScript("OnClick", function()
-        -- 导入：打开导入弹窗，粘贴导出的配置字符串来加载 QuickAssist 设置
         F.ShowQuickAssistImportFrame()
     end)
 
@@ -939,8 +874,6 @@ end
 local setupPane
 local pages = {}
 local function CreateSetupPane()
-    -- 创建设置面板，包含 Layout / Style / Spells 三个标签页切换按钮
-    -- 使用 ButtonGroup 实现互斥切换，切换时显示/隐藏对应页面
     setupPane = Cell.CreateTitledPane(quickAssistTab, L["Setup"], 422, 384)
     setupPane:SetPoint("TOPLEFT", P.Scale(5), P.Scale(-120))
 
@@ -957,8 +890,6 @@ local function CreateSetupPane()
     layoutBtn.id = "layout"
 
     Cell.CreateButtonGroup({layoutBtn, styleBtn, spellBtn}, function(tab)
-        -- 标签页切换：显示对应页面，隐藏其他页面
-        -- spell 标签页激活时启用指示器预览动画
         -- show & hide
         for name, page in pairs(pages) do
             if name == tab then
@@ -981,8 +912,6 @@ end
 
 -- role filter ----------------------------------------------------------- --
 local function UpdateRoleFilter(role)
-    -- 切换指定职责（TANK/HEALER/DAMAGER）的过滤状态
-    -- 如果当前筛选器是活跃的，立即触发 UpdateQuickAssist 事件更新按钮显示
     quickAssistTable["filters"][selectedFilter][2][role] = not quickAssistTable["filters"][selectedFilter][2][role]
     ShowFilter(selectedFilter) -- call SetRoles
     if selectedFilter == activeFilter then
@@ -992,9 +921,6 @@ end
 
 local ROLE_FILTER_SIZE = 100
 local function CreateRoleFilter(parent)
-    -- 创建职责过滤控件（TANK / HEALER / DAMAGER 三选按钮）
-    -- 选中状态显示彩色图标，未选中显示灰色
-    -- 包含 SetRoles(t) 方法用于更新按钮显示状态
     local f = CreateFrame("Frame", nil, parent)
     f:SetSize(P.Scale(ROLE_FILTER_SIZE)*3-P.Scale(1)*2, P.Scale(20))
     f:Hide()
@@ -1046,9 +972,6 @@ end
 -- class filter ---------------------------------------------------------- --
 local CLASS_FILTER_SIZE = 24
 local function CreateClassFilter(parent)
-    -- 创建职业过滤控件（13个职业图标按钮）
-    -- 点击切换启用/禁用，拖拽可改变职业排序顺序
-    -- 包含 SetClasses(t) 方法用于更新按钮的启用状态和排列位置
     local f = CreateFrame("Frame", nil, parent)
     f:SetSize(412, P.Scale(CLASS_FILTER_SIZE))
     f:Hide()
@@ -1061,7 +984,6 @@ local function CreateClassFilter(parent)
         buttons[class]._class = class
 
         buttons[class]:SetScript("OnClick", function()
-            -- 点击职业按钮：切换该职业过滤器的启用/禁用状态
             -- find class
             for i, t in pairs(quickAssistTable["filters"][selectedFilter][2]) do
                 if t[1] == class then
@@ -1087,7 +1009,6 @@ local function CreateClassFilter(parent)
         end)
 
         buttons[class]:SetScript("OnDragStop", function(self)
-            -- 拖拽结束：检测鼠标下的职业按钮，交换两个职业的排序位置
             self:StopMovingOrSizing()
             self:SetFrameStrata("LOW")
             -- self:Hide() --! Hide() will cause OnDragStop trigger TWICE!!!
@@ -1119,7 +1040,6 @@ local function CreateClassFilter(parent)
     end
 
     function f:SetClasses(t)
-        -- 根据配置表更新职业按钮的显示状态和排列顺序
         for k, v in pairs(t) do
             local class, enabled = v[1], v[2]
             -- state
@@ -1150,7 +1070,6 @@ local names = {}
 
 -- update button
 local function UpdatePlayerList()
-    -- 更新玩家名册列表的显示：已在过滤名单中的玩家降低透明度并显示序号
     for _, b in pairs(players) do
         if not b:IsShown() then break end
 
@@ -1168,8 +1087,6 @@ local function UpdatePlayerList()
 end
 
 local function CreatePlayerList(parent, box)
-    -- 创建玩家名册列表（名字过滤器辅助控件）
-    -- 显示当前队伍/团队中的所有玩家，点击切换是否纳入名字过滤名单
     -- playerlist
     local playerListFrame = CreateFrame("Frame", nil, parent)
     playerListFrame:SetSize(70, 17)
@@ -1215,7 +1132,6 @@ local function CreatePlayerList(parent, box)
     end
 
     playerListFrame:SetScript("OnShow", function()
-        -- 显示时刷新：加载当前过滤名单，遍历队伍成员填充玩家列表
         names = F.Copy(quickAssistTable["filters"][selectedFilter][2])
 
         local i = 1
@@ -1242,9 +1158,6 @@ local function CreatePlayerList(parent, box)
 end
 
 local function CreateNameFilter(parent)
-    -- 创建名字过滤器控件
-    -- 点击按钮弹出名册面板，支持手动输入名字或从队伍列表中点击选择
-    -- 包含保存/放弃按钮，支持多行文本输入（每行一个名字）
     local b = Cell.CreateButton(parent, L["Name List"], "accent-hover", {200, 20})
     b.frameLevel = b:GetFrameLevel()
     b:Hide()
@@ -1261,7 +1174,6 @@ local function CreateNameFilter(parent)
     box:SetPoint("BOTTOMRIGHT", -5, 30)
 
     box.eb:SetScript("OnTextChanged", function(self, userChanged)
-        -- 用户手动编辑名字列表时，解析每行名字并更新名册高亮状态
         if not userChanged then return end
         names = {strsplit("\n", box:GetText())}
         UpdatePlayerList()
@@ -1317,9 +1229,6 @@ end
 -- spec filter ----------------------------------------------------------- --
 local SPEC_FILTER_SIZE = 24
 local function CreateSpecFilter(parent)
-    -- 创建专精过滤控件（按职业分组显示专精图标按钮）
-    -- 点击切换启用/禁用，拖拽可改变职业排序
-    -- 包含 SetSpecs(t) 方法用于更新所有专精按钮的启用状态和职业排列位置
     local f = CreateFrame("Frame", nil, parent)
     f:SetSize(412, P.Scale(SPEC_FILTER_SIZE)*4)
     f:Hide()
@@ -1344,7 +1253,6 @@ local function CreateSpecFilter(parent)
         end
 
         frames[class].onDragStop = function(self)
-            -- 拖拽结束：检测鼠标下的职业分组，交换两个职业在专精过滤列表中的排序位置
             frames[class]:StopMovingOrSizing()
             frames[class]:SetFrameStrata("LOW")
             -- self:Hide() --! Hide() will cause OnDragStop trigger TWICE!!!
@@ -1384,7 +1292,6 @@ local function CreateSpecFilter(parent)
             buttons[spec].tex:SetTexCoord(0.12, 0.88, 0.12, 0.88)
 
             buttons[spec]:SetScript("OnClick", function()
-                -- 点击专精按钮：切换该专精过滤器的启用/禁用状态
                 -- find spec
                 for _, t in pairs(quickAssistTable["filters"][selectedFilter][2]) do
                     if t[1] == class then
@@ -1420,7 +1327,6 @@ local function CreateSpecFilter(parent)
     end
 
     function f:SetSpecs(t)
-        -- 根据配置表更新专精按钮的职业排列顺序和各专精的启用/禁用状态
         for k, ct in pairs(t) do
             local class = ct[1]
             -- class order
@@ -1509,16 +1415,9 @@ end
 ]]
 
 local HighlightFilter
--- 罗马数字标签，用于7个过滤器按钮的显示
 local romanNumerals = {"I", "II", "III", "IV", "V", "VI", "VII"}
 
 local function CreateLayoutPane()
-    -- 创建布局配置页面，包含：
-    -- - 锚点/排列方向下拉框
-    -- - 宽度/高度/间距(X/Y)滑块
-    -- - 每列单位数/最大列数滑块
-    -- - 单位过滤器（类型下拉框、7个过滤器按钮、职责/职业/专精/名字过滤控件）
-    -- 页面显示/隐藏时自动显示/隐藏布局预览
     pages.layout = CreateFrame("Frame", nil, quickAssistTab)
     pages.layout:SetAllPoints(setupPane)
     pages.layout:Hide()
@@ -1710,7 +1609,6 @@ local function CreateLayoutPane()
     filterResetBtn = Cell.CreateButton(filterPane, L["Reset"], "accent", {50, 17})
     filterResetBtn:SetPoint("BOTTOMLEFT")
     filterResetBtn:SetScript("OnClick", function()
-        -- 重置当前过滤器到默认值（仅对 class/spec 类型有效）
         if quickAssistTable["filters"][selectedFilter][1] == "class" then
             quickAssistTable["filters"][selectedFilter][2] = F.Copy(defaultClassFilter)
             classFilter:SetClasses(quickAssistTable["filters"][selectedFilter][2])
@@ -1740,7 +1638,6 @@ local function CreateLayoutPane()
     end
 
     HighlightFilter = Cell.CreateButtonGroup(filterButtons, function(id)
-        -- 过滤器切换按钮组：点选 I-VII 切换到对应编号的过滤器
         selectedFilter = id
         ShowFilter(id)
     end)
@@ -1765,9 +1662,6 @@ end
 -- ----------------------------------------------------------------------- --
 local asterisk
 local function CreateAutoSwitchFrame()
-    -- 创建过滤器自动切换面板（位于布局页面右侧）
-    -- 为每种队伍类型（小队/团队/史诗钥石/竞技场/战场）配置对应的过滤器编号
-    -- 当前队伍类型会用星号(*)标记，文本高亮显示
     autoSwitchFrame = Cell.CreateFrame("CellQuickAssistFilterAutoSwitchFrame", pages.layout, 160, 185)
     autoSwitchFrame:SetPoint("BOTTOMLEFT", quickAssistTab, "BOTTOMRIGHT", 5, 0)
     autoSwitchFrame:Show()
@@ -1859,7 +1753,6 @@ local LSM = LibStub("LibSharedMedia-3.0", true)
 local textures, textureNames
 
 local function LoadTextures()
-    -- 加载 SharedMedia 状态条纹理列表，将"Cell 默认"纹理置顶
     local items = {}
     local defaultTexture, defaultTextureName = "Interface\\AddOns\\Cell\\Media\\statusbar.tga", "Cell ".._G.DEFAULT
     textures, textureNames = F.Copy(LSM:HashTable("statusbar")), F.Copy(LSM:List("statusbar"))
@@ -1883,11 +1776,6 @@ end
 
 -- name width ------------------------------------------------------------ --
 local function CreateNameWidth(parent)
-    -- 创建名字文本宽度配置控件，支持三种模式：
-    -- 1. 无限制：文本不截断
-    -- 2. 百分比：按按钮宽度的百分比限制（25%/50%/75%/100%）
-    -- 3. 长度：按英文字符数和非英文字符数分别限制
-    -- 包含 SetNameWidth(t) 方法用于从配置表加载当前设置
     local f = CreateFrame("Frame", nil, parent)
     P.Size(f, 117, 20)
 
@@ -2074,11 +1962,6 @@ local function CreateNameWidth(parent)
 end
 
 local function CreateStylePane()
-    -- 创建样式配置页面，包含：
-    -- - 血条颜色/损失颜色下拉框和自定义颜色选择器
-    -- - 纹理下拉框、超出范围透明度滑块
-    -- - 目标高亮/鼠标悬停高亮颜色选择器、高亮边框大小滑块
-    -- - 名字文本子面板：颜色、宽度模式、锚点、偏移、字体、字号、描边、阴影
     pages.style = CreateFrame("Frame", nil, quickAssistTab)
     pages.style:SetAllPoints(setupPane)
     pages.style:Hide()
@@ -2331,10 +2214,6 @@ local iconOptionsFrame
 local currentIconOptionBtn, currentIconIndex
 
 local function CreateIconOptions(parent)
-    -- 创建图标指示器选项弹窗面板，包含两个子标签页：
-    -- - Icon 标签页：锚点、相对锚点、排列方向、光效类型、光效颜色、偏移、尺寸、显示动画开关
-    -- - Font 标签页（stackFont/durationFont）：字体、字号、描边、阴影、锚点、偏移、颜色
-    -- 显示时自动创建遮罩层以阻止点击穿透
     iconOptionsFrame = CreateFrame("Frame", nil, parent, "BackdropTemplate")
     Cell.StylizeFrame(iconOptionsFrame, nil, Cell.GetAccentColorTable())
     iconOptionsFrame:SetFrameLevel(parent:GetFrameLevel()+50)
@@ -2693,8 +2572,6 @@ local function CreateIconOptions(parent)
 end
 
 local function SetIconOptions_OnClick(b)
-    -- 为图标/指示器设置按钮绑定点击事件：切换图标选项弹窗的显示/隐藏
-    -- b.index 指定是 "mine"（自身增益）还是 "offensives"（爆发法术）
     b.frameLevel = b:GetFrameLevel()
     b:SetScript("OnClick", function()
         currentIconIndex = b.index
@@ -2712,10 +2589,6 @@ local barOptionsFrame
 local currentBarOptionBtn, currentBarIndex
 
 local function CreateBarOptions(parent)
-    -- 创建计时条指示器选项弹窗面板，配置项包括：
-    -- - 锚点、相对锚点、排列方向（仅垂直方向）
-    -- - X/Y偏移滑块、宽度/高度滑块
-    -- 显示时自动创建遮罩层
     barOptionsFrame = CreateFrame("Frame", nil, parent, "BackdropTemplate")
     Cell.StylizeFrame(barOptionsFrame, nil, Cell.GetAccentColorTable())
     barOptionsFrame:SetFrameLevel(parent:GetFrameLevel()+50)
@@ -2852,8 +2725,6 @@ local function CreateBarOptions(parent)
 end
 
 local function SetBarOptions_OnClick(b)
-    -- 为计时条设置按钮绑定点击事件：切换计时条选项弹窗的显示/隐藏
-    -- 显示时自动加载当前配置到各控件
     b.frameLevel = b:GetFrameLevel()
     b:SetScript("OnClick", function()
         currentBarIndex = b.index
@@ -2872,13 +2743,6 @@ local glowOptionsFrame
 local currentGlowOptionBtn, currentGlowIndex
 
 local function CreateGlowOptions(parent)
-    -- 创建光效选项弹窗面板，支持五种光效类型：
-    -- - None：无光效
-    -- - Normal：标准光效
-    -- - Pixel：像素光效（线条数、频率、长度、粗细）
-    -- - Shine：闪光效（粒子数、频率、缩放）
-    -- - Proc：触发光效（持续时间）
-    -- 包含 fadeOut 复选框和光效颜色选择器
     glowOptionsFrame = CreateFrame("Frame", nil, parent, "BackdropTemplate")
     Cell.StylizeFrame(glowOptionsFrame, nil, Cell.GetAccentColorTable())
     glowOptionsFrame:SetFrameLevel(parent:GetFrameLevel()+50)
@@ -3123,8 +2987,6 @@ local function CreateGlowOptions(parent)
 end
 
 local function SetGlowOptions_OnClick(b)
-    -- 为光效设置按钮绑定点击事件：切换光效选项弹窗的显示/隐藏
-    -- 显示时自动加载当前 fadeOut 和光效选项配置
     b.frameLevel = b:GetFrameLevel()
     b:SetScript("OnClick", function()
         currentGlowIndex = b.index
@@ -3140,12 +3002,6 @@ end
 
 -- my buff --------------------------------------------------------------- --
 local function CreateMyBuffWidget(parent, index)
-    -- 创建单个"我的增益"配置控件，包含：
-    -- - 左键点击：弹出法术ID输入框，设置该槽位监控的法术
-    -- - 右键点击：清除该槽位
-    -- - 鼠标悬停：显示法术提示信息
-    -- - 类型下拉框：切换 Icon（图标）或 Bar（计时条）显示方式
-    -- - 颜色选择器：设置该增益的颜色标记
     local b = Cell.CreateButton(parent, " ", "accent-hover", {180, 20})
     b:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\create", {16, 16}, {"LEFT", 2, 0})
     b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
@@ -3153,7 +3009,6 @@ local function CreateMyBuffWidget(parent, index)
 
     b:SetScript("OnClick", function(self, button)
         if button == "LeftButton" then
-            -- 左键：弹出输入框，输入法术ID来设置该槽位监控的法术
             local popup = Cell.CreatePopupEditBox(qaPane, function(text)
                 local spellId = tonumber(text)
                 local spellName, spellIcon = F.GetSpellInfo(spellId)
@@ -3175,7 +3030,7 @@ local function CreateMyBuffWidget(parent, index)
             popup:ShowEditBox("")
             popup:SetTips("|cffababab"..L["Input spell id"])
         else
-            -- 右键：清除该槽位的法术设置
+            b.id = nil
             b.icon = nil
             b:SetText("")
             b.tex:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\create")
@@ -3185,7 +3040,6 @@ local function CreateMyBuffWidget(parent, index)
         end
     end)
 
-    -- 鼠标悬停时显示法术提示信息
     b:HookScript("OnEnter", function(self)
         if self.id and self.icon then
             CellSpellTooltip:SetOwner(self, "ANCHOR_NONE")
@@ -3239,10 +3093,6 @@ local function CreateMyBuffWidget(parent, index)
 end
 
 local function CreateSpellsPane()
-    -- 创建法术监控配置页面，包含两大区域：
-    -- 左侧：自身增益追踪器（5个槽位，每个可配置法术ID、显示类型、颜色）
-    -- 右侧：爆发法术追踪器（按职业分类的增益/施法列表，支持添加/删除/排序）
-    -- 底部包含重置按钮和首次使用帮助提示面板
     pages.spell = CreateFrame("Frame", nil, quickAssistTab)
     pages.spell:SetAllPoints(setupPane)
     pages.spell:Hide()
@@ -3344,7 +3194,6 @@ local function CreateSpellsPane()
     buffsAddBtn:SetPoint("TOPLEFT", 5, -27)
     buffsAddBtn:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\create", {20, 20}, {"CENTER", 0, 0})
     buffsAddBtn:SetScript("OnClick", function()
-        -- 添加爆发增益：弹出法术ID输入框，验证后加入当前职业的 buffs 列表
         local popup = Cell.CreatePopupEditBox(qaPane, function(text)
             local spellId = tonumber(text)
             local spellName = F.GetSpellInfo(spellId)
@@ -3376,7 +3225,6 @@ local function CreateSpellsPane()
     castsAddBtn:SetPoint("TOPLEFT", 5, -27)
     castsAddBtn:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\create", {20, 20}, {"CENTER", 0, 0})
     castsAddBtn:SetScript("OnClick", function()
-        -- 添加爆发施法：弹出双输入框（法术ID + 持续时间），验证后加入当前职业的 casts 列表
         local popup = Cell.CreateDualPopupEditBox(qaPane, "ID", L["Duration"], true, function(spellId, duration)
             local spellName = F.GetSpellInfo(spellId)
             if spellId and spellName and duration then
@@ -3401,7 +3249,6 @@ local function CreateSpellsPane()
     local resetBtn = Cell.CreateButton(pages.spell, L["Reset Offensive Spells"], "accent", {205, 17}, nil, nil, nil, nil, nil, L["Reset Offensive Spells"], L["[Ctrl+Left-Click] to reset these settings"])
     resetBtn:SetPoint("BOTTOMRIGHT")
     resetBtn:SetScript("OnClick", function()
-        -- Ctrl+点击重置爆发法术列表为默认值，并刷新UI
         if IsControlKeyDown() then
             spellTable["offensives"]["buffs"] = F.Copy(defaultOffensiveBuffs)
             spellTable["offensives"]["casts"] = F.Copy(defaultOffensiveCasts)
@@ -3462,10 +3309,6 @@ end
 --                                   load                                  --
 -- ----------------------------------------------------------------------- --
 ShowFilter = function(index)
-    -- 显示指定编号的过滤器控件
-    -- 根据过滤器类型（role/class/spec/name）显示对应的控件并隐藏其他类型的控件
-    -- role 模式下显示职责按钮；class/spec 模式下额外显示重置按钮和拖拽提示
-    -- name 模式下隐藏"隐藏自己"复选框，显示名字输入按钮
     local t = quickAssistTable["filters"][index]
 
     filterTypeDropdown:SetSelectedValue(t[1])
@@ -3505,8 +3348,6 @@ ShowFilter = function(index)
 end
 
 LoadAutoSwitch = function(t)
-    -- 加载过滤器自动切换下拉框的当前值
-    -- 为每种队伍类型（party/raid/mythic/arena/battleground）设置对应的过滤器编号
     partyDropdown:SetSelectedValue(t["party"])
     raidDropdown:SetSelectedValue(t["raid"])
     mythicDropdown:SetSelectedValue(t["mythic"])
@@ -3515,7 +3356,6 @@ LoadAutoSwitch = function(t)
 end
 
 LoadLayout = function()
-    -- 从 layoutTable 加载所有布局控件的当前值
     anchorDropdown:SetSelectedValue(layoutTable["anchor"])
     orientationDropdown:SetSelectedValue(layoutTable["orientation"])
 
@@ -3538,7 +3378,6 @@ LoadLayout = function()
 end
 
 LoadStyle = function()
-    -- 从 styleTable 加载所有样式控件的当前值（纹理、颜色、透明度、名字文本等）
     textureDropdown:SetSelected(styleTable["texture"], textures[styleTable["texture"]])
     hpColorDropdown:SetSelectedValue(styleTable["hpColor"][1])
     lossColorDropdown:SetSelectedValue(styleTable["lossColor"][1])
@@ -3566,12 +3405,10 @@ LoadStyle = function()
 end
 
 LoadMyBuff = function(b, t)
-    -- 加载单个"我的增益"槽位的配置到控件
-    -- t[1]=0 表示未设置；否则加载法术名称、图标、显示类型和颜色
     b.id = nil
     b.icon = nil
 
-    if t[1] == 0 then -- no setting: 法术ID为0表示未配置
+    if t[1] == 0 then -- no setting
         b:SetText("")
         b.tex:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\create")
         b.tex:SetTexCoord(0, 1, 0, 1)
@@ -3601,9 +3438,6 @@ local BUTTONS_SPACING = 2
 local BUTTONS_MAX = 14
 
 LoadList = function(parent, buttons, addBtn, t, separator)
-    -- 加载爆发法术列表（增益/施法）到按钮网格
-    -- 按钮动态创建，最多 BUTTONS_MAX 个；点击右键删除对应法术
-    -- separator 参数用于区分纯增益（无分隔符）和施法（用":"分隔ID和持续时间）
     for i, id in pairs(t) do
         if not buttons[i] then
             buttons[i] = Cell.CreateButton(parent, nil, "accent-hover", {BUTTONS_SIZE, BUTTONS_SIZE})
@@ -3692,7 +3526,6 @@ LoadList = function(parent, buttons, addBtn, t, separator)
 end
 
 LoadSpells = function()
-    -- 加载所有法术配置：5个"我的增益"槽位、爆发法术列表和启用状态
     for i = 1, 5 do
         LoadMyBuff(myBuffWidgets[i], spellTable["mine"]["buffs"][i])
     end
@@ -3702,8 +3535,6 @@ LoadSpells = function()
 end
 
 LoadDB = function()
-    -- 从 CellDB 加载当前专精的 QuickAssist 配置表，然后分别加载各子配置到UI控件
-    -- 如果未启用则禁用所有控件并返回
     quickAssistTable = CellDB["quickAssist"][Cell.vars.playerSpecID]
 
     if not quickAssistTable or not quickAssistTable["enabled"] then
@@ -3738,9 +3569,6 @@ end
 
 local init
 local function ShowUtilitySettings(which)
-    -- 响应 ShowUtilitySettings 回调：显示/隐藏 QuickAssist 配置选项卡
-    -- 首次调用时延迟创建所有子面板（延迟初始化以减少加载时性能开销）
-    -- which == "quickAssist" 时显示，否则隐藏
     if which == "quickAssist" then
         if not init then
             CreateQuickAssistPane()
@@ -3766,12 +3594,9 @@ local function ShowUtilitySettings(which)
         quickAssistTab:Hide()
     end
 end
--- 注册回调：当用户点击 QuickAssist 工具标签时显示/隐藏配置面板
 Cell.RegisterCallback("ShowUtilitySettings", "QuickAssist_ShowUtilitySettings", ShowUtilitySettings)
 
 local function Reload()
-    -- 响应专精切换或 ReloadQuickAssist 事件：重新加载配置并更新UI
-    -- 如果配置页面可见，根据启用状态决定是否显示布局预览
     if init then
         LoadDB()
         UpdatePreviewButton()
@@ -3785,21 +3610,15 @@ local function Reload()
         end
     end
 end
--- 注册回调：专精切换时重新加载配置
 Cell.RegisterCallback("SpecChanged", "QuickAssistConfig_SpecChanged", Reload)
--- 注册回调：外部模块请求重载 QuickAssist 配置时响应
 Cell.RegisterCallback("ReloadQuickAssist", "ReloadQuickAssist", Reload)
 
 UpdateAutoSwitch = function()
-    -- 响应 UpdateQuickAssist 事件：根据当前队伍类型自动切换激活的过滤器
-    -- 从 filterAutoSwitch 配置中读取当前队伍类型对应的过滤器编号
-    -- 更新星号(*)标记到当前队伍类型的标签旁，并用高亮色标记当前队伍类型文本
     if not (init and quickAssistTable and quickAssistTable["enabled"]) then return end
 
     activeFilter = Cell.vars.quickAssistGroupType and quickAssistTable["filterAutoSwitch"][Cell.vars.quickAssistGroupType] or 0
 
     if activeFilter == 0 then
-        -- 配置为"隐藏"时默认使用过滤器 I
         filterButtons[1]:GetScript("OnClick")()
         selectedFilter = 1
     else
@@ -3851,5 +3670,4 @@ UpdateAutoSwitch = function()
         bgText:SetTextColor(1, 1, 1)
     end
 end
--- 注册回调：QuickAssist 配置变更时更新自动切换状态（星号标记和颜色高亮）
 Cell.RegisterCallback("UpdateQuickAssist", "UpdateAutoSwitch", UpdateAutoSwitch)

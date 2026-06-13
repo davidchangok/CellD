@@ -1,6 +1,3 @@
--- Cell RaidDebuffs 模块
--- 负责 RaidDebuffs 设置面板的完整 UI：资料片/副本/首领三级导航、debuff 列表的创建/删除/启用/禁用/拖拽排序、
--- 以及每个 debuff 的条件过滤（层数）、发光特效类型与参数配置、发光预览等
 local _, Cell = ...
 local L = Cell.L
 local F = Cell.funcs
@@ -14,7 +11,7 @@ Cell.frames.raidDebuffsTab = debuffsTab
 debuffsTab:SetAllPoints(Cell.frames.optionsFrame)
 debuffsTab:Hide()
 
--- 模块状态变量：当前选中的资料片、实例、首领及是否为通用(General)debuff
+-- vars
 local loadedExpansion, loadedInstance, loadedBoss, isGeneral
 local tierNames = {}
 local currentBossTable, selectedButtonIndex, selectedSpellId, selectedSpellName, selectedSpellIcon
@@ -63,14 +60,12 @@ local bossIdToName = {
     [0] = L["General"]
 }
 
--- 副本首领ID覆盖表：用于某些特殊首领（如雷电王座的莱登），它们不在 EJ_GetEncounterInfoByIndex 的标准索引中，需要手动映射
 local instanceBossOverrides = {
     [362] = {  -- 雷电王座
         [13] = 831,  -- 莱登
     },
 }
 
--- 加载指定副本实例中所有首领的列表，遍历 EJ_GetEncounterInfoByIndex 获取首领名称、ID 与头像图片
 local function LoadBossList(instanceId, list)
     EJ_SelectInstance(instanceId)
     for index = 1, 77 do
@@ -92,7 +87,6 @@ local function LoadBossList(instanceId, list)
     end
 end
 
--- 加载指定资料片层(tier)下的所有副本/地下城实例，遍历 EJ_GetInstanceByIndex 获取实例名称、ID与图片，并为每个实例调用 LoadBossList 加载首领
 local function LoadInstanceList(tier, instanceType, list)
     EJ_SelectTier(tier)
     local isRaid = instanceType == "raid"
@@ -112,10 +106,8 @@ local function LoadInstanceList(tier, instanceType, list)
     end
 end
 
--- 当前赛季资料片层的索引（固定为12），遍历时跳过此层不加载团队副本（因为当前赛季的副本已通过地下城方式加载）
 local CURRENT_SEASON_INDEX = 12
 
--- 初始化整个副本日志列表：遍历所有资料片层(tier)，为每层分别加载团队副本(raid)和地下城(party)实例列表，并构建 tierNames 映射
 local function LoadList()
     local currentTier = EJ_GetCurrentTier()
 
@@ -169,7 +161,6 @@ end
 ]]
 -------------------------------------------------
 
--- 切换当前显示的资料片：若已加载同一资料片则跳过，否则更新 loadedExpansion 并调用 ShowInstances 显示该资料片下的实例列表
 LoadExpansion = function(eName)
     if loadedExpansion == eName then return end
     loadedExpansion = eName
@@ -177,7 +168,6 @@ LoadExpansion = function(eName)
     ShowInstances(eName)
 end
 
--- 外部模块通过此函数注册内置 debuff 数据，数据按 instanceId -> bossId -> spellId列表 的组织结构存入 unsortedDebuffs
 local unsortedDebuffs = {}
 function F.LoadBuiltInDebuffs(debuffs)
     for instanceId, iTable in pairs(debuffs) do
@@ -203,7 +193,7 @@ local loadedDebuffs = {
 }
 Cell.snippetVars.loadedDebuffs = loadedDebuffs
 
--- CellDB["raidDebuffs"] 数据库结构说明：以 spellId 为键存储每个 debuff 的配置（排序、追踪方式、过滤条件、发光类型与参数等）
+-- db
 -- [spellId] = {
 --     order = (number),
 --     trackByID = (boolean),
@@ -215,10 +205,8 @@ Cell.snippetVars.loadedDebuffs = loadedDebuffs
 --     useElapsedTime = (boolean),
 -- }
 
--- debuff 配置的所有可持久化属性字段列表，用于从 CellDB 中批量读取/写入
 local indices = {"order", "trackByID", "condition", "glowType", "glowOptions", "glowCondition", "glowTarget", "useElapsedTime"}
 
--- 从 CellDB 数据库中加载指定实例/首领的 debuff 配置到 loadedDebuffs 运行时结构：order=0 的归入 disabled 列表，否则按 order 值插入 enabled 列表
 local function LoadDB(instanceId, bossId, bossTable)
     if not loadedDebuffs[instanceId][bossId] then loadedDebuffs[instanceId][bossId] = {["enabled"]={}, ["disabled"]={}} end
     -- load from db and set its order
@@ -235,7 +223,6 @@ local function LoadDB(instanceId, bossId, bossTable)
     end
 end
 
--- 加载内置 debuff 数据：遍历 spellId 列表，若 CellDB 中不存在则按规则写入（负数为默认禁用、字符串为按ID追踪），若已存在则标记为 built-in 禁止删除
 local function LoadBuiltIn(instanceId, bossId, bossTable)
     if not loadedDebuffs[instanceId][bossId] then loadedDebuffs[instanceId][bossId] = {["enabled"]={}, ["disabled"]={}} end
     -- load
@@ -277,7 +264,6 @@ local function LoadBuiltIn(instanceId, bossId, bossTable)
     end
 end
 
--- 修复 order 序号：当 enabled 列表中存在空洞（某些内置 debuff 可能被删除）时，重新整理序号使其连续，并同步更新 CellDB
 local function CheckOrders(instanceId, bossId, bossTable)
     local currentN, correctN = #bossTable["enabled"], F.Getn(bossTable["enabled"])
     if currentN ~= correctN then -- missing some debuffs, maybe deleted from built-in
@@ -301,7 +287,6 @@ local function CheckOrders(instanceId, bossId, bossTable)
     end
 end
 
--- 主加载入口：先加载 CellDB 中的用户自定义配置，再加载内置 debuff 数据，最后修复 order 序列
 local function LoadDebuffs()
     -- check db
     for instanceId, iTable in pairs(CellDB["raidDebuffs"]) do
@@ -331,7 +316,6 @@ local function LoadDebuffs()
     -- texplore(loadedDebuffs[477]) -- 悬槌堡
 end
 
--- 刷新整个 RaidDebuffs 模块数据：重新加载副本列表和 debuff 配置（通常在插件加载或数据导入后调用）
 local function UpdateRaidDebuffs()
     LoadList()
     -- LoadDungeonsForCurrentSeason()
@@ -344,8 +328,6 @@ Cell.RegisterCallback("UpdateRaidDebuffs", "RaidDebuffsTab_UpdateRaidDebuffs", U
 -------------------------------------------------
 local expansionDropdown, showCurrentBtn
 
--- 外部跳转入口：根据副本名称和可选的首领名称，导航到对应的 UI 位置（自动展开资料片、实例、首领列表并滚动到可见区域）
--- 用于通过 Shift+点击分享链接或代码触发跳转
 local function OpenInstanceBoss(instanceName, bossName)
     if not instanceName or not instanceNameMapping[instanceName] then return end
 
@@ -403,7 +385,6 @@ local function OpenInstanceBoss(instanceName, bossName)
     end
 end
 
--- 创建 RaidDebuffs 面板的顶部控件：资料片下拉菜单、帮助按钮、当前副本按钮、导入/导出按钮、底部提示文字
 local function CreateWidgets()
     -- expansion dropdown
     expansionDropdown = Cell.CreateDropdown(debuffsTab, 269)
@@ -484,7 +465,6 @@ end
 -------------------------------------------------
 -- list button onEnter, onLeave
 -------------------------------------------------
--- 为列表框架设置鼠标悬停/离开的高亮效果：悬停时边框和滚动条变为强调色，离开时恢复黑色边框
 local function SetOnEnterLeave(frame)
     frame:SetScript("OnEnter", function()
         frame:SetBackdropBorderColor(unpack(Cell.GetAccentColorTable()))
@@ -501,7 +481,6 @@ end
 -------------------------------------------------
 -- instances frame
 -------------------------------------------------
--- 创建实例列表面板：左侧滚动列表显示当前资料片下的所有副本/地下城，右侧悬停预览实例头像图片
 local function CreateInstanceFrame()
     instancesFrame = Cell.CreateFrame("RaidDebuffsTab_Instances", debuffsTab, 127, 229)
     instancesFrame:SetPoint("TOPLEFT", expansionDropdown, "BOTTOMLEFT", 0, -5)
@@ -543,7 +522,6 @@ local function CreateInstanceFrame()
     end
 end
 
--- 显示指定资料片下的所有实例按钮：创建/更新按钮列表，设置点击事件（含 Shift 分享、Alt 重置、双击打开副本日志）
 ShowInstances = function(eName)
     instancesFrame.scrollFrame:ResetScroll()
 
@@ -620,7 +598,6 @@ end
 -------------------------------------------------
 -- bosses frame
 -------------------------------------------------
--- 创建首领列表面板：紧接实例列表下方，显示当前副本的所有首领按钮及"通用"(General)按钮，悬停时预览首领头像
 local function CreateBossesFrame()
     bossesFrame = Cell.CreateFrame("RaidDebuffsTab_Bosses", debuffsTab, 127, 229)
     bossesFrame:SetPoint("TOPLEFT", instancesFrame, "BOTTOMLEFT", 0, -5)
@@ -662,7 +639,6 @@ local function CreateBossesFrame()
     end
 end
 
--- 显示指定实例下的所有首领按钮：包含"通用"(General)按钮和所有首领按钮，设置点击事件（Shift 分享、Alt 重置）
 ShowBosses = function(instanceId, forceRefresh)
     local iId, iIndex = F.SplitToNumber("-", instanceId)
 
@@ -782,7 +758,6 @@ end
 -------------------------------------------------
 local dragged, delete
 
--- 创建 debuff 列表面板：右侧主区域，包含可拖拽排序的 debuff 按钮列表、新建/删除按钮、拖拽预览浮动框
 local function CreateDebuffsFrame()
     debuffListFrame = Cell.CreateFrame("RaidDebuffsTab_Debuffs", debuffsTab, 137, 438)
     debuffListFrame:SetPoint("TOPLEFT", instancesFrame, "TOPRIGHT", 5, 0)
@@ -924,7 +899,7 @@ local function CreateDebuffsFrame()
         popup:SetPoint("TOPLEFT", 117, -170)
     end)
 
-    -- 拖拽预览浮动框：跟随鼠标移动，显示被拖拽 debuff 的图标和名称，在 OnUpdate 中持续更新位置
+    -- dragged
     dragged = Cell.CreateFrame("RaidDebuffsTab_Dragged", debuffsTab, 20, 20)
     Cell.StylizeFrame(dragged, nil, Cell.GetAccentColorTable())
     dragged:SetFrameStrata("DIALOG")
@@ -950,7 +925,6 @@ local function CreateDebuffsFrame()
     dragged.text:SetWordWrap(false)
 end
 
--- 为 debuff 按钮注册拖拽功能：支持左键拖拽排序，拖拽时显示浮动预览框，放下时重新计算位置和顺序并同步更新 CellDB
 local function RegisterForDrag(b)
     -- dragging
     b:SetMovable(true)
@@ -1084,7 +1058,6 @@ local function RegisterForDrag(b)
     end)
 end
 
--- 取消 debuff 按钮的拖拽功能（用于已禁用的 debuff，不允许拖拽排序）
 local function UnregisterForDrag(b)
     b:SetMovable(false)
     b:SetScript("OnDragStart", nil)
@@ -1092,7 +1065,6 @@ local function UnregisterForDrag(b)
 end
 
 local last
--- 创建或更新单个 debuff 按钮：包含法术图标和名称，根据 order 值决定是否启用（order=0 禁用并灰色显示），同时注册/取消拖拽
 local function CreateDebuffButton(i, sTable)
     if not debuffButtons[i] then
         debuffButtons[i] = Cell.CreateButton(debuffListFrame.scrollFrame.content, " ", "transparent-accent", {20, 20})
@@ -1149,7 +1121,6 @@ local function CreateDebuffButton(i, sTable)
     last =  debuffButtons[i]
 end
 
--- 显示指定首领的 debuff 列表：加载 loadedDebuffs 中该首领的 enabled 和 disabled 列表，创建按钮并设置悬停提示和点击事件
 ShowDebuffs = function(bossId, buttonIndex)
     local bId, _ = F.SplitToNumber("-", bossId)
 
@@ -1223,7 +1194,6 @@ end
 --------------------------------------------------
 local previewButton
 
--- 创建发光效果预览按钮：位于面板右侧，使用 Cell 的单元按钮模板，带有淡入淡出动画，用于预览各发光类型效果
 local function CreatePreviewButton()
     previewButton = CreateFrame("Button", "CellRaidDebuffsPreviewButton", debuffsTab, "CellPreviewButtonTemplate")
     B.UpdateBackdrop(previewButton)
@@ -1277,7 +1247,6 @@ local function CreatePreviewButton()
     Cell.Fire("CreatePreview", previewButton)
 end
 
--- 更新预览按钮的外观：根据当前布局设置大小、朝向、血条/能量条颜色、指示器等，模拟实际 raid 框架单元的外观
 local function UpdatePreviewButton()
     if not previewButton then
         CreatePreviewButton()
@@ -1331,7 +1300,6 @@ local UpdateGlowType, LoadGlowOptions, LoadGlowCondition, ShowGlowPreview
 
 local conditionHeight, glowOptionsHeight, glowConditionHeight = 0, 0, 0
 
--- 创建 debuff 详情编辑面板：位于 debuff 列表右侧，包含法术图标/名称/ID、启用开关、按ID追踪、经历时间、条件设置（层数过滤）、发光类型/目标/颜色/参数/条件等全套编辑控件
 local function CreateDetailsFrame()
     detailsFrame = Cell.CreateFrame("RaidDebuffsTab_DebuffDetails", debuffsTab)
     detailsFrame:SetPoint("TOPLEFT", debuffListFrame, "TOPRIGHT", 5, 0)
@@ -1774,7 +1742,6 @@ local function CreateDetailsFrame()
     -- glowColor:SetPoint("TOPLEFT", glowOptionsFrame, 5, 0)
     glowColor:SetPoint("TOPLEFT", glowConditionOperator, "BOTTOMLEFT", 0, -10)
 
-    -- 发光参数滑块统一回调：更新 CellDB 和 loadedDebuffs 中 glowOptions 的指定索引值，然后刷新发光预览
     local function SliderValueChanged(index, value, refresh)
         local t = selectedButtonIndex <= #currentBossTable["enabled"] and currentBossTable["enabled"][selectedButtonIndex] or currentBossTable["disabled"][selectedButtonIndex-#currentBossTable["enabled"]]
         -- update db
@@ -1833,7 +1800,6 @@ end
 --------------------------------------------------
 -- details functions
 --------------------------------------------------
--- 更新当前选中 debuff 的过滤条件：写入 CellDB 和 loadedDebuffs，然后刷新 UI 控件状态
 UpdateCondition = function(condition)
     local t = selectedButtonIndex <= #currentBossTable["enabled"] and currentBossTable["enabled"][selectedButtonIndex] or currentBossTable["disabled"][selectedButtonIndex-#currentBossTable["enabled"]]
 
@@ -1857,7 +1823,6 @@ UpdateCondition = function(condition)
     LoadCondition(condition)
 end
 
--- 根据条件数据刷新条件 UI 控件：无条件时隐藏条件框架，有条件时显示比较运算符下拉和数值输入框，并更新滚动区域高度
 LoadCondition = function(condition)
     if condition[1] == "None" then
         conditionDropDown:SetSelectedValue("None")
@@ -1882,7 +1847,6 @@ LoadCondition = function(condition)
 end
 
 -- glow
--- 切换发光类型：根据类型（Normal/Pixel/Shine/Proc）初始化对应的默认发光参数并更新 CellDB/loadedDebuffs，同时刷新发光 UI 控件
 UpdateGlowType = function(newType)
     local t = selectedButtonIndex <= #currentBossTable["enabled"] and currentBossTable["enabled"][selectedButtonIndex] or currentBossTable["disabled"][selectedButtonIndex-#currentBossTable["enabled"]]
     if t["glowType"] ~= newType then
@@ -1993,7 +1957,6 @@ UpdateGlowType = function(newType)
     glowTargetDropdown:Show()
 end
 
--- 在预览按钮上显示当前发光效果：根据发光类型调用 LCG 库的不同发光函数（ButtonGlow/PixelGlow/AutoCastGlow/ProcGlow），支持淡入淡出动画
 ShowGlowPreview = function(glowType, glowOptions, refresh)
     if not glowType or glowType == "None" then
         LCG.ButtonGlow_Stop(previewButton)
@@ -2065,7 +2028,6 @@ ShowGlowPreview = function(glowType, glowOptions, refresh)
     end
 end
 
--- 根据发光类型载入对应的参数滑块 UI：Pixel 显示 Lines/Frequency/Length/Thickness，Shine 显示 Particles/Frequency/Scale，Proc 显示 Duration
 LoadGlowOptions = function(glowType, glowOptions)
     if not glowType or glowType == "None" or not glowOptions then
         glowTargetDropdown:Hide()
@@ -2134,7 +2096,6 @@ LoadGlowOptions = function(glowType, glowOptions)
     detailsFrame.scrollFrame:ResetScroll()
 end
 
--- 根据发光条件数据刷新发光条件 UI：有条件时显示比较运算符和数值输入框，无条件时隐藏并调整颜色选择器位置，同时更新滚动区域高度
 LoadGlowCondition = function(glowCondition)
     if type(glowCondition) == "table" then
         glowConditionOperator:Show()
@@ -2170,7 +2131,6 @@ end
 --     detailsContentFrame.scrollFrame:SetContentHeight(descText:GetStringHeight()+2)
 -- end
 
--- 点击 debuff 按钮时显示详情编辑面板：加载法术名称/图标/ID，刷新启用开关、按ID追踪、经历时间、条件、发光类型/参数/条件等全部编辑控件状态
 local timer
 ShowDetails = function(spell)
     local spellId, buttonIndex = F.SplitToNumber("-", spell)
@@ -2235,7 +2195,7 @@ ShowDetails = function(spell)
 end
 
 -------------------------------------------------
--- 打开暴雪副本日志界面：若 Blizzard_EncounterJournal 未加载则先加载，自动判断当前副本难度并跳转到指定实例
+-- open encounter journal -- from grid2
 -------------------------------------------------
 OpenEncounterJournal = function(instanceId)
     if not C_AddOns.IsAddOnLoaded("Blizzard_EncounterJournal") then C_AddOns.LoadAddOn("Blizzard_EncounterJournal") end
@@ -2266,7 +2226,6 @@ end
 -------------------------------------------------
 -- functions
 -------------------------------------------------
--- 获取当前副本的完整 debuff 列表（供运行时监控模块使用）：先加载通用(General) debuff，再加载首领专属 debuff（战斗中可按 encounterID 过滤），返回按 spellName 或 spellId 索引的有序列表
 function F.GetDebuffList(instanceName, encounterID)
     local list = {}
     local eName, iIndex, iId = F.SplitToNumber(":", instanceNameMapping[instanceName])
@@ -2324,7 +2283,6 @@ end
 -------------------------------------------------
 -- sharing functions
 -------------------------------------------------
--- 根据副本名称和首领名称反查 instanceId 和 bossId（供外部数据导入/分享时解析用）
 function F.GetInstanceAndBossId(instanceName, bossName)
     local result = instanceNameMapping[instanceName]
     if not result then return end
@@ -2351,7 +2309,6 @@ function F.GetInstanceAndBossId(instanceName, bossName)
     return instanceId, bossId
 end
 
--- 根据 instanceId 和 bossId 反查实例名称和首领名称（GetInstanceAndBossId 的逆操作，用于导出/显示时获取可读文本）
 function F.GetInstanceAndBossName(instanceId, bossId)
     if bossId == "general" then
         return instanceIdToName[instanceId], bossIdToName[0]
@@ -2361,7 +2318,6 @@ function F.GetInstanceAndBossName(instanceId, bossId)
 end
 
 -- calculate built-ins and customs
--- 计算指定实例/首领的内置 debuff 和自定义 debuff 数量（用于导入/导出界面显示统计信息）
 function F.CalcRaidDebuffs(instanceId, bossId, data)
     local builtIn = 0
 
@@ -2405,7 +2361,6 @@ function F.CalcRaidDebuffs(instanceId, bossId, data)
     return builtIn, F.Getn(customs)
 end
 
--- 外部调用入口：非战斗中时打开 RaidDebuffs 面板并自动跳转到指定副本的首领 debuff 列表
 function F.ShowInstanceDebuffs(instanceId, bossId)
     if not InCombatLockdown() then
         F.ShowRaidDebuffsTab()
@@ -2419,7 +2374,6 @@ function F.ShowInstanceDebuffs(instanceId, bossId)
     end
 end
 
--- 更新 RaidDebuffs 数据（导入/重置时调用）：替换 CellDB 中指定实例/首领的 debuff 配置，然后重建 loadedDebuffs 运行时结构并触发 RaidDebuffsChanged 事件
 function F.UpdateRaidDebuffs(instanceId, bossId, data, which)
     -- update db
     if not bossId then
@@ -2482,7 +2436,6 @@ end
 -------------------------------------------------
 -- show
 -------------------------------------------------
--- 面板显示/隐藏回调：首次显示时延迟创建所有 UI 框架和控件，切换到 debuffs 标签时显示面板并刷新预览按钮
 local init
 local function ShowTab(tab)
     if tab == "debuffs" then
@@ -2508,7 +2461,6 @@ local function ShowTab(tab)
 end
 Cell.RegisterCallback("ShowOptionsTab", "RaidDebuffsTab_ShowTab", ShowTab)
 
--- 布局更新回调：当玩家修改框架布局设置时刷新发光预览按钮外观
 local function UpdateLayout()
     if previewButton then
         UpdatePreviewButton()
@@ -2516,7 +2468,6 @@ local function UpdateLayout()
 end
 Cell.RegisterCallback("UpdateLayout", "RaidDebuffsTab_UpdateLayout", UpdateLayout)
 
--- 外观更新回调：当玩家修改外观设置（如透明度、背景等）时刷新发光预览按钮外观
 local function UpdateAppearance()
     if previewButton then
         UpdatePreviewButton()
@@ -2524,7 +2475,6 @@ local function UpdateAppearance()
 end
 Cell.RegisterCallback("UpdateAppearance", "RaidDebuffsTab_UpdateAppearance", UpdateAppearance)
 
--- 指示器更新回调：当玩家修改指示器设置（特别是 nameText 名称文字指示器）时刷新发光预览按钮外观
 local function UpdateIndicators(layout, indicatorName, setting, value)
     if previewButton then
         if not layout or indicatorName == "nameText" then

@@ -1,11 +1,3 @@
--- ============================================================================
--- Widgets_IndicatorSettings.lua
--- 指示器设置控件的工厂模块
--- 提供一系列 CreateSetting_* 工厂函数，为各指示器（光环、血量格式、发光等）
--- 动态创建对应的设置UI控件（下拉框、滑块、颜色选择器、复选框等）
--- 所有创建的控件通过 settingWidgets 表缓存，支持复用
--- ============================================================================
-
 local addonName, Cell = ...
 local L = Cell.L
 ---@type CellFuncs
@@ -17,7 +9,7 @@ local P = Cell.pixelPerfectFuncs
 local LCG = LibStub("LibCustomGlow-1.0")
 
 -----------------------------------------
--- Color -- 预定义颜色表，用于设置界面中的颜色选项文本和默认值
+-- Color
 -----------------------------------------
 local colors = {
     grey = {s="|cFFA7A7A7", t={0.7, 0.7, 0.7}},
@@ -36,7 +28,7 @@ if class then
 end
 
 -----------------------------------------
--- Font -- 字体常量，引用 Cell 全局字体样式名称，用于设置控件标签和内容的字体
+-- Font
 -----------------------------------------
 local font_title_name = "CELL_FONT_WIDGET_TITLE"
 local font_title_disable_name = "CELL_FONT_WIDGET_TITLE_DISABLE"
@@ -47,11 +39,10 @@ local font_class_title_name = "CELL_FONT_CLASS_TITLE"
 local font_class_name = "CELL_FONT_CLASS"
 
 -----------------------------------------
--- indicator settings widgets -- 设置控件缓存表，key为控件类型标识，value为已创建的Frame
+-- indicator settings widgets
 -----------------------------------------
 local settingWidgets = {} -- store all created widgets
 
--- 创建"启用"复选框控件
 local function CreateSetting_Enabled(parent)
     local widget
 
@@ -79,10 +70,7 @@ local function CreateSetting_Enabled(parent)
     return widget
 end
 
--- 所有可能的锚点列表
 local anchorPoints = {"BOTTOM", "BOTTOMLEFT", "BOTTOMRIGHT", "CENTER", "LEFT", "RIGHT", "TOP", "TOPLEFT", "TOPRIGHT"}
-
--- 创建位置设置控件（锚点、相对锚点、相对目标、X/Y偏移）
 local function CreateSetting_Position(parent)
     local widget
 
@@ -191,10 +179,7 @@ local function CreateSetting_Position(parent)
     return widget
 end
 
--- 无水平居中锚点列表（排除 CENTER、TOP、BOTTOM，用于需要固定方向的指示器）
 local anchorPoints_noHCenter = {"BOTTOMLEFT", "BOTTOMRIGHT", "LEFT", "RIGHT", "TOPLEFT", "TOPRIGHT"}
-
--- 创建位置设置控件（无水平居中锚点版本），与 CreateSetting_Position 类似但高度更小
 local function CreateSetting_PositionNoHCenter(parent)
     local widget
 
@@ -303,8 +288,6 @@ local function CreateSetting_PositionNoHCenter(parent)
     return widget
 end
 
--- 创建护盾条位置设置控件
--- 特殊处理：锚点可选"生命条"（HEALTH_BAR），选择后禁用相对锚点和偏移控件
 local function CreateSetting_ShieldBarPosition(parent)
     local widget
 
@@ -391,7 +374,6 @@ local function CreateSetting_ShieldBarPosition(parent)
     return widget
 end
 
--- 创建锚点目标选择控件（生命条当前/损失/整体 或 单位按钮）
 local function CreateSetting_Anchor(parent)
     local widget
 
@@ -454,7 +436,6 @@ local function CreateSetting_Anchor(parent)
     return widget
 end
 
--- 创建帧层级滑块控件（控制指示器的渲染层级）
 local function CreateSetting_FrameLevel(parent)
     local widget
 
@@ -486,7 +467,6 @@ local function CreateSetting_FrameLevel(parent)
     return widget
 end
 
--- 创建尺寸设置控件（宽 x 高滑块）
 local function CreateSetting_Size(parent)
     local widget
 
@@ -561,7 +541,6 @@ end
 --     return widget
 -- end
 
--- 创建正方形尺寸设置控件（单滑块同时控制宽高）
 local function CreateSetting_SizeSquare(parent)
     local widget
 
@@ -592,7 +571,6 @@ local function CreateSetting_SizeSquare(parent)
     return widget
 end
 
--- 创建间距设置控件（X/Y方向间距滑块）
 local function CreateSetting_Spacing(parent)
     local widget
 
@@ -633,7 +611,6 @@ local function CreateSetting_Spacing(parent)
     return widget
 end
 
--- 创建粗细设置控件（线条/边框粗细滑块）
 local function CreateSetting_Thickness(parent)
     local widget
 
@@ -664,7 +641,6 @@ local function CreateSetting_Thickness(parent)
     return widget
 end
 
--- 创建标准/大号两种尺寸设置控件（分别控制普通和大光环指示器大小）
 local function CreateSetting_SizeNormalBig(parent)
     local widget
 
@@ -702,7 +678,6 @@ local function CreateSetting_SizeNormalBig(parent)
     return widget
 end
 
--- 创建尺寸+边框设置控件（正方形尺寸 + 边框粗细滑块）
 local function CreateSetting_SizeAndBorder(parent)
     local widget
 
@@ -730,7 +705,7 @@ local function CreateSetting_SizeAndBorder(parent)
         -- show db value
         function widget:SetDBValue(sizeTable, border)
             widget.size:SetValue(sizeTable[1])
-            widget.border:SetValue(border or 1) -- 兼容 r33 之前的旧数据：无边框值时默认使用1
+            widget.border:SetValue(border or 1) -- before r33 there's no border value
         end
     else
         widget = settingWidgets["size-border"]
@@ -740,7 +715,6 @@ local function CreateSetting_SizeAndBorder(parent)
     return widget
 end
 
--- 创建高度设置控件（单高度滑块）
 local function CreateSetting_Height(parent)
     local widget
 
@@ -771,7 +745,6 @@ local function CreateSetting_Height(parent)
     return widget
 end
 
--- 创建文本宽度设置控件（无限/百分比/固定长度三种模式，支持中英文分别设置）
 local function CreateSetting_TextWidth(parent)
     local widget
 
@@ -877,7 +850,6 @@ local function CreateSetting_TextWidth(parent)
             widget.func({"length", length, tonumber(widget.length2:GetText()) or widget.lengthValue2})
         end)
 
-        -- 英文字符长度输入变化处理：验证新值并显示/隐藏确认按钮
         widget.length:SetScript("OnTextChanged", function(self, userChanged)
             if userChanged then
                 local length = tonumber(self:GetText())
@@ -912,7 +884,6 @@ local function CreateSetting_TextWidth(parent)
             widget.func({"length", tonumber(widget.length:GetText()) or widget.lengthValue, length})
         end)
 
-        -- 非英文字符长度输入变化处理：验证新值并显示/隐藏确认按钮
         widget.length2:SetScript("OnTextChanged", function(self, userChanged)
             if userChanged then
                 local length = tonumber(self:GetText())
@@ -967,7 +938,6 @@ end
 
 
 
--- 创建透明度设置控件（0~1 透明度滑块）
 local function CreateSetting_Alpha(parent)
     local widget
 
@@ -998,7 +968,6 @@ local function CreateSetting_Alpha(parent)
     return widget
 end
 
--- 创建数量设置控件（最大显示数量滑块）
 local function CreateSetting_Num(parent)
     local widget
 
@@ -1030,7 +999,6 @@ local function CreateSetting_Num(parent)
     return widget
 end
 
--- 创建每行数量设置控件（控制指示器每行显示个数）
 local function CreateSetting_NumPerLine(parent)
     local widget
 
@@ -1062,8 +1030,6 @@ local function CreateSetting_NumPerLine(parent)
     return widget
 end
 
--- 创建血量格式设置控件
--- 支持生命值1、生命值2、护盾、治疗吸收四个子项，各有格式下拉、颜色选择、分隔符等
 local function CreateSetting_HealthFormat(parent)
     local widget
 
@@ -1075,7 +1041,6 @@ local function CreateSetting_HealthFormat(parent)
         local shield = 65535
         local healAbsorb = 88127
 
-        -- 根据各子项的格式选择动态更新启用状态（无格式时禁用相关控件并灰显分隔符文字）
         local function UpdateWidgets()
             local health1Enabled = widget.format.health1.format ~= "none"
             widget.health1HideIfEmptyOrFullCB:SetEnabled(health1Enabled)
@@ -1133,9 +1098,7 @@ local function CreateSetting_HealthFormat(parent)
             return items
         end
 
-        -- "有效生命值"灰色标签文本（显示在选项预览中）
         local effective = " |cff7b7b7b" .. L["Effective"] .. "|r"
-        -- 生命值格式选项列表（含预览数值 213777/300000）
         local healthList = {
             {L["None"], "none"},
             {(health + shield - healAbsorb) .. effective, "effective"},
@@ -1423,7 +1386,6 @@ local function CreateSetting_HealthFormat(parent)
     return widget
 end
 
--- 创建能量格式设置控件（百分比/数值/简写数值）
 local function CreateSetting_PowerFormat(parent)
     local widget
 
@@ -1478,7 +1440,6 @@ local function CreateSetting_PowerFormat(parent)
     return widget
 end
 
--- 创建持续时间显示条件设置控件（永不/始终/低于某百分比/低于某秒数）
 local function CreateSetting_DurationVisibility(parent)
     local widget
 
@@ -1575,7 +1536,6 @@ local function CreateSetting_DurationVisibility(parent)
     return widget
 end
 
--- 创建方向设置控件（左到右/右到左/上到下/下到上）
 local function CreateSetting_Orientation(parent)
     local widget
 
@@ -1633,7 +1593,6 @@ local function CreateSetting_Orientation(parent)
     return widget
 end
 
--- 创建条状指示器方向设置控件（水平/垂直）
 local function CreateSetting_BarOrientation(parent)
     local widget
 
@@ -1681,7 +1640,6 @@ local function CreateSetting_BarOrientation(parent)
     return widget
 end
 
--- 创建载具名称位置设置控件（顶部/底部/隐藏 + Y偏移）
 local function CreateSetting_VehicleNamePosition(parent)
     local widget
 
@@ -1743,7 +1701,6 @@ local function CreateSetting_VehicleNamePosition(parent)
     return widget
 end
 
--- 创建状态文本位置设置控件（顶部/底部 + Y偏移 + 对齐方式）
 local function CreateSetting_StatusPosition(parent)
     local widget
 
@@ -1825,7 +1782,6 @@ local function CreateSetting_StatusPosition(parent)
     return widget
 end
 
--- 创建字体设置控件（无偏移版本：字体、大小、描边、阴影）
 local function CreateSetting_FontNoOffset(parent)
     local widget
 
@@ -1905,8 +1861,6 @@ local function CreateSetting_FontNoOffset(parent)
     return widget
 end
 
--- 创建字体设置控件（完整版：字体、大小、描边、阴影、锚点、XY偏移、颜色）
--- index参数用于区分不同的字体设置实例（如font1、font2等），支持title标题
 local function CreateSetting_Font(parent, index)
     local widget
 
@@ -2063,7 +2017,6 @@ local function CreateSetting_Font(parent, index)
     return widget
 end
 
--- 创建颜色设置控件（简单颜色选择器，无Alpha）
 local function CreateSetting_Color(parent)
     local widget
 
@@ -2097,7 +2050,6 @@ local function CreateSetting_Color(parent)
     return widget
 end
 
--- 创建颜色+透明度设置控件（带Alpha通道的颜色选择器）
 local function CreateSetting_ColorAlpha(parent)
     local widget
 
@@ -2132,7 +2084,6 @@ local function CreateSetting_ColorAlpha(parent)
     return widget
 end
 
--- 创建多颜色设置控件（普通/剩余时间百分比变色/剩余时间秒数变色 + 边框色 + 背景色）
 local function CreateSetting_Colors(parent)
     local widget
 
@@ -2151,7 +2102,6 @@ local function CreateSetting_Colors(parent)
 
         local percentColor, percentDropdown
 
-        -- 百分比变色复选框（CreateSetting_Colors内）：启用时按剩余时间百分比切换颜色
         local percentCB = Cell.CreateCheckButton(widget, "", function(checked)
             widget.colorsTable[2][1] = checked
             Cell.SetEnabled(checked, percentColor, percentDropdown)
@@ -2320,7 +2270,6 @@ local function CreateSetting_Colors(parent)
     return widget
 end
 
--- 创建方块指示器颜色设置控件（按持续时间或堆叠变色 + 边框色，两种变色模式互斥）
 local function CreateSetting_BlockColors(parent)
     local widget
 
@@ -2649,7 +2598,6 @@ local function CreateSetting_BlockColors(parent)
     return widget
 end
 
--- 创建叠层指示器颜色设置控件（普通/剩余时间百分比变色/剩余时间秒数变色）
 local function CreateSetting_OverlayColors(parent)
     local widget
 
@@ -2802,7 +2750,6 @@ local function CreateSetting_OverlayColors(parent)
     return widget
 end
 
--- 创建自定义颜色设置控件（支持实色/渐变/随时间变色/职业颜色等模式，buff和debuff分别有不同选项）
 local function CreateSetting_CustomColors(parent)
     local widget
 
@@ -3145,7 +3092,6 @@ local function CreateSetting_CustomColors(parent)
     return widget
 end
 
--- 创建职业颜色设置控件（职业颜色/自定义颜色切换）
 local function CreateSetting_ClassColor(parent)
     local widget
 
@@ -3206,7 +3152,6 @@ local function CreateSetting_ClassColor(parent)
     return widget
 end
 
--- 创建能量颜色设置控件（能量颜色/职业颜色/自定义颜色切换）
 local function CreateSetting_PowerColor(parent)
     local widget
 
@@ -3275,7 +3220,6 @@ local function CreateSetting_PowerColor(parent)
     return widget
 end
 
--- 创建状态颜色设置控件（AFK/离线/死亡/灵魂/假死/饮水/待定/已接受/已拒绝 + 重置按钮）
 local function CreateSetting_StatusColors(parent)
     local widget
 
@@ -3420,7 +3364,6 @@ local function CreateSetting_StatusColors(parent)
     return widget
 end
 
--- 创建复选框设置控件（通用单复选框，支持tooltip）
 local function CreateSetting_CheckButton(parent)
     local widget
 
@@ -3456,7 +3399,6 @@ local function CreateSetting_CheckButton(parent)
     return widget
 end
 
--- 创建复选框设置控件2（与CheckButton相同，不同缓存key支持第二个复选框）
 local function CreateSetting_CheckButton2(parent)
     local widget
 
@@ -3492,7 +3434,6 @@ local function CreateSetting_CheckButton2(parent)
     return widget
 end
 
--- 创建复选框设置控件3（与CheckButton相同，不同缓存key支持第三个复选框）
 local function CreateSetting_CheckButton3(parent)
     local widget
 
@@ -3528,7 +3469,6 @@ local function CreateSetting_CheckButton3(parent)
     return widget
 end
 
--- 创建复选框设置控件4（与CheckButton相同，不同缓存key支持第四个复选框）
 local function CreateSetting_CheckButton4(parent)
     local widget
 
@@ -3564,7 +3504,6 @@ local function CreateSetting_CheckButton4(parent)
     return widget
 end
 
--- 创建持续时间选项设置控件（显示/舍入/小数位显示条件）
 local function CreateSetting_Duration(parent)
     local widget
 
@@ -3635,7 +3574,6 @@ local function CreateSetting_Duration(parent)
     return widget
 end
 
--- 创建堆叠选项设置控件（显示堆叠/圈数显示）
 local function CreateSetting_Stack(parent)
     local widget
 
@@ -3681,7 +3619,6 @@ local function CreateSetting_Stack(parent)
     return widget
 end
 
--- 创建职责贴图设置控件（选择坦克/治疗/伤害职责图标样式，支持自定义贴图路径）
 local function CreateSetting_RoleTexture(parent)
     local widget
 
@@ -3809,7 +3746,6 @@ local function CreateSetting_RoleTexture(parent)
     return widget
 end
 
--- 创建发光设置控件（支持無/普通/像素/闪耀/触发五种发光类型，各有不同的参数滑块）
 local function CreateSetting_Glow(parent)
     local widget
 
@@ -3960,7 +3896,7 @@ local function CreateSetting_Glow(parent)
         end)
         widget.glowColor:SetPoint("LEFT", widget.glowType, "RIGHT", 25, 0)
 
-        -- 像素发光参数：线条数 / 粒子数 / 持续时间
+        -- glowNumber
         widget.glowLines = Cell.CreateSlider(L["Lines"], widget, 1, 30, 110, 1, function(value)
             widget.glow[3] = value
             widget.func(widget.glow)
@@ -4089,7 +4025,6 @@ local function CreateSetting_Glow(parent)
     return widget
 end
 
--- 创建贴图设置控件（路径选择/旋转角度/颜色着色）
 local function CreateSetting_Texture(parent)
     local widget
 
@@ -4153,14 +4088,10 @@ local function CreateSetting_Texture(parent)
     return widget
 end
 
--- 创建光环法术条目的按钮列表
--- auraButtons: 缓存按钮的表; auraTable: 光环数据表（法术ID或{法术ID, 颜色}）
--- noUpDownButtons: 不显示上下排序按钮; isZeroValid: 允许ID=0（表示所有）; hasColorPicker: 是否有颜色选择器
--- updateHeightFunc: 动态更新父框架高度的回调
 local function CreateAuraButtons(parent, auraButtons, auraTable, noUpDownButtons, isZeroValid, hasColorPicker, updateHeightFunc)
     local n = #auraTable
 
-    -- 为父框架创建法术ID输入弹出框（数字输入，输入时自动显示法术提示）
+    -- tooltip
     if not parent.popupEditBox then
         local popup = Cell.CreatePopupEditBox(parent)
         popup:SetNumeric(true)
@@ -4197,7 +4128,6 @@ local function CreateAuraButtons(parent, auraButtons, auraTable, noUpDownButtons
         auraButtons[0]:SetPoint("RIGHT")
     end
 
-    -- "+" 新增按钮回调：弹出法术ID输入框添加新光环到列表
     auraButtons[0]:SetScript("OnClick", function(self)
         local popup = Cell.CreatePopupEditBox(parent, function(text)
             local spellId = tonumber(text)
@@ -4232,7 +4162,7 @@ local function CreateAuraButtons(parent, auraButtons, auraTable, noUpDownButtons
         if not auraButtons[i] then
             auraButtons[i] = Cell.CreateButton(parent, "", "transparent-accent", {20, 20})
 
-                -- 法术图标显示（黑底 + 图标纹理解析）
+            -- spellIcon
             auraButtons[i].spellIconBg = auraButtons[i]:CreateTexture(nil, "BORDER")
             auraButtons[i].spellIconBg:SetSize(16, 16)
             auraButtons[i].spellIconBg:SetPoint("TOPLEFT", 2, -2)
@@ -4326,7 +4256,7 @@ local function CreateAuraButtons(parent, auraButtons, auraTable, noUpDownButtons
                 auraButtons[i]:GetScript("OnLeave")(auraButtons[i])
             end)
 
-                    -- 光环条目鼠标悬停：显示法术提示框（弹出框可见时跳过）
+            -- spell tooltip
             auraButtons[i]:HookScript("OnEnter", function(self)
                 if parent.popupEditBox:IsShown() then return end
 
@@ -4521,7 +4451,6 @@ local function CreateAuraButtons(parent, auraButtons, auraTable, noUpDownButtons
     end
 end
 
--- 将光环表格式化为可导出的字符串（格式："法术ID, -- 法术名 {颜色}"）
 local function GetExportString(t)
     local s = ""
     local n = 0
@@ -4550,7 +4479,6 @@ end
 local auraButtons = {}
 local auraImportExportFrame
 
--- 将导入文本解析为光环数据表（反向操作GetExportString）
 local function ConvertAuraData(text)
     if not text or text == "" then return end
 
@@ -4587,12 +4515,9 @@ local function ConvertAuraData(text)
     return data
 end
 
--- 创建光环设置控件（法术列表 + 新增/导入/导出/清空按钮）
--- index区分不同光环列表缓存（如auras1、auras2）
 local function CreateSetting_Auras(parent, index)
     local widget
 
-    -- 导入/导出框架（全局唯一，所有光环设置控件共享），内部包含滚动编辑框和导入/关闭按钮
     if not auraImportExportFrame then
         auraImportExportFrame = Cell.CreateFrame(nil, parent, 1, 200)
         auraImportExportFrame:SetBackdropBorderColor(Cell.GetAccentColorRGB())
@@ -4611,7 +4536,6 @@ local function CreateSetting_Auras(parent, index)
             auraImportExportFrame:Hide()
         end)
 
-        -- 编辑框内容变化处理：导入模式时实时解析法术ID，导出模式时阻止编辑
         auraImportExportFrame.textArea = Cell.CreateScrollEditBox(auraImportExportFrame, function(eb, userChanged)
             if userChanged then
                 if auraImportExportFrame.isImport then
@@ -4652,7 +4576,6 @@ local function CreateSetting_Auras(parent, index)
 
         auraImportExportFrame.importBtn = Cell.CreateButton(auraImportExportFrame, L["Import"], "green", {57, 18})
         auraImportExportFrame.importBtn:SetPoint("TOPRIGHT", auraImportExportFrame.closeBtn, "TOPLEFT", P.Scale(1), 0)
-        -- 导入按钮：清空原有数据并用解析出的新数据替换，然后刷新UI和触发回调
         auraImportExportFrame.importBtn:SetScript("OnClick", function()
             -- replace old
             wipe(auraImportExportFrame.parent.t)
@@ -4725,7 +4648,6 @@ local function CreateSetting_Auras(parent, index)
         widget.clear = Cell.CreateButton(widget, nil, "accent-hover", {21, 17}, nil, nil, nil, nil, nil, L["Clear"], "|cffffb5c5Ctrl+"..L["Left-Click"])
         widget.clear:SetPoint("BOTTOMRIGHT", widget.import, "BOTTOMLEFT", -1, 0)
         widget.clear:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\trash", {15, 15}, {"CENTER", 0, 0})
-        -- 清空按钮：需Ctrl+左键确认清空所有光环条目
         widget.clear:SetScript("OnClick", function(self, button)
             if button == "LeftButton" and IsControlKeyDown() then
                 wipe(widget.t)
@@ -5114,19 +5036,12 @@ end
 -------------------------------------------------
 -- CreateSetting_BuiltIns
 -------------------------------------------------
--- ============================================================================
--- CreateSetting_BuiltIns -- 内置光环选择控件
--- 按职业分组展示可从数据库中选择的内置光环（如减伤、群疗等）
--- 玩家点击法术图标可启用/禁用该光环
--- ============================================================================
-
 local classOrder = {"DEATHKNIGHT", "DEMONHUNTER", "DRUID", "EVOKER", "HUNTER", "MAGE", "MONK", "PALADIN", "PRIEST", "ROGUE", "SHAMAN", "WARLOCK", "WARRIOR", "UNCATEGORIZED"}
 local classFrames = {}
 local spellButtons = {}
 local buttonIndex = 1
 local builtInUpdater
 
--- 更新内置光环按钮的视觉状态（启用/禁用时的颜色和透明度）
 local function UpdateSpellButton(btn, class, isDisabled)
     if isDisabled then
         btn:SetBackdropColor(0.6, 0.6, 0.6, 0.85)
@@ -5144,8 +5059,6 @@ local function UpdateSpellButton(btn, class, isDisabled)
     end
 end
 
--- 在父框架中为指定职业创建一行法术图标按钮，10个一行排列
--- 返回生成的按钮总高度
 local function CreateSpellButtons(parent, class, spells, disableds)
     local n = 1
     for spellId in pairs(spells) do
@@ -5212,8 +5125,6 @@ local function CreateSpellButtons(parent, class, spells, disableds)
     return row * 20 + (row - 1) * 5
 end
 
--- 按职业顺序创建所有内置光环分类框架，在每个职业框架内创建对应的法术按钮
--- 返回所有职业框架的总高度
 local function CreateClassFrames(parent, builtIns, disableds)
     local height = 0
     local last
@@ -5265,7 +5176,6 @@ local function CreateClassFrames(parent, builtIns, disableds)
     return height
 end
 
--- 创建内置光环设置控件（按职业展示所有可选光环，点击切换启用/禁用）
 local function CreateSetting_BuiltIns(parent)
     local widget
 
@@ -5304,7 +5214,6 @@ local function CreateSetting_BuiltIns(parent)
     return widget
 end
 
--- 创建单个动画预览框架（显示指定type的动画效果，带循环ticker）
 local function CreateActionPreview(parent, style)
     local f = CreateFrame("Frame", "CellIndicatorSettings_ActionsPreview_Type"..style, parent, "BackdropTemplate")
     f:SetBackdrop({bgFile = Cell.vars.whiteTexture, edgeFile = Cell.vars.whiteTexture, edgeSize = P.Scale(1)})
@@ -5336,7 +5245,6 @@ local function CreateActionPreview(parent, style)
     return f
 end
 
--- 创建动画预览设置控件（9种动画类型 A/B/C1/C2/C3/D/E/F/G 的实时预览 + 速度滑块）
 local function CreateSetting_ActionsPreview(parent)
     local widget
 
@@ -5427,14 +5335,7 @@ local function CreateSetting_ActionsPreview(parent)
     return widget
 end
 
--- ============================================================================
--- CreateSetting_ActionsList -- 动画动作列表控件
--- 管理每个法术对应的动画类型和颜色，支持新增/编辑/删除/预览
--- ============================================================================
-
 local actionButtons = {}
-
--- 创建动画动作条目的按钮列表（每个法术条目包含法术ID、动画类型下拉、颜色选择器、删除/编辑按钮）
 local function CreateActionButtons(parent, spellTable, updateHeightFunc)
     local n = #spellTable
 
@@ -5703,7 +5604,6 @@ local function CreateActionButtons(parent, spellTable, updateHeightFunc)
     end
 end
 
--- 创建动画动作列表设置控件（法术+动画类型列表 + 调试模式按钮）
 local function CreateSetting_ActionsList(parent)
     local widget
 
@@ -5759,7 +5659,6 @@ local function CreateSetting_ActionsList(parent)
 end
 
 local thresholdButtons = {}
--- 创建阈值条目的按钮列表（每个阈值包含百分比编辑框 + 颜色选择器 + 删除按钮）
 local function CreateThresholdButtons(parent, thresholdTable, updateHeightFunc)
     local n = #thresholdTable
 
@@ -5892,7 +5791,6 @@ local function CreateThresholdButtons(parent, thresholdTable, updateHeightFunc)
     end
 end
 
--- 创建阈值设置控件（健康值阈值列表，同一时间只显示一个阈值对应的颜色）
 local function CreateSetting_Thresholds(parent)
     local widget
 
@@ -5933,7 +5831,6 @@ local function CreateSetting_Thresholds(parent)
     return widget
 end
 
--- 创建高亮类型设置控件（无/渐变/实色，作用于生命条的不同部分）
 local function CreateSetting_HighlightType(parent)
     local widget
 
@@ -6056,7 +5953,6 @@ local function CreateSetting_HighlightType(parent)
     return widget
 end
 
--- 创建私有光环选项设置控件（显示倒计时扫光/倒计时数字）
 local function CreateSetting_PrivateAuraOptions(parent)
     local widget
 
@@ -6094,7 +5990,6 @@ local function CreateSetting_PrivateAuraOptions(parent)
     return widget
 end
 
--- 创建提示文本设置控件（只读滚动文本，用于显示指引或说明信息）
 local function CreateSetting_Tips(parent, text)
     local widget
 
@@ -6123,7 +6018,6 @@ local function CreateSetting_Tips(parent, text)
     return widget
 end
 
--- 创建形状选择设置控件（圆形/方形/菱形/六边形/八边形的互斥按钮组）
 local function CreateSetting_Shape(parent)
     local widget
 
@@ -6222,7 +6116,6 @@ local function CreateSetting_Shape(parent)
     return widget
 end
 
--- 创建目标计数过滤器设置控件（室外/PvE/PvP 复选框过滤器）
 local function CreateSetting_TargetCounterFilters(parent)
     local widget
 
@@ -6270,7 +6163,6 @@ local function CreateSetting_TargetCounterFilters(parent)
     return widget
 end
 
--- 创建驱散过滤器设置控件（可驱散/诅咒/疾病/魔法/中毒/流血类型复选框）
 local function CreateSetting_DispelFilters(parent)
     local widget
 
@@ -6342,7 +6234,6 @@ local function CreateSetting_DispelFilters(parent)
     return widget
 end
 
--- 创建施法者筛选设置控件（仅自己/仅他人/任何人）
 local function CreateSetting_CastBy(parent)
     local widget
 
@@ -6465,7 +6356,6 @@ end
 --     return widget
 -- end
 
--- 创建最大数值设置控件（设定条状指示器的最大值，可选允许更小值）
 local function CreateSetting_MaxValue(parent)
     local widget
 
@@ -6517,7 +6407,6 @@ local function CreateSetting_MaxValue(parent)
     return widget
 end
 
--- 创建图标样式设置控件（驱散图标样式：无/BLZ风格/菱形风格）
 local function CreateSetting_IconStyle(parent)
     local widget
 
@@ -6598,7 +6487,6 @@ local function CreateSetting_IconStyle(parent)
     return widget
 end
 
--- 各职业对应的职责列表，用于角色过滤器UI构建
 local CLASS_ROLES = {
     ["DEATHKNIGHT"] = {"TANK", "DAMAGER"},
     ["DEMONHUNTER"] = {"TANK", "DAMAGER"},
@@ -6618,7 +6506,6 @@ local CLASS_ROLES = {
     ["NPC"] = {"DAMAGER"},
 }
 
--- 更新角色过滤器按钮的视觉状态（启用时高亮，禁用时变灰）
 local function RoleFilter_UpdateButton(b, enabled)
     b.tex:SetDesaturated(not enabled)
     if enabled then
@@ -6637,7 +6524,6 @@ local function RoleFilter_UpdateButton(b, enabled)
 end
 
 
--- 创建单个职业的角色过滤控件（显示职业名称 + 对应职责图标按钮）
 local function CreateRoleFilter(parent, class, roles)
     local filter = CreateFrame("Frame", nil, parent, "BackdropTemplate")
     Cell.StylizeFrame(filter)
@@ -6693,7 +6579,6 @@ local function CreateRoleFilter(parent, class, roles)
     return filter
 end
 
--- 创建角色过滤器设置控件（按职业展示T/H/D角色过滤按钮）
 local function CreateSetting_RoleFilters(parent)
     local widget
 
@@ -6744,7 +6629,6 @@ local function CreateSetting_RoleFilters(parent)
     return widget
 end
 
--- 更新职业过滤器按钮的视觉状态（启用时显示职业颜色，禁用时变灰）
 local function ClassFilter_UpdateButton(b, enabled)
     b.tex:SetDesaturated(not enabled)
     if enabled then
@@ -6754,7 +6638,6 @@ local function ClassFilter_UpdateButton(b, enabled)
     end
 end
 
--- 创建单个职业过滤按钮（显示职业图标+名称，点击切换启用/禁用）
 local function CreateClassFilter(parent, class)
     local filter = Cell.CreateButton(parent, class, "accent-hover", {120, 20})
     filter:SetTexture("classicon-"..strlower(class), {16, 16}, {"LEFT", 2, 0}, true, true)
@@ -6782,7 +6665,7 @@ local function CreateClassFilter(parent, class)
     return filter
 end
 
--- 创建职业过滤器设置控件（2列排列的职业过滤按钮，包含PET/VEHICLE/NPC）
+local function CreateSetting_ClassFilters(parent)
     local widget
 
     if not settingWidgets["classFilters"] then
@@ -6842,7 +6725,7 @@ end
 end
 
 -----------------------------------------
--- update parent height -- 根据当前可见的控件数量动态计算并更新父框架高度
+-- update parent height
 -----------------------------------------
 local settingsParent
 function Cell.UpdateIndicatorSettingsHeight()
@@ -6857,7 +6740,7 @@ function Cell.UpdateIndicatorSettingsHeight()
 end
 
 -----------------------------------------
--- create -- 控件构建器映射表（设置名称 -> 工厂函数）
+-- create
 -----------------------------------------
 local builders = {
     ["enabled"] = CreateSetting_Enabled,
@@ -6916,22 +6799,18 @@ local builders = {
     ["powerTextFilters"] = CreateSetting_RoleFilters,
 }
 
--- 对外的核心接口：根据 settingsTable 描述动态创建并显示一系列指示器设置控件
--- settingsTable 为字符串数组，每个字符串对应一个设置控件的名称
--- 返回创建的所有控件 widget 列表
 function Cell.CreateIndicatorSettings(parent, settingsTable)
     settingsParent = parent
 
     local widgetsTable = {}
 
-    -- 先隐藏并清除所有已缓存控件的锚点（准备重新布局）
+    -- hide all
     for _, w in pairs(settingWidgets) do
         w:Hide()
         w:ClearAllPoints()
     end
 
-    -- 根据设置表逐个创建/复用控件，按序添加至列表
-    -- 处理顺序：先在 builders 表中查找，再处理特殊命名的设置（position/font/checkbutton/auras/tips）
+    -- return and show
     for _, setting in pairs(settingsTable) do
         if builders[setting] then
             tinsert(widgetsTable, builders[setting](parent))
@@ -6962,7 +6841,7 @@ function Cell.CreateIndicatorSettings(parent, settingsTable)
             tinsert(widgetsTable, CreateSetting_Auras(parent, 2))
         -- elseif setting == "cleuAuras" then
         --     tinsert(widgetsTable, CreateSetting_CleuAuras(parent))
-        else -- 未匹配任何已知设置名称，作为提示文本显示
+        else -- tips
             tinsert(widgetsTable, CreateSetting_Tips(parent, setting))
         end
     end

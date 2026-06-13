@@ -1,29 +1,9 @@
---------------------------------------------------------------------------------
--- CellD 默认点击施法配置模块
--- 功能：定义各职业/专精的默认点击施法技能列表、复活法术及智能复活逻辑。
--- Midnight/SecretValue 防护说明：
---   - 所有技能 ID 在内部以数字形式存储和比较，避免对字符串的依赖。
---   - 字符串形式的技能 ID（如 "774C"）仅在解析阶段使用，解析后立即转为数字。
---   - F.GetSpellInfo(spellId) 是受保护的 API 封装，内部使用 Safe* 安全函数。
---   - 条件分支（nospec/spec）仅基于安全的表查找，不依赖动态求值。
---   - 复活法术表在 do...end 块中通过 F.GetSpellInfo 预解析为受保护的返回值。
---------------------------------------------------------------------------------
 local _, Cell = ...
 local L = Cell.L
 local F = Cell.funcs
 
 -------------------------------------------------
--- click-castings -- 默认点击施法技能表
--- 数据结构：defaultSpells[职业英文名]["common" 或 专精ID] = {技能条目, ...}
--- 技能条目格式：
---   - 纯数字：直接作为技能 ID（number 类型）
---   - 带后缀的字符串："技能ID+后缀字母"（如 "774C", "305497P"）
---     后缀含义：
---       C (Click)  - 直接点击施法
---       S (Smart)  - 智能施法
---       P (PvP)    - PvP 天赋技能
---       H (HoT)    - 持续治疗法术
---     这些后缀在解析时转换为本地化显示文本（通过 L[spellType] 查找）
+-- click-castings
 -------------------------------------------------
 local defaultSpells = {
     ["DEATHKNIGHT"] = {
@@ -335,72 +315,41 @@ local defaultSpells = {
     },
 }
 
---------------------------------------------------------------------------------
--- GetClickCastingSpellList(class, spec)
--- 获取指定职业和专精的完整点击施法技能列表
--- 参数：
---   class (string) - 职业英文名，如 "DRUID"
---   spec  (number|nil) - 专精 ID（如 105 为恢复德），nil 时仅返回通用技能
--- 返回值：
---   table - 格式为索引数组，每个元素为 {icon, name, spellType, spellId}
---           spellType 可能是 nil（纯数字 ID 未指定类型时）
---
--- 处理流程：
---   1. 深拷贝 common（通用）技能列表
---   2. 合并专精特定技能（如有）
---   3. 解析技能条目 —— 数字直接作为 spellId；
---      字符串则通过 strmatch 解析出 "数字+后缀" 格式，后缀转为本地化文本
---   4. 通过 F.GetSpellInfo 验证技能 ID 有效性
---   5. 剔除无效的技能 ID（记录 Debug 日志）
---
--- Midnight/SecretValue 防护：
---   - strmatch 解析字符串条目时使用严格模式 "(%d+)(%a)"，
---     确保只匹配数字+字母后缀，防止非预期的字符串注入
---   - tonumber 转换后 spellId 始终为 number 类型，消除了字符串比较的绕过风险
---   - F.GetSpellInfo 是受保护的 Safe API，无效 ID 返回 nil 而非崩溃
---   - 无效条目被记录日志并移除，不会进入后续的点击施法逻辑
---------------------------------------------------------------------------------
 function F.GetClickCastingSpellList(class, spec)
-    -- 深拷贝通用技能列表作为基础（F.Copy 避免修改原始表）
     local spells = defaultSpells[class]["common"] and F.Copy(defaultSpells[class]["common"]) or {}
 
-    -- 合并专精特定技能（如有定义）
+    -- check spec
     if spec and defaultSpells[class][spec] then
         for _, v in pairs(defaultSpells[class][spec]) do
             tinsert(spells, v)
         end
     end
 
-    local invalid  -- 待移除的无效条目索引列表
+    local invalid
 
-    -- 遍历技能条目，解析并验证每个技能 ID
+    -- fill data
     for i, v in pairs(spells) do
         local spellId, spellType
 
-        -- 解析技能条目：数字直接作为 ID，字符串需解析 "数字+后缀" 格式
         if type(v) == "number" then
-            spellId = v  -- 纯数字 ID，无类型后缀
+            spellId = v
         else -- string
-            -- Midnight 防护：严格匹配模式 (数字)(字母后缀)，拒绝非预期格式
             spellId, spellType = strmatch(v, "(%d+)(%a)")
-            spellId = tonumber(spellId)  -- 确保转换为 number，消除字符串绕过风险
-            spellType = L[spellType]      -- 后缀字母转为本地化显示文本（C/S/P/H -> 本地化标签）
+            spellId = tonumber(spellId)
+            spellType = L[spellType]
         end
 
-        -- 通过受保护的 Safe API 获取技能信息，验证 ID 有效性
         local name, icon = F.GetSpellInfo(spellId)
         if name then
-            -- 有效技能：替换为结构化数据 {图标, 名称, 施法类型, 技能ID}
             spells[i] = {icon, name, spellType, spellId}
         else
-            -- 无效技能 ID：记录日志并标记待移除
             F.Debug("|cffff0000[INVALID]|r click-casting spell:", spellId)
             if not invalid then invalid = {} end
             tinsert(invalid, i)
         end
     end
 
-    -- 从后向前移除无效条目，确保索引稳定性
+    -- check invalid ids
     if invalid then
         for i = #invalid, 1, -1 do
             tremove(spells, invalid[i])
@@ -412,16 +361,7 @@ function F.GetClickCastingSpellList(class, spec)
 end
 
 -------------------------------------------------
--- resurrections -- 复活法术表
--- 数据结构：resurrections_for_dead = {[技能名称] = true, ...}
--- 用途：快速判断一个技能是否可对死亡目标使用的复活法术
--- 处理流程：
---   - 先在 do...end 块中构建临时表 temp，通过 F.GetSpellInfo 将技能 ID 转为技能名称
---   - 然后用 temp 替换 resurrections_for_dead，使其成为 {名称 -> true} 的快速查找表
--- Midnight/SecretValue 防护：
---   - F.GetSpellInfo 返回的名称是受保护的 API 输出
---   - 表以名称作为键而非 ID，避免了数字伪造风险
---   - 查找操作为 O(1) 的哈希查找，逻辑简单、不可注入
+-- resurrections
 -------------------------------------------------
 local resurrections_for_dead = {
     -- DEATHKNIGHT
@@ -457,8 +397,6 @@ local resurrections_for_dead = {
     20707, -- 灵魂石
 }
 
--- 通过 F.GetSpellInfo 将复活技能 ID 转换为技能名称，构建快速查找表
--- 表结构：{[技能名称] = true}，用于 O(1) 时间判断技能是否为复活法术
 do
     local temp = {}
     for _, id in pairs(resurrections_for_dead) do
@@ -467,70 +405,44 @@ do
     resurrections_for_dead = temp
 end
 
--- F.IsSoulstone(spell) -- 判断指定技能是否为灵魂石
--- Soulstone（灵魂石）是术士的战斗复活技能，需要特殊处理
--- 因为战斗中战复和非战斗复活的行为不同
 local spell_soulstone = F.GetSpellInfo(20707)
 function F.IsSoulstone(spell)
     return spell == spell_soulstone
 end
 
--- F.IsResurrectionForDead(spell) -- 判断指定技能是否可对已死亡的友方目标使用
--- 用于过滤可用法术列表时判断哪些技能适用于死亡目标
 function F.IsResurrectionForDead(spell)
     return resurrections_for_dead[spell]
 end
 
---------------------------------------------------------------------------------
--- resurrection_click_castings -- 复活点击施法绑定表
--- 数据结构：{[职业英文名] = {点击施法条目, ...}}
--- 每个点击施法条目格式：{"按键类型", "施法类型", 技能ID}
---   - 按键类型："type-altR" 表示 Alt+右键点击，"type-shiftR" 表示 Shift+右键点击
---   - 施法类型："spell" 表示直接施放法术
---   - 技能 ID：复活法术的技能 ID
---
--- 设计说明：
---   - 战斗复活（战复）通常绑定在 Alt+右键（如 DK 的 Raise Ally、术士的 Soulstone）
---   - 常规复活（非战斗）通常绑定在 Shift+右键（如牧师的 Resurrection）
---   - 德鲁伊和圣骑士同时拥有战复和常规复活，分别绑在不同按键上
---   - 技能 ID 在注册时由调用方通过 F.GetSpellInfo 转换为技能名称，
---     此处保持数字形式以便于跨语言环境使用
--- Midnight/SecretValue 防护：
---   - 按键类型和施法类型均为硬编码字符串常量，不可从外部注入
---   - 技能 ID 为数字字面量，不依赖动态字符串解析
---   - 返回值为 F.Copy 的副本（或空表），调用方修改不影响原始配置表
---------------------------------------------------------------------------------
 local resurrection_click_castings = {
     ["DEATHKNIGHT"] = {
-        {"type-altR", "spell", 61999},   -- Alt+右键 -> Raise Ally（战复）
+        {"type-altR", "spell", 61999},
     },
     ["DRUID"] = {
-        {"type-altR", "spell", 20484},   -- Alt+右键 -> Rebirth（战复）
-        {"type-shiftR", "spell", 50769},  -- Shift+右键 -> Revive（常规复活）
+        {"type-altR", "spell", 20484},
+        {"type-shiftR", "spell", 50769},
     },
     ["EVOKER"] = {
-        {"type-shiftR", "spell", 361227}, -- Shift+右键 -> Return（常规复活）
+        {"type-shiftR", "spell", 361227},
     },
     ["MONK"] = {
-        {"type-shiftR", "spell", 115178}, -- Shift+右键 -> Resuscitate（常规复活）
+        {"type-shiftR", "spell", 115178},
     },
     ["PALADIN"] = {
-        {"type-altR", "spell", 391054},   -- Alt+右键 -> Intercession（战复）
-        {"type-shiftR", "spell", 7328},   -- Shift+右键 -> Redemption（常规复活）
+        {"type-altR", "spell", 391054},
+        {"type-shiftR", "spell", 7328},
     },
     ["PRIEST"] = {
-        {"type-shiftR", "spell", 2006},   -- Shift+右键 -> Resurrection（常规复活）
+        {"type-shiftR", "spell", 2006},
     },
     ["SHAMAN"] = {
-        {"type-shiftR", "spell", 2008},   -- Shift+右键 -> Ancestral Spirit（常规复活）
+        {"type-shiftR", "spell", 2008},
     },
     ["WARLOCK"] = {
-        {"type-altR", "spell", 20707},    -- Alt+右键 -> Soulstone（战复）
+        {"type-altR", "spell", 20707},
     },
 }
 
--- 以下注释块是旧代码：曾在此处将技能 ID 预解析为名称，
--- 现已改为由调用方在处理时动态转换，避免因加载顺序导致的 nil 问题
 -- do
 --     for class, t in pairs(resurrection_click_castings) do
 --         for _, clickCasting in pairs(t) do
@@ -539,71 +451,40 @@ local resurrection_click_castings = {
 --     end
 -- end
 
--- F.GetResurrectionClickCastings(class) -- 获取指定职业的复活点击施法绑定列表
--- 返回该职业的所有复活点击施法绑定，无绑定时返回空表
 function F.GetResurrectionClickCastings(class)
     return resurrection_click_castings[class] or {}
 end
 
 -------------------------------------------------
--- smart resurrection -- 智能复活系统
--- 根据玩家当前专精自动选择最合适的复活法术
--- 分为两类：
---   1. normalResurrection  -- 常规（非战斗）复活
---   2. combatResurrection  -- 战斗复活（战复）
---
--- 常规复活的条件逻辑：
---   多个治疗专精拥有两种复活技能 —— 单体和群体
---   系统根据玩家当前专精自动选择：
---     "spec:N"  -- 当处于第 N 个专精时使用此技能（通常为单体复活）
---     "nospec:N" -- 当不处于第 N 个专精时使用此技能（通常为群体复活）
---   例如：德鲁伊专精4（恢复）使用 Revitalize 单体复活，
---         非恢复德使用 Revive 战斗复活式复活
---   N 的值为职业内的专精编号（从1开始），非全局专精 ID
---
--- Midnight/SecretValue 防护：
---   - 条件键 "spec:N" / "nospec:N" 为硬编码字符串，仅作表查找键使用，不动态求值
---   - 技能 ID 在 do...end 块中通过 F.GetSpellInfo 统一预解析为受保护的技能名称
---   - 调用方通过 F.GetNormalResurrection / F.GetCombatResurrection 安全获取
---   - 无条件分支执行外部注入的代码 —— 所有逻辑均为纯数据表查找
+-- smart resurrection
 -------------------------------------------------
--- normalResurrection -- 常规复活技能表（非战斗状态）
--- 数据结构：{[职业] = {[条件键] = 技能名称, ...}}
--- 条件键格式：
---   - "spec:N"   -> 当前处于该职业第 N 个专精时使用
---   - "nospec:N" -> 当前不处于该职业第 N 个专精时使用
--- 例如：牧师 spec:3（戒律/神圣/暗影中第3个=暗影）使用单体复活 Resurrection，
---       非暗影牧师使用群体复活 Mass Resurrection
--- 备注：技能 ID 在 do...end 块中替换为 F.GetSpellInfo 返回的技能名称
 local normalResurrection = {
     ["DRUID"] = {
-        ["nospec:4"] = 50769,   -- 非恢复德 -> Revive（战斗复活式复活）
-        ["spec:4"] = 212040,    -- 恢复德   -> Revitalize（新生，单体复活）
+        ["nospec:4"] = 50769, -- Revive - 起死回生
+        ["spec:4"] = 212040, -- Revitalize - 新生
     },
     ["EVOKER"] = {
-        ["nospec:2"] = 361227,  -- 非恩护   -> Return（单体生还）
-        ["spec:2"] = 361178,    -- 恩护     -> Mass Return（群体生还）
+        ["nospec:2"] = 361227, -- Return - 生还
+        ["spec:2"] = 361178, -- Mass Return - 群体生还
     },
     ["MONK"] = {
-        ["nospec:2"] = 115178,  -- 非织雾   -> Resuscitate（单体复活）
-        ["spec:2"] = 212051,    -- 织雾     -> Reawaken（群体死而复生）
+        ["nospec:2"] = 115178, -- Resuscitate - 轮回转世
+        ["spec:2"] = 212051, -- Reawaken - 死而复生
     },
     ["PALADIN"] = {
-        ["nospec:1"] = 7328,    -- 非神圣   -> Redemption（单体救赎）
-        ["spec:1"] = 212056,    -- 神圣     -> Absolution（群体宽恕）
+        ["nospec:1"] = 7328, -- Redemption - 救赎
+        ["spec:1"] = 212056, -- Absolution - 宽恕
     },
     ["PRIEST"] = {
-        ["spec:3"] = 2006,      -- 暗影     -> Resurrection（单体复活术）
-        ["nospec:3"] = 212036,  -- 非暗影   -> Mass Resurrection（群体复活）
+        ["spec:3"] = 2006, -- Resurrection - 复活术
+        ["nospec:3"] = 212036, -- Mass Resurrection - 群体复活
     },
     ["SHAMAN"] = {
-        ["nospec:3"] = 2008,    -- 非恢复   -> Ancestral Spirit（单体先祖之魂）
-        ["spec:3"] = 212048,    -- 恢复     -> Ancestral Vision（群体先祖视界）
+        ["nospec:3"] = 2008, -- Ancestral Spirit - 先祖之魂
+        ["spec:3"] = 212048, -- Ancestral Vision - 先祖视界
     },
 }
 
--- 将技能 ID 替换为 F.GetSpellInfo 返回的技能名称
--- 通过受保护的 API 统一解析，确保技能名称有效
 do
     for class, t in pairs(normalResurrection) do
         for condition, spell in pairs(t) do
@@ -612,36 +493,23 @@ do
     end
 end
 
--- F.GetNormalResurrection(class) -- 获取指定职业的常规复活技能表
--- 返回 {[条件键] = 技能名称, ...} 的映射表
 function F.GetNormalResurrection(class)
     return normalResurrection[class]
 end
 
--- combatResurrection -- 战斗复活技能表（战斗中可用）
--- 只有四个职业拥有战复能力：
---   DEATHKNIGHT - Raise Ally（复活盟友）
---   DRUID       - Rebirth（复生）
---   PALADIN     - Intercession（代祷）
---   WARLOCK     - Soulstone（灵魂石，需预先绑定）
--- 数据结构：{[职业] = 技能名称}
--- Midnight 防护：表为纯 {职业 -> 技能名称} 映射，查找为 O(1) 哈希操作
 local combatResurrection = {
-    ["DEATHKNIGHT"] = 61999,  -- Raise Ally - 复活盟友
-    ["DRUID"] = 20484,        -- Rebirth - 复生
-    ["PALADIN"] = 391054,     -- Intercession - 代祷
-    ["WARLOCK"] = 20707,      -- Soulstone - 灵魂石
+    ["DEATHKNIGHT"] = 61999,
+    ["DRUID"] = 20484,
+    ["PALADIN"] = 391054,
+    ["WARLOCK"] = 20707,
 }
 
--- 将技能 ID 替换为 F.GetSpellInfo 返回的技能名称
 do
     for class, spell in pairs(combatResurrection) do
         combatResurrection[class] = F.GetSpellInfo(spell)
     end
 end
 
--- F.GetCombatResurrection(class) -- 获取指定职业的战斗复活技能名称
--- 返回值：技能名称（string）或 nil（该职业无战复能力）
 function F.GetCombatResurrection(class)
     return combatResurrection[class]
 end
