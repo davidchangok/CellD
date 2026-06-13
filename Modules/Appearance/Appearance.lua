@@ -1842,9 +1842,6 @@ local function UpdateAppearance(which)
             Cell.frames.changelogsFrame:UpdatePixelPerfect()
         end
 
-        if Cell.frames.codeSnippetsFrame then
-            Cell.frames.codeSnippetsFrame:UpdatePixelPerfect()
-        end
 
         if CellColorPicker then
             CellColorPicker:UpdatePixelPerfect()

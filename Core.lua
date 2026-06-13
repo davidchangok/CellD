@@ -251,9 +251,6 @@ function eventFrame:ADDON_LOADED(arg1)
 
         if type(CellDB["customTextures"]) ~= "table" then CellDB["customTextures"] = {} end
 
-        if type(CellDB["snippets"]) ~= "table" then CellDB["snippets"] = {} end
-        if not CellDB["snippets"][0] then CellDB["snippets"][0] = F.GetDefaultSnippet() end
-
         Cell.vars.playerClass, Cell.vars.playerClassID = UnitClassBase("player")
 
         -- general --------------------------------------------------------------------------------
@@ -578,7 +575,6 @@ function eventFrame:ADDON_LOADED(arg1)
         Cell.versionNum = tonumber(string.match(Cell.version, "%d+"))
         if not CellDB["revise"] then CellDB["firstRun"] = true end
         F.Revise()
-        F.RunSnippets()
 
         -- validation -----------------------------------------------------------------------------
         -- validate layout
@@ -1056,7 +1052,6 @@ function SlashCmdList.CELL(msg, editbox)
 
         elseif rest == "snippets" then
             CellDB["snippets"] = {}
-            CellDB["snippets"][0] = F.GetDefaultSnippet()
             ReloadUI()
 
         elseif rest == "quickassist" then
@@ -1099,7 +1094,6 @@ function SlashCmdList.CELL(msg, editbox)
             "|cFFFFB5C5/celld reset layouts|r: "..L["reset all Layouts and Indicators"]..".\n"..
             "|cFFFFB5C5/celld reset clickcastings|r: "..L["reset all Click-Castings"]..".\n"..
             "|cFFFFB5C5/celld reset raiddebuffs|r: "..L["reset all Raid Debuffs"]..".\n"..
-            "|cFFFFB5C5/celld reset snippets|r: "..L["reset all Code Snippets"]..".\n"..
             "|cFFFFB5C5/celld reset quickassist|r: "..L["reset Quick Assist for current spec"]..".\n"..
             "|cFFFFB5C5/celld reset all|r: "..L["reset all Cell settings"].."."
         )

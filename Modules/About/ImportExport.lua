@@ -308,13 +308,7 @@ local function CreateImportConfirmationFrame()
     end)
     checkboxes.utilities:SetPoint("TOPLEFT", checkboxes.layouts, "BOTTOMLEFT", 0, -7)
 
-    -- 7:code snippets
-    checkboxes.snippets = Cell.CreateCheckButton(confirmationFrame, L["Code Snippets"], function(checked)
-        ignoredIndices["snippets"] = not checked
-    end)
-    checkboxes.snippets:SetPoint("TOPLEFT", checkboxes.raidDebuffs, "BOTTOMLEFT", 0, -7)
-
-    -- 8:nickname
+    -- 7:nickname
     checkboxes.nickname = Cell.CreateCheckButton(confirmationFrame, L["Nickname"], function(checked)
         ignoredIndices["nicknames"] = not checked
     end)

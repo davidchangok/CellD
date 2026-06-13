@@ -2742,7 +2742,7 @@ function F.Revise()
         end
 
         -- disable snippets
-        F.DisableSnippets()
+        -- Code Snippets feature removed in CellD
     end
 
     -- r226-release
@@ -2852,7 +2852,7 @@ function F.Revise()
         end
 
         -- disable snippets
-        F.DisableSnippets()
+        -- Code Snippets feature removed in CellD
     end
 
     -- r227-release
@@ -2973,7 +2973,7 @@ function F.Revise()
         end
 
         -- disable snippets
-        F.DisableSnippets()
+        -- Code Snippets feature removed in CellD
     end
 
     -- r231-release
@@ -3235,7 +3235,7 @@ function F.Revise()
         end
 
         -- disable snippets
-        F.DisableSnippets()
+        -- Code Snippets feature removed in CellD
     end
 
     -- r245-release
