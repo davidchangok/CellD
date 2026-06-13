@@ -881,6 +881,8 @@ function buffTrackerFrame:PLAYER_UNGHOST()
 end
 
 function buffTrackerFrame:UNIT_AURA(unit)
+    -- Midnight 12.0.0+: unit parameter may be a secret string
+    if F.IsSecretValue and F.IsSecretValue(unit) then return end
     if IsInRaid() then
         if unit:find("^raid%d+$") then
             CheckUnit(unit, true)
