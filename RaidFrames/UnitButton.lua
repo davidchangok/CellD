@@ -1330,7 +1330,7 @@ local function UnitButton_UpdateDebuffs(self, isFullUpdate)
         -- show
         local topAuraInstanceID
         -- for i = 1+offset, indicatorNums["raidDebuffs"] do
-        for i = 1, indicatorNums["raidDebuffs"] do
+        for i = 1, math.min(indicatorNums["raidDebuffs"] or 0, #self.indicators.raidDebuffs) do
             local auraInstanceID = self._debuffs_raid[i]
             if auraInstanceID then
                 local auraInfo = self._debuffs_cache[auraInstanceID]
@@ -1372,7 +1372,7 @@ local function UnitButton_UpdateDebuffs(self, isFullUpdate)
 
         -- update raidDebuffs
         self.indicators.raidDebuffs:UpdateSize(startIndex - 1)
-        for i = startIndex, 3 do
+        for i = startIndex, #self.indicators.raidDebuffs do
             self.indicators.raidDebuffs[i].auraInstanceID = nil
         end
 
@@ -1458,7 +1458,7 @@ local function UnitButton_UpdateDebuffs(self, isFullUpdate)
 
     -- update debuffs
     self.indicators.debuffs:UpdateSize(startIndex - 1)
-    for i = startIndex, 10 do
+    for i = startIndex, #self.indicators.debuffs do
         self.indicators.debuffs[i].auraInstanceID = nil
         self.indicators.debuffs[i].spellId = nil
     end
