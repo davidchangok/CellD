@@ -40,9 +40,34 @@ CellD 致力于提供**比以往更好的用户体验**。
 - **快速协助** — 一键辅助功能（增辉唤魔师适配）
 - **黑箱自检** — 内置 Secret Value 安全性检测（`/celld blackbox`），覆盖所有敏感数据代码路径
 - **精致的选项界面** — 简洁直观的配置面板，操作体验极佳，预览按钮实时展示效果
-- **兼容性** — [BigDebuffs](https://www.curseforge.com/wow/addons/bigdebuffs)、[OmniCD](https://www.curseforge.com/wow/addons/omnicd)、[WeakAuras](https://wago.io/weakauras)
+- **兼容性** — [BigDebuffs](https://www.curseforge.com/wow/addons/bigdebuffs)、[OmniCD](https://www.curseforge.com/wow/addons/omnicd)
 
 ---
+
+## 已知未实现功能
+
+以下功能在原始 Cell 中存在，但 CellD 尚未完成适配，目前可能无法正常工作：
+
+### 自定义代码片段
+
+- **代码片段（Snippets）** — 自定义 Lua 代码注入功能尚未对 Midnight 12.0 API 进行全面兼容性审查。部分原始 Cell 代码片段可能引用了已废弃的 API（如 `UnitFactionGroup`、`GetClassInfo`），在 CellD 中运行可能报错或失效。如需使用代码片段，请务必在非战斗环境中测试。
+
+### 快速协助（Quick Assist）
+
+- **快速协助模块** — 增辉唤魔师等专精的快速协助功能基于原始 Cell 代码，尚未针对 Midnight 12.0 Secret Value 进行全面防护审查。Secret 环境下的光环检测可能受影响。
+
+### 团队工具
+
+- **补增益检查（Buff Tracker）** — 基于原始 Cell 代码，尚未完整审查 Secret Value 兼容性。
+- **法术请求 / 驱散请求（Spell Request / Dispel Request）** — 请求系统依赖网络通信，底层代码未做 Midnight 适配审查。
+
+### 其他
+
+- **BigDebuffs 集成** — CellD 保留了 BigDebuffs 兼容代码，但未在 Midnight 12.0 环境下验证，BigDebuffs 自身的 Midnight 兼容性也需确认。
+- **WeakAuras** — 12.0 新版本不再支持此插件，已从兼容列表中移除。
+- **部分工具模块** — `Utilities/` 目录下的部分模块（Buff Tracker、Quick Assist 配置等）保留了原始 Cell 的实现，未进行 Midnight API 迁移。
+
+> 如果你发现某个功能在 Midnight 12.0 上无法正常工作，请在 [GitHub Issues](https://github.com/davidchangok/CellD/issues) 中报告。
 
 ## 安装方法
 
