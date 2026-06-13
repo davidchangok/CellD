@@ -1239,10 +1239,12 @@ function I.CreateNameText(parent)
             end
         end
 
-        -- Midnight: GetWidth()/GetHeight() return secret when text is secret;
-        -- skip SetSize for secret names (Blizzard handles FontString sizing natively)
+        -- Midnight: GetWidth()/GetHeight() return secret when text is secret.
+        -- Use parent button dimensions as fallback to keep name visible.
         if not F.IsSecretValue(parent.states.name) then
             nameText:SetSize(nameText.name:GetWidth(), nameText.name:GetHeight())
+        else
+            nameText:SetSize(parent:GetWidth() - 4, 18)
         end
     end
 
