@@ -1107,8 +1107,43 @@ local function ForEachAuraCache(button, filter, func)
 end
 
 -------------------------------------------------
+-- UpdateAuraRefreshState
+-------------------------------------------------
+local function UpdateAuraRefreshState(auraInfo)
+    if Cell.vars.iconAnimation == "duration" then
+        local timeIncreased, countIncreased
+        if Cell.isMidnight and (
+            not F.IsValueNonSecret(auraInfo.expirationTime)
+            or not F.IsValueNonSecret(auraInfo.oldExpirationTime)
+            or not F.IsValueNonSecret(auraInfo.applications)
+            or not F.IsValueNonSecret(auraInfo.oldApplications)
+        ) then
+            timeIncreased = false
+            countIncreased = false
+        else
+            timeIncreased = auraInfo.oldExpirationTime and ((auraInfo.expirationTime or 0) - auraInfo.oldExpirationTime >= 0.5) or false
+            countIncreased = auraInfo.oldApplications and (auraInfo.applications > auraInfo.oldApplications) or false
+        end
+        auraInfo.refreshing = timeIncreased or countIncreased
+    elseif Cell.vars.iconAnimation == "stack" then
+        if Cell.isMidnight and (
+            not F.IsValueNonSecret(auraInfo.applications)
+            or not F.IsValueNonSecret(auraInfo.oldApplications)
+        ) then
+            auraInfo.refreshing = false
+        else
+            auraInfo.refreshing = auraInfo.oldApplications and (auraInfo.applications > auraInfo.oldApplications) or false
+        end
+    else
+        auraInfo.refreshing = false
+    end
+
+    auraInfo.oldExpirationTime = nil
+    auraInfo.oldApplications = nil
+end
+
+-------------------------------------------------
 -- debuffs
--- (UpdateAuraRefreshState moved to Modules/DebuffStatus.lua for Grid2-style centralization)
 -------------------------------------------------
 -- cleuAuras
 -- local cleuUnits = {}
@@ -1122,7 +1157,7 @@ end
 --     return caster == "player"
 -- end
 
--- (ResetDebuffVars moved to Modules/DebuffStatus.lua)
+
 local function HandleDebuff(self, auraInfo)
     local auraInstanceID = auraInfo.auraInstanceID
     local name = auraInfo.name
@@ -1165,7 +1200,7 @@ local function HandleDebuff(self, auraInfo)
     -- Midnight 12.0.0+: when time values are secret, duration is set to 0 (falsy),
     -- but we still need to classify/show the debuff. Use hasSecretTime flag instead.
     if hasSecretTime or (duration and duration > 0) then
-        DebuffStatus.UpdateRefreshState(auraInfo)
+        UpdateAuraRefreshState(auraInfo)
         self._debuffs_cache[auraInstanceID] = auraInfo
 
         local isBig = false
@@ -1258,7 +1293,10 @@ local RAID_DEBUFFS_GLOW_TYPES = {"Normal", "Pixel", "Shine", "Proc"}
 local function UnitButton_UpdateDebuffs(self, isFullUpdate)
     local unit = self.states.displayedUnit
 
-    DebuffStatus.ResetDebuffVars(self)
+    self._debuffs.resurrectionFound = false
+    self._debuffs.crowdControlsFound = 0
+    self.states.BGOrb = nil
+
     I.ResetCustomIndicators(self, "debuff")
 
     if isFullUpdate then
@@ -1286,8 +1324,14 @@ local function UnitButton_UpdateDebuffs(self, isFullUpdate)
         --     startIndex = startIndex + 1
         -- end
 
-        -- sort indices (Grid2-style centralized sort with cache miss nil guard)
-        DebuffStatus.SortRaidDebuffs(self)
+        -- sort indices (with cache miss nil guard)
+        sort(self._debuffs_raid, function(a, b)
+            local ca = self._debuffs_cache[a]
+            local cb = self._debuffs_cache[b]
+            if not ca then return false end -- cache miss: push to end
+            if not cb then return true end  -- cache miss: push to end
+            return ca.raidDebuffOrder < cb.raidDebuffOrder
+        end)
 
         -- show
         local topAuraInstanceID
@@ -1420,7 +1464,7 @@ end
 -------------------------------------------------
 -- buffs
 -------------------------------------------------
--- (ResetBuffVars moved to Modules/DebuffStatus.lua)
+
 local function HandleBuff(self, auraInfo)
     local unit = self.states.displayedUnit
 
@@ -1454,7 +1498,7 @@ local function HandleBuff(self, auraInfo)
     -- Midnight 12.0.0+: when time values are secret, duration is set to 0 (falsy),
     -- but we still need to classify/show the buff. Use hasSecretTime flag instead.
     if hasSecretTime or (duration and duration > 0) then
-        DebuffStatus.UpdateRefreshState(auraInfo)
+        UpdateAuraRefreshState(auraInfo)
         self._buffs_cache[auraInstanceID] = auraInfo
 
         -- defensiveCooldowns
@@ -1511,7 +1555,13 @@ end
 local function UnitButton_UpdateBuffs(self, isFullUpdate)
     local unit = self.states.displayedUnit
 
-    DebuffStatus.ResetBuffVars(self)
+    self._buffs.defensiveFound = 0
+    self._buffs.externalFound = 0
+    self._buffs.allFound = 0
+    self._buffs.tankActiveMitigationFound = false
+    self._buffs.drinkingFound = false
+    self.states.BGFlag = nil
+
     I.ResetCustomIndicators(self, "buff")
 
     if isFullUpdate then
