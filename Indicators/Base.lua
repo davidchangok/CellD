@@ -435,7 +435,10 @@ end
 -------------------------------------------------
 -- CreateAura_BorderIcon
 -------------------------------------------------
-local function BorderIcon_SetCooldown(frame, start, duration, debuffType, texture, count, refreshing, useElapsedTime)
+local function BorderIcon_SetCooldown(frame, start, duration, debuffType, texture, count, refreshing, useElapsedTime, durationObject)
+    -- Grid2-style DurationObject fallback (Midnight 12.0.0+):
+    -- when time values are secret, C_UnitAuras.GetAuraDuration provides
+    -- a DurationObject that cooldown:SetCooldownFromDurationObject can render.
     local r, g, b
     if debuffType then
         r, g, b = I.GetDebuffTypeColor(debuffType)
@@ -443,7 +446,7 @@ local function BorderIcon_SetCooldown(frame, start, duration, debuffType, textur
         r, g, b = 0, 0, 0
     end
 
-    if duration == 0 then
+    if duration == 0 and not durationObject then
         frame.border:Show()
         frame.border:SetColorTexture(r, g, b)
         frame.cooldown:Hide()
@@ -459,9 +462,16 @@ local function BorderIcon_SetCooldown(frame, start, duration, debuffType, textur
         frame.border:Hide()
         frame.cooldown:Show()
         frame.cooldown:SetSwipeColor(r, g, b)
-        frame.cooldown:_SetCooldown(start, duration)
+        if durationObject then
+            -- Grid2 pattern: SetCooldownFromDurationObject for secret auras
+            frame.cooldown:SetCooldownFromDurationObject(durationObject)
+        else
+            frame.cooldown:_SetCooldown(start, duration)
+        end
 
-        if not frame.showDuration then
+        -- Duration text not available for DurationObject auras (can't read secret numbers),
+        -- so hide duration text when using fallback
+        if not frame.showDuration or durationObject then
             frame.duration:Hide()
         else
             if frame.showDuration == true then
@@ -474,7 +484,7 @@ local function BorderIcon_SetCooldown(frame, start, duration, debuffType, textur
             frame.duration:Show()
         end
 
-        if frame.showDuration then
+        if frame.showDuration and not durationObject then
             frame._start = start
             frame._duration = duration
             frame._elapsed = 0.1 -- update immediately

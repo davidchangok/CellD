@@ -23,6 +23,8 @@
     <!-- RaidDebuffs -->
     <Script file="RaidDebuffs\RaidDebuffs.lua"/>
     <Script file="RaidDebuffs\ImportExport.lua"/>
+    <!-- DebuffStatus (Grid2-style centralized debuff handling) -->
+    <Script file="DebuffStatus.lua"/>
     <!-- Utilities -->
     <Script file="Utilities\Utilities.lua"/>
     <!-- About -->
