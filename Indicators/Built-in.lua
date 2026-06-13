@@ -757,10 +757,11 @@ function I.CreateDispels(parent)
     dispels.highlight = parent.widgets.midLevelFrame:CreateTexture(parent:GetName().."DispelHighlight")
     dispels.highlight:Hide()
 
-    -- Grid2 IndicatorSquare.lua pattern: dedicated Frame with backdrop
-    -- placed above health bar (frameLevel + 160) so it cannot be obscured
+    -- Grid2 IndicatorSquare.lua: dedicated Frame for full-cell background color.
+    -- Placed just above the unit button's background (parent + 2) to avoid
+    -- overlapping with health bar and indicator overlays.
     local glowFrame = CreateFrame("Frame", parent:GetName().."DispelCellGlow", parent, "BackdropTemplate")
-    glowFrame:SetFrameLevel(parent:GetFrameLevel() + 160)
+    glowFrame:SetFrameLevel(parent:GetFrameLevel() + 2)
     glowFrame:SetAllPoints(parent)
     glowFrame:SetBackdrop({bgFile = Cell.vars.whiteTexture})
     glowFrame:SetBackdropColor(0, 0, 0, 0)
@@ -2261,7 +2262,7 @@ function I.CreateShieldBar(parent)
 
     -- Override SetValue to take current+max pair from caller
     function shieldBar:SetValue(current, max)
-        if max and max > 0 then
+        if max and F.IsValueNonSecret(max) and max > 0 then
             self:_SetMinMaxValues(0, max)
             self:_SetValue(current)
         else
