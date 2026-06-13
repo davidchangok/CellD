@@ -1324,7 +1324,11 @@ local function UnitButton_UpdateDebuffs(self, isFullUpdate)
 
         -- sort indices
         sort(self._debuffs_raid, function(a, b)
-            return self._debuffs_cache[a]["raidDebuffOrder"] < self._debuffs_cache[b]["raidDebuffOrder"]
+            local ca = self._debuffs_cache[a]
+            local cb = self._debuffs_cache[b]
+            if not ca then return false end -- cache miss: push to end
+            if not cb then return true end  -- cache miss: push to end
+            return ca.raidDebuffOrder < cb.raidDebuffOrder
         end)
 
         -- show
