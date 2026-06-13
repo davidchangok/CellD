@@ -64,7 +64,7 @@ local function CreateContributorsPane()
     local pane = Cell.CreateTitledPane(aboutTab, L["Contributors"], 422, 100)
     pane:SetPoint("TOPLEFT", aboutTab, "TOPLEFT", 5, -200)
 
-    local text = pane:CreateFontString(nil, "OVERLAY")
+    local text = pane:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
     text:SetPoint("TOPLEFT", 5, -27)
     text:SetPoint("RIGHT", -5, 0)
     text:SetSpacing(5)
