@@ -585,14 +585,23 @@ local function Dispels_SetDispels(self, dispelTypes)
 
     self.highlight:Hide()
 
+    local unit = self.parent.states.displayedUnit
     local i = 0
     for _, dispelType in ipairs(dispelOrder) do
-        local showHighlight = dispelTypes[dispelType]
-        if type(showHighlight) == "boolean" then
+        local info = dispelTypes[dispelType]
+        -- Support both legacy boolean and new {highlight, auraInstanceID} table
+        local showHighlight = (type(info) == "table" and info.highlight) or (type(info) == "boolean" and info)
+        local auraID = type(info) == "table" and info.auraInstanceID or nil
+        if showHighlight then
             -- highlight
-            if not found and self.highlightType ~= "none" and dispelType and showHighlight then
+            if not found and self.highlightType ~= "none" and dispelType then
                 found = true
-                local r, g, b = I.GetDebuffTypeColor(dispelType)
+                -- Midnight 12.0.0+: try Blizzard secret-safe API first, fallback to color table
+                if auraID and unit then
+                    r, g, b = I.GetAuraDispelColor(unit, auraID) or I.GetDebuffTypeColor(dispelType)
+                else
+                    r, g, b = I.GetDebuffTypeColor(dispelType)
+                end
                 if self.highlightType == "entire" then
                     self.highlight:SetTexture(Cell.vars.whiteTexture)
                     self.highlight:SetVertexColor(r, g, b, 0.5)

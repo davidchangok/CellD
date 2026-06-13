@@ -1208,6 +1208,16 @@ local function HandleDebuff(self, auraInfo)
     auraInfo._debuffType = debuffType
     auraInfo._hasSecretTime = hasSecretTime
 
+    -- Midnight 12.0.0+: pre-compute dispel color via GetAuraDispelTypeColor API
+    -- when debuffType came from secret fallback ("Magic"). Grid2 uses this API
+    -- to get secret-safe colors without knowing the type string.
+    if debuffType == "Magic" and auraInfo.dispelName and issecretvalue and issecretvalue(auraInfo.dispelName) then
+        local r, g, b = I.GetAuraDispelColor(self.states.displayedUnit, auraInstanceID)
+        if r then
+            auraInfo._dispelColor = {r, g, b}
+        end
+    end
+
     -- Midnight 12.0.0+: when time values are secret, duration is set to 0 (falsy),
     -- but we still need to classify/show the debuff. Use hasSecretTime flag instead.
     if hasSecretTime or (duration and duration > 0) then
@@ -1259,9 +1269,10 @@ local function HandleDebuff(self, auraInfo)
                 if indicatorBooleans["dispels"][debuffType] then
                     if isDispelBlacklisted then
                         -- no highlight
-                        self._debuffs_dispel[debuffType] = false
+                        self._debuffs_dispel[debuffType] = {highlight = false}
                     else
-                        self._debuffs_dispel[debuffType] = true
+                        -- store auraInstanceID for GetAuraDispelTypeColor API
+                        self._debuffs_dispel[debuffType] = {highlight = true, auraInstanceID = auraInstanceID}
                     end
                 end
             end

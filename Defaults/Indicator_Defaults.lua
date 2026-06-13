@@ -266,12 +266,24 @@ end
 -------------------------------------------------
 -- dispels: custom debuff type color
 -------------------------------------------------
-function I.GetDebuffTypeColor(debuffType)
+-- Blizzard C API, internally resolves secrets — Grid2 StatusAuras.lua reference
+function I.GetAuraDispelColor(unit, auraInstanceID)
+    if not C_UnitAuras or not C_UnitAuras.GetAuraDispelTypeColor or not unit or not auraInstanceID then
+        return nil
+    end
+    local c = C_UnitAuras.GetAuraDispelTypeColor(unit, auraInstanceID)
+    if c then return c.r, c.g, c.b end
+    return nil
+end
+
+function I.GetDebuffTypeColor(debuffType, fallbackColor)
     -- Midnight 12.0.0+: debuffType may be secret; cannot use as table key
     if issecretvalue and issecretvalue(debuffType) then return 0, 0, 0 end
     if debuffType and CellDB["debuffTypeColor"][debuffType] then
         return CellDB["debuffTypeColor"][debuffType]["r"], CellDB["debuffTypeColor"][debuffType]["g"],
             CellDB["debuffTypeColor"][debuffType]["b"]
+    elseif fallbackColor then
+        return fallbackColor[1], fallbackColor[2], fallbackColor[3]
     else
         return 0, 0, 0
     end
