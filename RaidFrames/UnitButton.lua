@@ -1898,6 +1898,8 @@ local function GetRole(b)
         return b.states.role
     end
 
+    -- Midnight 12.0.0+: GUID may be secret in instances
+    if Cell.isMidnight and F.IsSecretValue and F.IsSecretValue(b.states.guid) then return end
     local info = LGI:GetCachedInfo(b.states.guid)
     if not info then return end
     return info.role
