@@ -370,7 +370,6 @@ local function InitIndicator(indicatorName)
 
             self.highlight:Hide()
 
-            local unit = self.parent and self.parent.states and self.parent.states.displayedUnit
             for dispelType, value in pairs(dispelTypes) do
                 local showHighlight = (type(value) == "table" and value.highlight) or (type(value) == "boolean" and value)
                 local auraID = type(value) == "table" and value.auraInstanceID or nil
@@ -378,8 +377,8 @@ local function InitIndicator(indicatorName)
                 if not found and self.highlightType ~= "none" and dispelType and showHighlight then
                     found = true
                     -- Midnight 12.0.0+: try Blizzard secret-safe API first
-                    if auraID and unit then
-                        r, g, b = I.GetAuraDispelColor(unit, auraID) or I.GetDebuffTypeColor(dispelType)
+                    if auraID then
+                        r, g, b = I.GetAuraDispelColor(auraID) or I.GetDebuffTypeColor(dispelType)
                     else
                         r, g, b = I.GetDebuffTypeColor(dispelType)
                     end
