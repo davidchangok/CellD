@@ -836,6 +836,8 @@ function F.UnitFullName(unit)
     if not unit or not UnitIsPlayer(unit) then return end
 
     local name = GetUnitName(unit, true)
+    -- Midnight 12.0.0+: name may be a secret string
+    if F.IsSecretValue(name) then return name end
 
     --? name might be nil in some cases?
     if name and not string.find(name, "-") then

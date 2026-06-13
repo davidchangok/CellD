@@ -27,6 +27,10 @@ Cell.vars.nicknameCustoms = {}
 Cell.vars.nicknameBlacklist = {}
 
 function F.GetNickname(shortname, fullname)
+    -- Midnight 12.0.0+: names may be secret strings, cannot use as table keys
+    if F.IsSecretValue and (F.IsSecretValue(shortname) or F.IsSecretValue(fullname)) then
+        return shortname or _G.UNKNOWNOBJECT
+    end
     local name
     if Cell.vars.nicknameCustomEnabled then
         name = Cell.vars.nicknameCustoms[fullname] or

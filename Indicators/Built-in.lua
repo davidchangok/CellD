@@ -1204,7 +1204,7 @@ function I.CreateNameText(parent)
             name = parent.states.name
         end
 
-        if Cell.loaded and CellDB["general"]["translit"] then
+        if Cell.loaded and CellDB["general"]["translit"] and not F.IsSecretValue(name) then
             name = LibTranslit:Transliterate(name)
         end
 
