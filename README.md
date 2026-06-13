@@ -193,9 +193,6 @@ CellD 致力于提供**比以往更好的用户体验**。
 
 CellD 基于 [enderneko 的 Cell](https://github.com/enderneko/Cell) 继续开发。感谢原作者和所有代码贡献者的卓越工作。
 
----
-
-# English Translation / 英文翻译
 
 ## CellD — World of Warcraft Raid Frame Addon
 
