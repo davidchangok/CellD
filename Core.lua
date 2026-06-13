@@ -109,23 +109,28 @@ CellParent:SetFrameLevel(0)
 
 
 -------------------------------------------------
--- layout
+-- 布局自动切换系统
+-- 根据队伍类型（solo/party/raid/battleground/arena）和专精/职责
+-- 从 layoutAutoSwitch 配置中选择对应的布局名称，然后触发 UpdateLayout 事件
+-- 战斗中如果触发布局切换，会延迟到 PLAYER_REGEN_ENABLED 再执行
 -------------------------------------------------
-local delayedLayoutGroupType
+local delayedLayoutGroupType                                            -- 战斗中延迟的布局类型
 local delayedFrame = CreateFrame("Frame")
 delayedFrame:SetScript("OnEvent", function()
     delayedFrame:UnregisterEvent("PLAYER_REGEN_ENABLED")
-    F.UpdateLayout(delayedLayoutGroupType)
+    F.UpdateLayout(delayedLayoutGroupType)                              -- 脱离战斗后执行延迟的布局切换
 end)
 
+-- 核心布局切换函数：根据 layoutGroupType 对应队伍场景，设置当前激活的布局
 function F.UpdateLayout(layoutGroupType)
     if InCombatLockdown() then
         F.Debug("|cFF7CFC00F.UpdateLayout(\""..layoutGroupType.."\") DELAYED")
         delayedLayoutGroupType = layoutGroupType
-        delayedFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
+        delayedFrame:RegisterEvent("PLAYER_REGEN_ENABLED")              -- 战斗中禁止重排UI，延迟到脱战
     else
         F.Debug("|cFF7CFC00F.UpdateLayout(\""..layoutGroupType.."\")")
 
+        -- 判断布局来源：优先按专精配置，没有则按职责（TANK/HEALER/DAMAGER）回退
         if CellDB["layoutAutoSwitch"][Cell.vars.playerClass][Cell.vars.playerSpecID] then
             Cell.vars.layoutAutoSwitchBy = "spec"
             Cell.vars.layoutAutoSwitch = CellDB["layoutAutoSwitch"][Cell.vars.playerClass][Cell.vars.playerSpecID]
@@ -134,10 +139,10 @@ function F.UpdateLayout(layoutGroupType)
             Cell.vars.layoutAutoSwitch = CellDB["layoutAutoSwitch"]["role"][Cell.vars.playerSpecRole]
         end
 
-        local layout = Cell.vars.layoutAutoSwitch[layoutGroupType]
+        local layout = Cell.vars.layoutAutoSwitch[layoutGroupType]      -- 从自动切换表中取该场景对应的布局名
         Cell.vars.layoutGroupType = layoutGroupType
 
-        if layout == "hide" then
+        if layout == "hide" then                                           -- 该场景配置为隐藏团队框体
             Cell.vars.isHidden = true
             Cell.vars.currentLayout = "default"
             Cell.vars.currentLayoutTable = CellDB["layouts"]["default"]
@@ -147,20 +152,22 @@ function F.UpdateLayout(layoutGroupType)
             Cell.vars.currentLayoutTable = CellDB["layouts"][layout]
         end
 
+        -- 重置所有单位按钮的指示器就绪标记，触发指示器重新创建
         F.IterateAllUnitButtons(function(b)
             b._indicatorsReady = nil
         end, true)
 
-        Cell.Fire("UpdateLayout", layout)
-        Cell.Fire("UpdateIndicators")
+        Cell.Fire("UpdateLayout", layout)                                -- 触发所有模块的布局更新回调
+        Cell.Fire("UpdateIndicators")                                    -- 触发指示器重新加载
     end
 end
 
+-- 特殊战场人数表（科尔拉克的复仇 = 40人），用于判断战场规模
 local bgMaxPlayers = {
     [2197] = 40, -- 科尔拉克的复仇
 }
 
--- layout auto switch
+-- 布局自动切换核心逻辑：根据副本类型(pvp/arena/pve)分发到对应布局
 local instanceType
 local function PreUpdateLayout()
     if not (Cell.vars.playerSpecID and Cell.vars.playerSpecRole) then return end
@@ -232,9 +239,12 @@ local UnitGUID = UnitGUID
 local GetAddOnMetadata = C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata
 
 -- local cellLoaded, omnicdLoaded
+-- ADDON_LOADED 是插件初始化的核心入口
+-- arg1 必须等于 addonName ("CellD")，这里检查所有 SavedVariables 是否存在，
+-- 不存在则用默认值填充，然后执行数据迁移 (F.Revise) 和布局校验
 function eventFrame:ADDON_LOADED(arg1)
-    if arg1 == addonName then
-        -- CellD 插件加载完成，初始化所有 SavedVariables
+    if arg1 == addonName then                                           -- CellD 插件自身加载完成
+        -- 初始化所有 SavedVariables 默认值
         eventFrame:UnregisterEvent("ADDON_LOADED")
 
         if type(CellDB) ~= "table" then CellDB = {} end
@@ -242,6 +252,7 @@ function eventFrame:ADDON_LOADED(arg1)
 
         if type(CellDB["optionsFramePosition"]) ~= "table" then CellDB["optionsFramePosition"] = {} end
 
+        -- 指示器预览默认设置
         if type(CellDB["indicatorPreview"]) ~= "table" then
             CellDB["indicatorPreview"] = {
                 ["scale"] = 2,
@@ -251,9 +262,10 @@ function eventFrame:ADDON_LOADED(arg1)
 
         if type(CellDB["customTextures"]) ~= "table" then CellDB["customTextures"] = {} end
 
+        -- 玩家职业信息（非 secret，在任何上下文中都可安全读取）
         Cell.vars.playerClass, Cell.vars.playerClassID = UnitClassBase("player")
 
-        -- general --------------------------------------------------------------------------------
+        -- 通用设置默认值 ---------------------------------------------------------------
         if type(CellDB["general"]) ~= "table" then
             CellDB["general"] = {
                 ["enableTooltips"] = false,
@@ -628,15 +640,17 @@ Cell.vars.raidSetup = {
     ["DAMAGER"]={["ALL"]=0},
 }
 
+-- GROUP_ROSTER_UPDATE 处理队伍/团队变更
+-- 统计 raidSetup（各职责职业人数），清理无效单位引用
 function eventFrame:GROUP_ROSTER_UPDATE(skipFallbackUpdate)
     if IsInRaid() then
         if Cell.vars.groupType ~= "raid" then
             Cell.vars.groupType = "raid"
             F.Debug("|cffffbb77GroupTypeChanged:|r raid")
-            Cell.Fire("GroupTypeChanged", "raid")
+            Cell.Fire("GroupTypeChanged", "raid")                        -- 通知所有模块队伍类型变为团队
         end
 
-        -- reset raid setup
+        -- 重置团队配置统计数据
         for _, t in pairs(Cell.vars.raidSetup) do
             for class in pairs(t) do
                 if class == "ALL" then
@@ -647,14 +661,11 @@ function eventFrame:GROUP_ROSTER_UPDATE(skipFallbackUpdate)
             end
         end
 
-        -- update guid & raid setup
+        -- 遍历团队每个成员，更新职业和职责统计
         for i = 1, GetNumGroupMembers() do
-            -- update raid setup
             local _, _, _, _, _, class, _, _, _, _, _, role = GetRaidRosterInfo(i)
-            if not role or role == "NONE" then role = "DAMAGER" end
-            -- update ALL
+            if not role or role == "NONE" then role = "DAMAGER" end         -- 无职责默认 DPS
             Cell.vars.raidSetup[role]["ALL"] = Cell.vars.raidSetup[role]["ALL"] + 1
-            -- update for each class
             if class then
                 if not Cell.vars.raidSetup[role][class] then
                     Cell.vars.raidSetup[role][class] = 1
@@ -664,7 +675,7 @@ function eventFrame:GROUP_ROSTER_UPDATE(skipFallbackUpdate)
             end
         end
 
-        -- update Cell.unitButtons.raid.units
+        -- 清理超出团队规模的旧单位引用
         for i = GetNumGroupMembers()+1, 40 do
             Cell.unitButtons.raid.units["raid"..i] = nil
             _G["CellRaidFrameMember"..i] = nil
@@ -750,8 +761,9 @@ local function UpdateFallbackGroupType()
     end
 end
 
+-- PLAYER_ENTERING_WORLD 处理进入/离开副本、登陆时恢复队伍状态
+-- 重要性：首次登陆时 IsInRaid/IsInGroup 返回 false，需要从 CellDB.fallbackGroupType 恢复
 function eventFrame:PLAYER_ENTERING_WORLD(isInitialLogin, isReloadingUi)
-    -- eventFrame:UnregisterEvent("PLAYER_ENTERING_WORLD")
     F.Debug("|cffbbbbbb=== PLAYER_ENTERING_WORLD ===")
     Cell.vars.inMythic = false
 
@@ -760,13 +772,14 @@ function eventFrame:PLAYER_ENTERING_WORLD(isInitialLogin, isReloadingUi)
     Cell.vars.inInstance = isIn
     Cell.vars.instanceType = iType
 
-    C_Timer.After(1, UpdateFallbackGroupType)
+    C_Timer.After(1, UpdateFallbackGroupType)                           -- 1秒后验证队伍类型一致性
 
-    if isIn then
+    if isIn then                                                         -- 进入副本
         F.Debug("|cffff1111*** Entered Instance:|r", iType)
         Cell.Fire("EnterInstance", iType)
 
-        --! NOTE: for PLAYER_LOGIN/PLAYER_ENTERING_WORLD(initial) event, IsInRaid/IsInGroup always return false
+        -- PLAYER_LOGIN/PEW(initial) 时 IsInRaid/IsInGroup 始终返回 false
+        -- 必须从上次保存的 fallbackGroupType 恢复正确的队伍类型
         if (isInitialLogin or isReloadingUi) and CellDB.fallbackGroupType then
             F.Debug("|cffff1111*** Fallback:|r", Cell.vars.groupType, "->", CellDB.fallbackGroupType, CellDB.fallbackInMythic)
             Cell.vars.groupType = CellDB.fallbackGroupType
@@ -779,37 +792,37 @@ function eventFrame:PLAYER_ENTERING_WORLD(isInitialLogin, isReloadingUi)
         end
         inInstance = true
 
-        -- NOTE: delayed check mythic raid
+        -- 延迟检测史诗难度团队（GetInstanceInfo 在刚进本时不可靠）
         if iType == "raid" and Cell.vars.groupType == "raid" then
             C_Timer.After(0.5, function()
-                local difficultyID, difficultyName = select(3, GetInstanceInfo()) --! can't get difficultyID, difficultyName immediately after entering an instance
-                Cell.vars.inMythic = difficultyID == 16
+                local difficultyID, difficultyName = select(3, GetInstanceInfo())
+                Cell.vars.inMythic = difficultyID == 16                     -- difficultyID 16 = 史诗团队
                 CellDB.fallbackInMythic = Cell.vars.inMythic
 
                 if Cell.vars.inMythic and Cell.vars.layoutGroupType ~= "raid_mythic" then
                     F.Debug("|cffff1111*** Switch to Mythic Raid layout|r")
                     Cell.Fire("EnterInstance", iType)
-                    PreUpdateLayout()
+                    PreUpdateLayout()                                        -- 切换到史诗团队布局
                 end
             end)
         else
             Cell.vars.inMythic = nil
         end
 
-    elseif inInstance then -- left insntance
+    elseif inInstance then                                                -- 离开副本
         F.Debug("|cffff1111*** Left Instance|r")
         Cell.Fire("LeaveInstance")
-        PreUpdateLayout()
+        PreUpdateLayout()                                                  -- 切换回副本外的布局
         inInstance = false
 
         if not InCombatLockdown() and not UnitAffectingCombat("player") then
             F.Debug("|cffbbbbbb--- LeftInstance: |cffff7777collectgarbage")
-            collectgarbage("collect")
+            collectgarbage("collect")                                      -- 副本离开后释放 Lua 内存
         end
     end
 
     if CellDB["firstRun"] then
-        F.FirstRun()
+        F.FirstRun()                                                       -- 首次运行引导
     end
 end
 
@@ -836,14 +849,18 @@ end
 --     end)
 -- end
 
+-- 从游戏 API 更新当前专精信息（ID/名称/图标/职责）
 local function UpdateSpecVars()
     Cell.vars.playerSpecID, Cell.vars.playerSpecName, _, Cell.vars.playerSpecIcon, Cell.vars.playerSpecRole = GetSpecializationInfo(GetSpecialization())
     if not Cell.vars.playerSpecName or Cell.vars.playerSpecName == "" then
-        Cell.vars.playerSpecName = L["No Spec"]
+        Cell.vars.playerSpecName = L["No Spec"]                           -- 无专精时（如刚创建的角色）
         Cell.vars.playerSpecIcon = 134400
     end
 end
 
+-- PLAYER_LOGIN 是插件功能初始化入口
+-- 此时 SavedVariables 已加载，所有子模块已注册接收回调
+-- 注册游戏事件 → 初始化运行时变量 → Fire 各模块的初始化回调
 function eventFrame:PLAYER_LOGIN()
     F.Debug("|cffbbbbbb=== PLAYER_LOGIN ===")
     eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
@@ -851,7 +868,7 @@ function eventFrame:PLAYER_LOGIN()
     eventFrame:RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED")
     eventFrame:RegisterEvent("UI_SCALE_CHANGED")
 
-    Cell.vars.playerNameShort = GetUnitName("player")
+    Cell.vars.playerNameShort = GetUnitName("player")                     -- 玩家自身名字不会是 secret
     Cell.vars.playerNameFull = F.UnitFullName("player")
 
     --! init bgMaxPlayers
