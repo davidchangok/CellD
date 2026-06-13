@@ -954,6 +954,12 @@ local function QuickCast_UpdateName(self)
 
     local name = F.GetNickname(UnitName(self.unit), F.UnitFullName(self.unit))
 
+    -- Midnight 12.0.0+: UnitName may return secret string
+    if F.IsSecretValue and F.IsSecretValue(name) then
+        self.nameText:SetText(name) -- FontString natively accepts secrets
+        return
+    end
+
     if CellDB["general"]["translit"] then
         name = LibTranslit:Transliterate(name)
     end
