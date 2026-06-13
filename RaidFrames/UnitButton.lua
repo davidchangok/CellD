@@ -62,6 +62,7 @@ local UnitPhaseReason = UnitPhaseReason
 local IsInRaid = IsInRaid
 local UnitDetailedThreatSituation = UnitDetailedThreatSituation
 local GetAuraDataByAuraInstanceID = C_UnitAuras.GetAuraDataByAuraInstanceID
+local GetUnitAuras = C_UnitAuras.GetUnitAuras
 local IsDelveInProgress = C_PartyInfo.IsDelveInProgress
 local UnitGetDetailedHealPrediction = UnitGetDetailedHealPrediction  -- nil pre-12.0
 local CreateUnitHealPredictionCalculator = CreateUnitHealPredictionCalculator  -- nil pre-12.0
@@ -1066,12 +1067,11 @@ Cell.RegisterCallback("UpdateIndicators", "UnitButton_UpdateIndicators", UpdateI
 
 -------------------------------------------------
 -- ForEachAura
--- Midnight 12.0.0+: migrated from GetAuraSlots/GetAuraDataBySlot to GetUnitAuras
--- (Grid2 StatusAuras.lua pattern). GetUnitAuras returns a proper array of auraInfo
--- tables in a single API call, with built-in sortRule/sortDir support.
+-- Grid2 StatusAuras.lua:69 pattern:
+-- "self.aura_func(unit, self.aura_filter, ...)" where aura_func = C_UnitAuras.GetUnitAuras
 -------------------------------------------------
 local function ForEachAura(button, filter, func)
-    local auras = C_UnitAuras.GetUnitAuras(button.states.displayedUnit, filter)
+    local auras = GetUnitAuras(button.states.displayedUnit, filter)
     if auras then
         for _, auraInfo in ipairs(auras) do
             func(button, auraInfo)
