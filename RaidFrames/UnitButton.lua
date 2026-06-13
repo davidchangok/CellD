@@ -2334,11 +2334,13 @@ local function UnitButton_UpdateHealth(self, diff, skipStateUpdates)
             UnitButton_UpdateHealthColor(self)
         end
 
-        -- Health thresholds: use EvaluateCurrentHealthPercent with a curve
-        if enabledIndicators["healthThresholds"] and self.widgets.healthCalculator then
-            self.indicators.healthThresholds:CheckThresholdMidnight(self.widgets.healthCalculator)
-        else
-            self.indicators.healthThresholds:Hide()
+        -- Health thresholds: guard healthPercent for secret values on Midnight
+        if enabledIndicators["healthThresholds"] then
+            if not Cell.isMidnight or (self.states.healthPercent and F.IsValueNonSecret(self.states.healthPercent)) then
+                self.indicators.healthThresholds:CheckThreshold(self.states.healthPercent or 1)
+            else
+                self.indicators.healthThresholds:Hide()
+            end
         end
 
         -- CELL_FADE_OUT_HEALTH_PERCENT: use EvaluateMissingHealthPercent with a Curve to fade
