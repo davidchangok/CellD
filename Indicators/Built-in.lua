@@ -625,11 +625,11 @@ local function Dispels_SetDispels(self, dispelTypes)
 
     -- Grid2 IndicatorSquare.lua: SetBackdropColor on dedicated Frame for full-cell glow
     if found then
-        self.cellGlow:SetBackdropColor(r, g, b, 0.85)
-        self.cellGlow:Show()
-    elseif self.cellGlow then
-        self.cellGlow:SetBackdropColor(0, 0, 0, 0)
-        self.cellGlow:Hide()
+        self.parent._dispelsHighlightColor = {r, g, b, CellDB["appearance"]["bgAlpha"] or 1}
+        self.parent:SetBackdropColor(r, g, b, CellDB["appearance"]["bgAlpha"] or 1)
+    else
+        self.parent._dispelsHighlightColor = nil
+        self.parent:SetBackdropColor(0, 0, 0, CellDB["appearance"]["bgAlpha"])
     end
 
     self:UpdateSize(i)
@@ -750,22 +750,11 @@ function I.CreateDispels(parent)
 
     dispels:SetScript("OnHide", function()
         dispels.highlight:Hide()
-        if dispels.cellGlow then dispels.cellGlow:Hide() end
     end)
 
     -- Health bar highlight texture (original Cell design)
     dispels.highlight = parent.widgets.midLevelFrame:CreateTexture(parent:GetName().."DispelHighlight")
     dispels.highlight:Hide()
-
-    -- Grid2 IndicatorSquare.lua: full-cell backdrop above health bar, below indicators.
-    -- midLevelFrame = parent + 120, so + 25 renders above health bar but below indicators.
-    local glowFrame = CreateFrame("Frame", parent:GetName().."DispelCellGlow", parent, "BackdropTemplate")
-    glowFrame:SetFrameLevel(parent:GetFrameLevel() + 125)
-    glowFrame:SetAllPoints(parent)
-    glowFrame:SetBackdrop({bgFile = Cell.vars.whiteTexture})
-    glowFrame:SetBackdropColor(0, 0, 0, 0)
-    glowFrame:Hide()
-    dispels.cellGlow = glowFrame
 
     dispels._SetSize = dispels.SetSize
     dispels.SetSize = Dispels_SetSize

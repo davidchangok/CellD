@@ -3471,7 +3471,11 @@ function B.UpdateColor(button)
     UnitButton_UpdateHealthColor(button)
     UnitButton_UpdatePowerType(button)
     UnitButton_UpdatePowerTextColor(button)
-    button:SetBackdropColor(0, 0, 0, CellDB["appearance"]["bgAlpha"])
+    if button._dispelsHighlightColor then
+        button:SetBackdropColor(unpack(button._dispelsHighlightColor))
+    else
+        button:SetBackdropColor(0, 0, 0, CellDB["appearance"]["bgAlpha"])
+    end
 end
 
 local function IncomingHeal_SetValue_Horizontal(self, incomingPercent, healthPercent)
