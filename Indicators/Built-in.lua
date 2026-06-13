@@ -625,7 +625,7 @@ local function Dispels_SetDispels(self, dispelTypes)
 
     -- Grid2 IndicatorSquare.lua: SetBackdropColor on dedicated Frame for full-cell glow
     if found then
-        self.cellGlow:SetBackdropColor(r, g, b, 0.4)
+        self.cellGlow:SetBackdropColor(r, g, b, 0.75)
         self.cellGlow:Show()
     elseif self.cellGlow then
         self.cellGlow:SetBackdropColor(0, 0, 0, 0)
