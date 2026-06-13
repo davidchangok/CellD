@@ -30,13 +30,13 @@ end
 -----------------------------------------
 -- Font
 -----------------------------------------
-local font_title_name = strupper(addonName).."_FONT_WIDGET_TITLE"
-local font_title_disable_name = strupper(addonName).."_FONT_WIDGET_TITLE_DISABLE"
-local font_name = strupper(addonName).."_FONT_WIDGET"
-local font_disable_name = strupper(addonName).."_FONT_WIDGET_DISABLE"
-local font_special_name = strupper(addonName).."_FONT_SPECIAL"
-local font_class_title_name = strupper(addonName).."_FONT_CLASS_TITLE"
-local font_class_name = strupper(addonName).."_FONT_CLASS"
+local font_title_name = "CELL_FONT_WIDGET_TITLE"
+local font_title_disable_name = "CELL_FONT_WIDGET_TITLE_DISABLE"
+local font_name = "CELL_FONT_WIDGET"
+local font_disable_name = "CELL_FONT_WIDGET_DISABLE"
+local font_special_name = "CELL_FONT_SPECIAL"
+local font_class_title_name = "CELL_FONT_CLASS_TITLE"
+local font_class_name = "CELL_FONT_CLASS"
 
 -----------------------------------------
 -- indicator settings widgets

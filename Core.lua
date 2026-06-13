@@ -71,13 +71,13 @@ local I = Cell.iFuncs
 local P = Cell.pixelPerfectFuncs
 local L = Cell.L
 
--- 版本共享检查协议版本号（用于团队间配置同步的兼容性校验）
-Cell.MIN_VERSION = 275
-Cell.MIN_CLICKCASTINGS_VERSION = 275
-Cell.MIN_LAYOUTS_VERSION = 275
-Cell.MIN_INDICATORS_VERSION = 275
-Cell.MIN_DEBUFFS_VERSION = 275
-Cell.MIN_QUICKASSIST_VERSION = 275
+-- CellD 版本共享检查协议版本号（从 1.0.0 起步，与原版 Cell r275 不兼容）
+Cell.MIN_VERSION = 1
+Cell.MIN_CLICKCASTINGS_VERSION = 1
+Cell.MIN_LAYOUTS_VERSION = 1
+Cell.MIN_INDICATORS_VERSION = 1
+Cell.MIN_DEBUFFS_VERSION = 1
+Cell.MIN_QUICKASSIST_VERSION = 1
 
 --[==[@debug@
 local debugMode = true                                              -- 调试模式开关
