@@ -623,13 +623,12 @@ local function Dispels_SetDispels(self, dispelTypes)
         end
     end
 
-    -- Grid2 IndicatorSquare.lua: SetBackdropColor on dedicated Frame for full-cell glow
+    -- Full-cell color wash on midLevelFrame (above health bar, always visible)
     if found then
-        self.parent._dispelsHighlightColor = {r, g, b, CellDB["appearance"]["bgAlpha"] or 1}
-        self.parent:SetBackdropColor(r, g, b, CellDB["appearance"]["bgAlpha"] or 1)
+        self.glow:SetColorTexture(r, g, b, 0.45)
+        self.glow:Show()
     else
-        self.parent._dispelsHighlightColor = nil
-        self.parent:SetBackdropColor(0, 0, 0, CellDB["appearance"]["bgAlpha"])
+        self.glow:Hide()
     end
 
     self:UpdateSize(i)
@@ -750,14 +749,18 @@ function I.CreateDispels(parent)
 
     dispels:SetScript("OnHide", function()
         dispels.highlight:Hide()
-        -- Reset backdrop when dispels indicator is hidden
-        dispels.parent._dispelsHighlightColor = nil
-        dispels.parent:SetBackdropColor(0, 0, 0, CellDB["appearance"]["bgAlpha"])
+        dispels.glow:Hide()
     end)
 
-    -- Health bar highlight texture (original Cell design)
+    -- Health bar highlight texture (original Cell design — "gradient-half" etc.)
     dispels.highlight = parent.widgets.midLevelFrame:CreateTexture(parent:GetName().."DispelHighlight")
     dispels.highlight:Hide()
+
+    -- Full-cell color wash texture on midLevelFrame (above health bar, below indicators)
+    dispels.glow = parent.widgets.midLevelFrame:CreateTexture(parent:GetName().."DispelGlow", "ARTWORK", nil, -7)
+    dispels.glow:SetAllPoints(parent)
+    dispels.glow:SetBlendMode("BLEND")
+    dispels.glow:Hide()
 
     dispels._SetSize = dispels.SetSize
     dispels.SetSize = Dispels_SetSize
