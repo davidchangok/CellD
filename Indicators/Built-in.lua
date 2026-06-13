@@ -1220,24 +1220,30 @@ function I.CreateNameText(parent)
             end
         end
 
-        if nameText.name:GetText() then
+        local displayedText = nameText.name:GetText()
+        -- Midnight: secret text -> GetText() returns secret, can't concatenate or test
+        local hasText = displayedText and not F.IsSecretValue(displayedText)
+        if not F.IsSecretValue(parent.states.name) and hasText then
             if nameText.isPreview then
                 if nameText.showGroupNumber then
-                    nameText.name:SetText("|cffbbbbbb7-|r"..nameText.name:GetText())
+                    nameText.name:SetText("|cffbbbbbb7-|r"..displayedText)
                 end
             else
                 if IsInRaid() and nameText.showGroupNumber then
                     local raidIndex = UnitInRaid(parent.states.unit)
                     if raidIndex then
                         local subgroup = select(3, GetRaidRosterInfo(raidIndex))
-                        -- nameText.name:SetText("|TInterface\\AddOns\\Cell\\Media\\Icons\\group"..subgroup..":0:0:0:-1:64:64:6:58:6:58|t"..nameText.name:GetText())
-                        nameText.name:SetText("|cffbbbbbb"..subgroup.."-|r"..nameText.name:GetText())
+                        nameText.name:SetText("|cffbbbbbb"..subgroup.."-|r"..displayedText)
                     end
                 end
             end
         end
 
-        nameText:SetSize(nameText.name:GetWidth(), nameText.name:GetHeight())
+        -- Midnight: GetWidth()/GetHeight() return secret when text is secret;
+        -- skip SetSize for secret names (Blizzard handles FontString sizing natively)
+        if not F.IsSecretValue(parent.states.name) then
+            nameText:SetSize(nameText.name:GetWidth(), nameText.name:GetHeight())
+        end
     end
 
     function nameText:UpdateVehicleName()
