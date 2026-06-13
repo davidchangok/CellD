@@ -119,8 +119,12 @@ local function UpdatePreviewButton()
     r, g, b = F.GetPowerBarColor("player", Cell.vars.playerClass)
     previewButton.widgets.powerBar:SetStatusBarColor(r, g, b)
 
-    -- bg alpha
-    previewButton:SetBackdropColor(0, 0, 0, CellDB["appearance"]["bgAlpha"])
+    -- bg alpha (respect dispel highlight if active)
+    if previewButton._dispelsHighlightColor then
+        previewButton:SetBackdropColor(unpack(previewButton._dispelsHighlightColor))
+    else
+        previewButton:SetBackdropColor(0, 0, 0, CellDB["appearance"]["bgAlpha"])
+    end
 
     Cell.Fire("UpdatePreview", previewButton)
 end
