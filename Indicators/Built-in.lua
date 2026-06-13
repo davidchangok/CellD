@@ -585,6 +585,7 @@ local function Dispels_SetDispels(self, dispelTypes)
 
     self.highlight:Hide()
 
+    local unit = self.parent.states.displayedUnit
     local i = 0
     for _, dispelType in ipairs(dispelOrder) do
         local info = dispelTypes[dispelType]
@@ -597,7 +598,7 @@ local function Dispels_SetDispels(self, dispelTypes)
                 found = true
                 -- Midnight 12.0.0+: try Blizzard secret-safe API first, fallback to color table
                 if auraID then
-                    r, g, b = I.GetAuraDispelColor(auraID) or I.GetDebuffTypeColor(dispelType)
+                    r, g, b = I.GetAuraDispelColor(unit, auraID) or I.GetDebuffTypeColor(dispelType)
                 else
                     r, g, b = I.GetDebuffTypeColor(dispelType)
                 end
