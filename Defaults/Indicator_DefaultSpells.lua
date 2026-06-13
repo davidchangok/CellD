@@ -396,7 +396,7 @@ local defensives = { -- true: track by name, false: track by id
         [45438] = true, -- 寒冰屏障 - Ice Block
         [414658] = true, -- 深寒凝冰 - Ice Cold
         [113862] = false, -- 强化隐形术 - Greater Invisibility
-        [55342] = false, -- 镜像（使用 CLEU 而非 UNIT_AURA） - Mirror Image
+        [55342] = true, -- 镜像 - Mirror Image (Midnight: UNIT_AURA, no longer CLEU)
         [342246] = true, -- 操控时间 - Alter Time
     },
 

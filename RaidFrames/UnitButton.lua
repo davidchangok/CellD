@@ -1581,30 +1581,6 @@ local function UnitButton_UpdateBuffs(self, isFullUpdate)
         ForEachAuraCache(self, "HELPFUL", HandleBuff)
     end
 
-    -- check Mirror Image
-    if self._mirror_image and I.IsDefensiveCooldown(55342) then -- exists and enabled
-        if self._buffs.defensiveFound < indicatorNums["defensiveCooldowns"] then
-            self._buffs.defensiveFound = self._buffs.defensiveFound + 1
-            self.indicators.defensiveCooldowns[self._buffs.defensiveFound]:SetCooldown(self._mirror_image, 40, nil, 135994, 0)
-        end
-        if self._buffs.allFound < indicatorNums["allCooldowns"] then
-            self._buffs.allFound = self._buffs.allFound + 1
-            self.indicators.allCooldowns[self._buffs.allFound]:SetCooldown(self._mirror_image, 40, nil, 135994, 0)
-        end
-    end
-
-    -- check Mass Barrier (self)
-    if self._mass_barrier and I.IsExternalCooldown(414660) then -- exists and enabled
-        if self._buffs.externalFound < indicatorNums["externalCooldowns"] then
-            self._buffs.externalFound = self._buffs.externalFound + 1
-            self.indicators.externalCooldowns[self._buffs.externalFound]:SetCooldown(self._mass_barrier, 60, nil, self._mass_barrier_icon, 0)
-        end
-        if self._buffs.allFound < indicatorNums["allCooldowns"] then
-            self._buffs.allFound = self._buffs.allFound + 1
-            self.indicators.allCooldowns[self._buffs.allFound]:SetCooldown(self._mass_barrier, 60, nil, self._mass_barrier_icon, 0)
-        end
-    end
-
     -- update defensiveCooldowns
     self.indicators.defensiveCooldowns:UpdateSize(self._buffs.defensiveFound)
 
@@ -1666,89 +1642,15 @@ local function ResetAuraTables(self)
     if self.indicators.raidDebuffs then
         self.indicators.raidDebuffs:HideGlow()
     end
-
-    self._mirror_image = nil
-    self._mass_barrier = nil
-    self._mass_barrier_icon = nil
 end
 
 -------------------------------------------------
--- check auras using CLEU
--- NOTE: COMBAT_LOG_EVENT_UNFILTERED is unavailable on Midnight (12.0.0+).
--- CheckCLEURequired has been removed; the cleu frame is guarded below.
+-- Mirror Image & Mass Barrier
+-- Midnight 12.0.0+: COMBAT_LOG_EVENT_UNFILTERED is unavailable (tainted).
+-- Mirror Image (55342) is now detected via UNIT_AURA → HandleBuff →
+-- IsDefensiveCooldown. Mass Barrier parent + sub-barriers are all detected
+-- via UNIT_AURA → HandleBuff → IsExternalCooldown (already in externals list).
 -------------------------------------------------
-local cleu = CreateFrame("Frame")
-
-local function UpdateMirrorImage(b, event)
-    if event == "SPELL_AURA_APPLIED" then
-        b._mirror_image = GetTime()
-    elseif event == "SPELL_AURA_REMOVED" then
-        b._mirror_image = nil
-    end
-    if b._indicatorsReady then
-        UnitButton_UpdateBuffs(b, false) -- should be no full update needed, indicator update is done
-    end
-end
-
-local SelfBarriers = {
-    [11426] = true, -- å¯’å†°æŠ¤ä½“ (self)
-    [235313] = true, -- çƒˆç„°æŠ¤ä½“ (self)
-    [235450] = true, -- æ£±å…‰æŠ¤ä½“ (self)
-}
-
-local function UpdateMassBarrier(b, event)
-    if event == "SPELL_CAST_SUCCESS" then
-        b._mass_barrier = GetTime()
-        local info = LGI:GetCachedInfo(b.states.guid)
-        if info then
-            if info.specId == 62 then -- Arcane
-                b._mass_barrier_icon = 135991
-            elseif info.specId == 63 then -- Fire
-                b._mass_barrier_icon = 132221
-            elseif info.specId == 64 then -- Frost
-                b._mass_barrier_icon = 135988
-            else
-                b._mass_barrier_icon = 1723997
-            end
-        end
-    elseif event == "SPELL_AURA_REMOVED" then
-        b._mass_barrier = nil
-        b._mass_barrier_icon = nil
-    end
-    if b._indicatorsReady then
-        UnitButton_UpdateBuffs(b, false) -- should be no full update needed, indicator update is done
-    end
-end
-
--- CLEU-based indicator tracking (mirror image, mass barrier).
--- Midnight 12.0.0+: COMBAT_LOG_EVENT_UNFILTERED is still available but
--- must not be registered in the main chunk if currently in combat (taint).
-if InCombatLockdown() then
-    local f = CreateFrame("Frame")
-    f:RegisterEvent("PLAYER_REGEN_ENABLED")
-    f:SetScript("OnEvent", function()
-        f:UnregisterAllEvents()
-        cleu:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-    end)
-else
-    cleu:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-end
-cleu:SetScript("OnEvent", function()
-    local _, subEvent, _, sourceGUID, _, sourceFlags, _, _, _, destFlags, _, spellId = CombatLogGetCurrentEventInfo()
-
-    -- mirror image (55342): SPELL_AURA_APPLIED/REMOVED on the mage
-    if spellId == 55342 and F.IsFriend(sourceFlags) then
-        F.HandleUnitButton("guid", sourceGUID, UpdateMirrorImage, subEvent)
-    end
-
-    -- mass barrier (414660) parent cast, SPELL_CAST_SUCCESS
-    if spellId == 414660 and F.IsFriend(sourceFlags) then
-        F.HandleUnitButton("guid", sourceGUID, UpdateMassBarrier, "SPELL_CAST_SUCCESS")
-    end
-    if (subEvent == "SPELL_AURA_REMOVED" or subEvent == "SPELL_AURA_REFRESH") and SelfBarriers[spellId] and F.IsFriend(sourceFlags) then
-        F.HandleUnitButton("guid", sourceGUID, UpdateMassBarrier, "SPELL_AURA_REMOVED")
-    end
-end)
 
 -------------------------------------------------
 -- functions
