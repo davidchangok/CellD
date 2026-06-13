@@ -165,6 +165,15 @@ battleResFrame.onUpdate = function(self, elapsed)
             return
         end
 
+        -- Midnight 12.0.0+: cooldown values may be secret during restricted encounters
+        if F.IsSecretValue and (F.IsSecretValue(charges) or F.IsSecretValue(duration) or F.IsSecretValue(started)) then
+            stack:SetFormattedText("%s?|r  ", "|cff00ff00")
+            rTime:SetText("?:??")
+            if bar.maxVlue ~= 60 then bar:SetMinMaxValues(0, 60) end
+            bar:SetValue(0)
+            return
+        end
+
         local color = (charges > 0) and "|cff00ff00" or "|cffff0000"
         local remaining = duration - (GetTime() - started)
         local m = floor(remaining / 60)

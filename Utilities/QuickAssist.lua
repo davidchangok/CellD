@@ -178,6 +178,8 @@ end
 --                                functions                                --
 -- ----------------------------------------------------------------------- --
 local function HandleBuff(self, auraInfo)
+    -- Midnight 12.0.0+: skip auras whose fields are secret; non-secret auras (e.g. raid buffs) are safe to read
+    if not F.IsAuraNonSecret(auraInfo) then return end
     local auraInstanceID = auraInfo.auraInstanceID
     local name = auraInfo.name
     local icon = auraInfo.icon
@@ -563,7 +565,11 @@ local function QuickAssist_OnTick(self)
 
         if self.unit then
             local guid = UnitGUID(self.unit)
-            if guid ~= self.__guid then
+            -- Midnight 12.0.0+: GUID may be secret in instances; skip comparison
+            if F.IsSecretValue and F.IsSecretValue(guid) then
+                guid = nil
+            end
+            if guid and guid ~= self.__guid then
                 self.__guid = guid
                 self._updateRequired = 1
             end
@@ -834,6 +840,10 @@ local function UpdateAllUnits()
     for unit in F.IterateGroupMembers() do
         if UnitIsConnected(unit) then
             local name = GetUnitName(unit, true)
+            -- Midnight 12.0.0+: UnitName may be secret, cannot use as table key
+            if F.IsSecretValue and F.IsSecretValue(name) then
+                name = unit -- fallback: use unit token as key
+            end
             local guid = UnitGUID(unit)
             local info = LGI:GetCachedInfo(guid)
             if info then
