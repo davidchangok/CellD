@@ -343,6 +343,8 @@ end
 local UnitIsUnit = UnitIsUnit
 local bos = F.GetSpellInfo(6940) -- 牺牲祝福
 function I.IsExternalCooldown(name, id, source, target)
+    -- Tables may be nil before I.UpdateExternals() is called
+    if not builtInExternals then return end
     -- Midnight 12.0.0+: name/id may be secret; only bail if BOTH are secret
     local nameSecret = issecretvalue and issecretvalue(name)
     local idSecret = issecretvalue and issecretvalue(id)
@@ -359,6 +361,8 @@ function I.IsExternalCooldown(name, id, source, target)
 end
 
 function I.IsDefensiveCooldown(name, id)
+    -- Tables may be nil before I.UpdateDefensives() is called
+    if not builtInDefensives then return end
     -- Midnight 12.0.0+: name/id may be secret; only bail if BOTH are secret
     local nameSecret = issecretvalue and issecretvalue(name)
     local idSecret = issecretvalue and issecretvalue(id)
