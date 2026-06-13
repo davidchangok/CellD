@@ -255,17 +255,15 @@ LoadList = function()
                 buttons[i].del.tex:SetVertexColor(0.4, 0.4, 0.4, 1)
             end)
             buttons[i].del:SetScript("OnClick", function()
-                if IsShiftKeyDown() then
-                    tremove(CellDB["snippets"], i)
-                    if selected == i then -- delete selected
-                        selected = 0
-                        forceLoadSelected = true
-                    elseif selected > i then -- before selected
-                        selected = selected - 1
-                        renameEB:Hide()
-                    end
-                    LoadList()
+                tremove(CellDB["snippets"], i)
+                if selected == i then -- delete selected
+                    selected = 0
+                    forceLoadSelected = true
+                elseif selected > i then -- before selected
+                    selected = selected - 1
+                    renameEB:Hide()
                 end
+                LoadList()
             end)
 
             -- label
