@@ -1144,6 +1144,13 @@ local function HandleDebuff(self, auraInfo)
     -- On Midnight in restricted context, spellId may be secret; I.CheckDebuffType guards internally
     debuffType = I.CheckDebuffType(debuffType, spellId)
 
+    -- Store computed values on auraInfo so rendering loop can read them directly
+    -- without calling DebuffStatus again in the hot path.
+    auraInfo._start = start
+    auraInfo._duration = duration
+    auraInfo._debuffType = debuffType
+    auraInfo._hasSecretTime = hasSecretTime
+
     -- Midnight 12.0.0+: when time values are secret, duration is set to 0 (falsy),
     -- but we still need to classify/show the debuff. Use hasSecretTime flag instead.
     if hasSecretTime or (duration and duration > 0) then
@@ -1272,17 +1279,15 @@ local function UnitButton_UpdateDebuffs(self, isFullUpdate)
             if auraInstanceID then
                 local auraInfo = self._debuffs_cache[auraInstanceID]
                 if auraInfo then
-                    local rdStart, rdDur, rdSecret = DebuffStatus.GetTemporal(auraInfo)
-                    local rdDurObj = rdSecret and DebuffStatus.GetDurationObject(unit, auraInstanceID) or nil
                     self.indicators.raidDebuffs[i]:SetCooldown(
-                        rdStart,
-                        rdDur,
-                        DebuffStatus.GetDebuffType(auraInfo),
+                        auraInfo._start,
+                        auraInfo._duration,
+                        auraInfo._debuffType,
                         auraInfo.icon,
                         auraInfo.applications,
                         auraInfo.refreshing,
                         I.IsDebuffUseElapsedTime(auraInfo.name, auraInfo.spellId),
-                        rdDurObj  -- Grid2-style DurationObject for secret auras
+                        auraInfo._hasSecretTime and DebuffStatus.GetDurationObject(unit, auraInstanceID) or nil
                     )
                     self.indicators.raidDebuffs[i].auraInstanceID = auraInstanceID -- NOTE: for tooltip
                     startIndex = startIndex + 1
@@ -1348,9 +1353,7 @@ local function UnitButton_UpdateDebuffs(self, isFullUpdate)
         for auraInstanceID in next, self._debuffs_big do
             local auraInfo = self._debuffs_cache[auraInstanceID]
             if auraInfo and startIndex <= indicatorNums["debuffs"] then
-                local bStart, bDur, bSecret = DebuffStatus.GetTemporal(auraInfo)
-                local bDurObj = bSecret and DebuffStatus.GetDurationObject(unit, auraInstanceID) or nil
-                self.indicators.debuffs[startIndex]:SetCooldown(bStart, bDur, DebuffStatus.GetDebuffType(auraInfo), auraInfo.icon, auraInfo.applications, auraInfo.refreshing, true, bDurObj)
+                self.indicators.debuffs[startIndex]:SetCooldown(auraInfo._start, auraInfo._duration, auraInfo._debuffType, auraInfo.icon, auraInfo.applications, auraInfo.refreshing, true, auraInfo._hasSecretTime and DebuffStatus.GetDurationObject(unit, auraInstanceID) or nil)
                 self.indicators.debuffs[startIndex].auraInstanceID = auraInstanceID -- NOTE: for tooltip
                 self.indicators.debuffs[startIndex].spellId = auraInfo.spellId -- NOTE: for blacklist
                 startIndex = startIndex + 1
@@ -1362,9 +1365,7 @@ local function UnitButton_UpdateDebuffs(self, isFullUpdate)
         for auraInstanceID in next, self._debuffs_normal do
             local auraInfo = self._debuffs_cache[auraInstanceID]
             if auraInfo and startIndex <= indicatorNums["debuffs"] then
-                local nStart, nDur, nSecret = DebuffStatus.GetTemporal(auraInfo)
-                local nDurObj = nSecret and DebuffStatus.GetDurationObject(unit, auraInstanceID) or nil
-                self.indicators.debuffs[startIndex]:SetCooldown(nStart, nDur, DebuffStatus.GetDebuffType(auraInfo), auraInfo.icon, auraInfo.applications, auraInfo.refreshing, false, nDurObj)
+                self.indicators.debuffs[startIndex]:SetCooldown(auraInfo._start, auraInfo._duration, auraInfo._debuffType, auraInfo.icon, auraInfo.applications, auraInfo.refreshing, false, auraInfo._hasSecretTime and DebuffStatus.GetDurationObject(unit, auraInstanceID) or nil)
                 self.indicators.debuffs[startIndex].auraInstanceID = auraInstanceID -- NOTE: for tooltip
                 self.indicators.debuffs[startIndex].spellId = auraInfo.spellId -- NOTE: for blacklist
                 startIndex = startIndex + 1
