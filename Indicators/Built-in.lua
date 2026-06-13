@@ -588,14 +588,12 @@ local function Dispels_SetDispels(self, dispelTypes)
     local i = 0
     for _, dispelType in ipairs(dispelOrder) do
         local info = dispelTypes[dispelType]
-        -- Support both legacy boolean and new {highlight, auraInstanceID} table
         local showHighlight = (type(info) == "table" and info.highlight) or (type(info) == "boolean" and info)
         local auraID = type(info) == "table" and info.auraInstanceID or nil
         if showHighlight then
-            -- highlight
             if not found and self.highlightType ~= "none" and dispelType then
                 found = true
-                -- Midnight 12.0.0+: try Blizzard secret-safe API first, fallback to color table
+                -- Midnight 12.0.0+: Blizzard C-engine API (Grid2/VuhDo pattern)
                 if auraID then
                     r, g, b = I.GetAuraDispelColor(auraID) or I.GetDebuffTypeColor(dispelType)
                 else
@@ -613,12 +611,20 @@ local function Dispels_SetDispels(self, dispelTypes)
                 end
                 self.highlight:Show()
             end
-            -- icons
             if self.showIcons then
                 i = i + 1
                 self[i]:SetDispel(dispelType)
             end
         end
+    end
+
+    -- Grid2-style cell-level background coloring: apply first dispel color to the unit button
+    -- backdrop, creating the "醒目" (prominent) debuff highlight the user expects.
+    if found and self.parent then
+        self.parent:SetBackdropColor(r, g, b, 0.35)
+    elseif self.parent then
+        -- Reset to normal background when no dispellable debuff
+        self.parent:SetBackdropColor(0, 0, 0, CellDB["appearance"]["bgAlpha"])
     end
 
     self:UpdateSize(i)

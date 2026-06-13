@@ -373,10 +373,8 @@ local function InitIndicator(indicatorName)
             for dispelType, value in pairs(dispelTypes) do
                 local showHighlight = (type(value) == "table" and value.highlight) or (type(value) == "boolean" and value)
                 local auraID = type(value) == "table" and value.auraInstanceID or nil
-                -- highlight
                 if not found and self.highlightType ~= "none" and dispelType and showHighlight then
                     found = true
-                    -- Midnight 12.0.0+: try Blizzard secret-safe API first
                     if auraID then
                         r, g, b = I.GetAuraDispelColor(auraID) or I.GetDebuffTypeColor(dispelType)
                     else
@@ -391,18 +389,20 @@ local function InitIndicator(indicatorName)
                     end
                     if indicator.isVisible then self.highlight:Show() end
                 end
-                -- icons
                 if self.showIcons then
                     self[1]:SetDispel(dispelType)
                 end
             end
 
-            self:UpdateSize(1)
-
-            -- hide unused
-            for j = 2, 5 do
-                self[j]:Hide()
+            -- Grid2-style cell-level background
+            if found and self.parent then
+                self.parent:SetBackdropColor(r, g, b, 0.35)
+            elseif self.parent then
+                self.parent:SetBackdropColor(0, 0, 0, CellDB["appearance"]["bgAlpha"])
             end
+
+            self:UpdateSize(1)
+            for j = 2, 5 do self[j]:Hide() end
         end
 
         if not indicator._UpdateHighlight then
