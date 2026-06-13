@@ -3,6 +3,10 @@ local L = Cell.L
 local I = Cell.iFuncs
 local F = Cell.funcs
 
+-- forward declarations (populated by I.UpdateDefensives/I.UpdateExternals)
+local builtInDefensives, customDefensives
+local builtInExternals, customExternals
+
 -------------------------------------------------
 -- dispelBlacklist
 -------------------------------------------------

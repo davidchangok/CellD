@@ -402,3 +402,5 @@ local function ShowTab(tab)
     end
 end
 Cell.RegisterCallback("ShowOptionsTab", "AboutTab_ShowTab", ShowTab)
+
+function Cell.UpdateAboutFont(offset) end
