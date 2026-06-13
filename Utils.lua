@@ -520,9 +520,10 @@ function F.Utf8sub(str, startChar, numChars)
 end
 
 function F.FitWidth(fs, text, alignment)
-    -- Midnight 12.0.0+: guard against secret strings (Grid2 pattern)
+    -- Midnight 12.0.0+: secret strings can't be measured/truncated,
+    -- but FontString:SetText() accepts secret values for display.
     if F.IsSecretValue(text) then
-        fs:SetText("")
+        fs:SetText(text)
         return
     end
     fs:SetText(text)
@@ -1077,11 +1078,12 @@ end
 
 function F.UpdateTextWidth(fs, text, width, relativeTo)
     if not text or not width then return end
-    -- Midnight 12.0.0+: UnitName() may return secret strings in PvP/instances;
-    -- string operations on secret values will throw — bail out safely.
-    if F.IsSecretValue(text) then return end
+    -- Midnight 12.0.0+: secret strings can't be measured/truncated
+    -- (utf8len/utf8sub throw on secrets), but FontString:SetText()
+    -- accepts secret values natively for display.
+    local isSecret = F.IsSecretValue(text)
 
-    if width == "unlimited" then
+    if width == "unlimited" or isSecret then
         fs:SetText(text)
     elseif width[1] == "percentage" then
         local percent = width[2] or 0.75
