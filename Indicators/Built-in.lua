@@ -618,13 +618,13 @@ local function Dispels_SetDispels(self, dispelTypes)
         end
     end
 
-    -- Grid2-style cell-level background coloring: apply first dispel color to the unit button
-    -- backdrop, creating the "醒目" (prominent) debuff highlight the user expects.
-    if found and self.parent then
-        self.parent:SetBackdropColor(r, g, b, 0.35)
-    elseif self.parent then
-        -- Reset to normal background when no dispellable debuff
-        self.parent:SetBackdropColor(0, 0, 0, CellDB["appearance"]["bgAlpha"])
+    -- Grid2-style full-cell background coloring (IndicatorSquare.lua pattern)
+    -- Uses a dedicated texture on highLevelFrame so it's not overridden by backdrop updates
+    if found then
+        self.cellGlow:SetColorTexture(r, g, b, 0.4)
+        self.cellGlow:Show()
+    else
+        self.cellGlow:Hide()
     end
 
     self:UpdateSize(i)
@@ -745,10 +745,20 @@ function I.CreateDispels(parent)
 
     dispels:SetScript("OnHide", function()
         dispels.highlight:Hide()
+        dispels.cellGlow:Hide()
     end)
 
+    -- Health bar highlight texture (original Cell design)
     dispels.highlight = parent.widgets.midLevelFrame:CreateTexture(parent:GetName().."DispelHighlight")
     dispels.highlight:Hide()
+
+    -- Grid2-style full-cell background glow
+    -- Grid2 IndicatorSquare.lua: status:GetColor(unit) → Square:SetBackdropColor
+    -- Placed on the highLevelFrame so it renders above health bar but below indicators
+    dispels.cellGlow = parent.widgets.highLevelFrame:CreateTexture(parent:GetName().."DispelCellGlow", "BACKGROUND", nil, -6)
+    dispels.cellGlow:SetAllPoints(parent)
+    dispels.cellGlow:SetBlendMode("BLEND")
+    dispels.cellGlow:Hide()
 
     dispels._SetSize = dispels.SetSize
     dispels.SetSize = Dispels_SetSize

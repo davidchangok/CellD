@@ -394,11 +394,12 @@ local function InitIndicator(indicatorName)
                 end
             end
 
-            -- Grid2-style cell-level background
-            if found and self.parent then
-                self.parent:SetBackdropColor(r, g, b, 0.35)
-            elseif self.parent then
-                self.parent:SetBackdropColor(0, 0, 0, CellDB["appearance"]["bgAlpha"])
+            -- Grid2-style full-cell background coloring
+            if found then
+                self.cellGlow:SetColorTexture(r, g, b, 0.4)
+                self.cellGlow:Show()
+            else
+                self.cellGlow:Hide()
             end
 
             self:UpdateSize(1)
