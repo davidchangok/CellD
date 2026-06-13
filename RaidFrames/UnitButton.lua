@@ -62,8 +62,6 @@ local UnitPhaseReason = UnitPhaseReason
 local IsInRaid = IsInRaid
 local UnitDetailedThreatSituation = UnitDetailedThreatSituation
 local GetAuraDataByAuraInstanceID = C_UnitAuras.GetAuraDataByAuraInstanceID
-local GetAuraSlots = C_UnitAuras.GetAuraSlots
-local GetAuraDataBySlot = C_UnitAuras.GetAuraDataBySlot
 local IsDelveInProgress = C_PartyInfo.IsDelveInProgress
 local UnitGetDetailedHealPrediction = UnitGetDetailedHealPrediction  -- nil pre-12.0
 local CreateUnitHealPredictionCalculator = CreateUnitHealPredictionCalculator  -- nil pre-12.0
@@ -1068,27 +1066,17 @@ Cell.RegisterCallback("UpdateIndicators", "UnitButton_UpdateIndicators", UpdateI
 
 -------------------------------------------------
 -- ForEachAura
+-- Midnight 12.0.0+: migrated from GetAuraSlots/GetAuraDataBySlot to GetUnitAuras
+-- (Grid2 StatusAuras.lua pattern). GetUnitAuras returns a proper array of auraInfo
+-- tables in a single API call, with built-in sortRule/sortDir support.
 -------------------------------------------------
-local function ForEachAuraHelper(button, func, continuationToken, ...)
-    -- continuationToken is the first return value of GetAuraSlots()
-    local n = select('#', ...)
-    for i = 1, n do
-        local slot = select(i, ...)
-        local auraInfo = GetAuraDataBySlot(button.states.displayedUnit, slot)
-        if auraInfo then
-            -- auraInfo.index = i
+local function ForEachAura(button, filter, func)
+    local auras = C_UnitAuras.GetUnitAuras(button.states.displayedUnit, filter)
+    if auras then
+        for _, auraInfo in ipairs(auras) do
             func(button, auraInfo)
         end
-        -- local done = func(button, auraInfo)
-        -- if done then
-        --     -- if func returns true then no further slots are needed, so don't return continuationToken
-        --     return nil
-        -- end
     end
-end
-
-local function ForEachAura(button, filter, func)
-    ForEachAuraHelper(button, func, GetAuraSlots(button.states.displayedUnit, filter))
 end
 
 -------------------------------------------------
@@ -1884,9 +1872,12 @@ local function UnitButton_UpdateHealthStates(self, diff)
         if F.IsValueNonSecret(hpPct) then
             self.states.healthPercent = hpPct
         else
-            -- Secret: default to 0 so F.GetHealthBarColor won't trigger fullColor (which checks == 1).
-            -- class_color / class_color_dark modes don't use percent, so they still work.
-            self.states.healthPercent = 0
+            -- Secret: keep previous cached value so health bar color doesn't flash red.
+            -- class_color/class_color_dark modes don't use percent so are unaffected anyway;
+            -- threshold/gradient modes will show the last known color until secret clears.
+            if not self.states.healthPercent then
+                self.states.healthPercent = 1 -- initial default: full health
+            end
         end
         -- Death detection uses non-secret boolean
         self.states.wasDead = self.states.isDead
@@ -2580,31 +2571,22 @@ UnitButton_UpdateShieldAbsorbs = function(self, skipStateUpdates)
 
         -- Update shield indicator (user-configurable indicator on top of health bar)
         if enabledIndicators["shieldBar"] then
-            -- Midnight 12.0.0+: ShieldBar_SetHorizontalValue expects a percentage (0-1),
-            -- but absorbs is a raw secret value (e.g. 50000+). Compute percentage safely.
-            -- Grid2 reference: StatusShields.lua uses StatusBar which handles secrets natively.
+            -- Midnight 12.0.0+: ShieldBar is now a StatusBar (Grid2 pattern).
+            -- StatusBar.SetMinMaxValues/SetValue handle secret values natively
+            -- in the C engine, computing the ratio without Lua arithmetic.
             local maxHealth = self.widgets.healthCalculator:GetMaximumHealth()
-            local shieldPercent
-            if F.IsValueNonSecret(absorbs) and F.IsValueNonSecret(maxHealth) and maxHealth > 0 then
-                shieldPercent = absorbs / maxHealth
-            else
-                -- Secret values: show a 25%-width bar as visual presence indicator.
-                -- We cannot compute the exact percentage in secret context (Grid2 avoids
-                -- this by using StatusBar Min/Max which accepts secret values natively).
-                shieldPercent = 0.25
-            end
             if indicatorBooleans["shieldBar"] then
-                -- onlyShowOvershields: can't compute on Midnight, fall back to showing
-                -- the bar when absorbs exist (indicated by non-zero secret value).
-                if not F.IsValueNonSecret(absorbs) or absorbs > 0 then
-                    self.indicators.shieldBar:Show()
-                    self.indicators.shieldBar:SetValue(shieldPercent)
-                else
+                -- onlyShowOvershields: show bar only when absorbs > 0
+                -- Secret absorbs appear as truthy values; fine for this check.
+                if F.IsValueNonSecret(absorbs) and absorbs <= 0 then
                     self.indicators.shieldBar:Hide()
+                else
+                    self.indicators.shieldBar:Show()
+                    self.indicators.shieldBar:SetValue(absorbs, maxHealth)
                 end
             else
                 self.indicators.shieldBar:Show()
-                self.indicators.shieldBar:SetValue(shieldPercent)
+                self.indicators.shieldBar:SetValue(absorbs, maxHealth)
             end
         else
             self.indicators.shieldBar:Hide()
@@ -2629,19 +2611,19 @@ UnitButton_UpdateShieldAbsorbs = function(self, skipStateUpdates)
                 local overshieldPercent = (self.states.totalAbsorbs + self.states.health - self.states.healthMax) / self.states.healthMax
                 if overshieldPercent > 0 then
                     self.indicators.shieldBar:Show()
-                    self.indicators.shieldBar:SetValue(overshieldPercent)
+                    self.indicators.shieldBar:SetValue(overshieldPercent, 1)
                 else
                     self.indicators.shieldBar:Hide()
                 end
             else
                 self.indicators.shieldBar:Show()
-                self.indicators.shieldBar:SetValue(shieldPercent)
+                self.indicators.shieldBar:SetValue(shieldPercent, 1)
             end
         else
             self.indicators.shieldBar:Hide()
         end
 
-        self.widgets.shieldBar:SetValue(shieldPercent, self.states.healthPercent)
+        self.widgets.shieldBar:SetValue(self.states.totalAbsorbs, self.states.healthMax)
     else
         self.indicators.shieldBar:Hide()
         self.widgets.shieldBar:Hide()

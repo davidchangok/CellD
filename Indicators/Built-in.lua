@@ -2254,24 +2254,35 @@ local function ShieldBar_SetPoint(bar, point, anchorTo, anchorPoint, x, y)
 end
 
 function I.CreateShieldBar(parent)
-    local shieldBar = CreateFrame("Frame", parent:GetName().."ShieldBar", parent.widgets.indicatorFrame, "BackdropTemplate")
+    -- Midnight 12.0.0+: Use StatusBar instead of Frame+texture.
+    -- StatusBar's SetMinMaxValues / SetValue natively handle secret values
+    -- in C engine, computing the ratio without Lua arithmetic.
+    -- Grid2 reference: StatusShields.lua uses StatusBar for the same reason.
+    local shieldBar = Cell.CreateStatusBar(parent:GetName().."ShieldBarIndicator", parent.widgets.indicatorFrame, 20, 6, 100, false, nil, nil, nil, {1, 1, 0, 1})
     parent.indicators.shieldBar = shieldBar
-    -- shieldBar:SetSize(4, 4)
     shieldBar:Hide()
-    shieldBar:SetBackdrop({edgeFile=Cell.vars.whiteTexture, edgeSize=P.Scale(1)})
-    shieldBar:SetBackdropBorderColor(0, 0, 0, 1)
-
-    local tex = shieldBar:CreateTexture(nil, "BORDER", nil, -7)
-    tex:SetAllPoints()
 
     shieldBar._SetPoint = shieldBar.SetPoint
     shieldBar.SetPoint = ShieldBar_SetPoint
-    shieldBar.SetValue = ShieldBar_SetHorizontalValue
 
     shieldBar.parentHealthBar = parent.widgets.healthBar
+    shieldBar._SetMinMaxValues = shieldBar.SetMinMaxValues
+    shieldBar._SetValue = shieldBar.SetValue
+
+    -- Override SetValue to take current+max pair from caller
+    function shieldBar:SetValue(current, max)
+        if max and max > 0 then
+            self:_SetMinMaxValues(0, max)
+            self:_SetValue(current)
+        else
+            -- Fallback for secret max: show 25% width as presence indicator
+            self:_SetMinMaxValues(0, 100)
+            self:_SetValue(25)
+        end
+    end
 
     function shieldBar:SetColor(r, g, b, a)
-        tex:SetColorTexture(r, g, b, a)
+        shieldBar:SetStatusBarColor(r, g, b, a or 1)
     end
 
     function shieldBar:UpdatePixelPerfect()
