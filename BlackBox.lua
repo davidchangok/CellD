@@ -44,16 +44,13 @@ local L = Cell.L
 -- 判断一个值是否为 Secret Value（opaque type）
 -- Secret Value 的特征：对任何操作都会抛出 "secret" 相关错误
 function F.IsSecretValue(v)
-    if v == nil then return false end
-    if type(v) == "number" then return false end
-    if type(v) == "string" then return false end
-    if type(v) == "boolean" then return false end
-
-    -- 对未知类型的值尝试安全操作
-    local ok = pcall(function()
-        local _ = v + 0  -- 尝试加0，secret值会失败
-    end)
-    return not ok
+    -- 使用 Blizzard issecretvalue 全局函数（Midnight 12.0.0+）
+    -- 支持所有 secret 类型：number、string、fileID 等
+    -- 参考 Grid2 实现：GridUtils.lua
+    if issecretvalue then
+        return issecretvalue(v)
+    end
+    return false
 end
 
 -- 安全检查：如果值为 Secret Value，返回回退值

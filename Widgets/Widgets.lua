@@ -2810,7 +2810,7 @@ end
 -- dropdown menu
 ------------------------------------------------
 local listInit, list, highlightTexture
-list = CreateFrame("Frame", addonName.."DropdownList", CellParent, "BackdropTemplate")
+list = CreateFrame("Frame", "CellDropdownList", CellParent, "BackdropTemplate")
 -- list:SetIgnoreParentScale(true)
 list:SetClampedToScreen(true)
 -- Cell.StylizeFrame(list, {0.115, 0.115, 0.115, 1})

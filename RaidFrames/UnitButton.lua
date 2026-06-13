@@ -1178,12 +1178,15 @@ local function HandleDebuff(self, auraInfo)
     local duration = auraInfo.duration
     -- Midnight 12.0.0+: expirationTime and duration may be secret even when spellId is not.
     -- Guard per-field: non-secret temporal fields get proper duration/cooldown display.
+    -- When secret, we still classify/show the debuff — just without cooldown animation.
     local start
+    local hasSecretTime = false
     if F.IsValueNonSecret(expirationTime) and F.IsValueNonSecret(duration) then
         start = expirationTime - duration
     else
         start = 0
         duration = 0
+        hasSecretTime = true -- flag the original values were secret, don't skip the debuff
     end
     local source = auraInfo.sourceUnit
     local spellId = auraInfo.spellId
@@ -1195,7 +1198,9 @@ local function HandleDebuff(self, auraInfo)
     -- On Midnight in restricted context, spellId may be secret; I.CheckDebuffType guards internally
     debuffType = I.CheckDebuffType(debuffType, spellId)
 
-    if duration then
+    -- Midnight 12.0.0+: when time values are secret, duration is set to 0 (falsy),
+    -- but we still need to classify/show the debuff. Use hasSecretTime flag instead.
+    if hasSecretTime or (duration and duration > 0) then
         UpdateAuraRefreshState(auraInfo)
         self._debuffs_cache[auraInstanceID] = auraInfo
 
@@ -1374,9 +1379,11 @@ local function UnitButton_UpdateDebuffs(self, isFullUpdate)
         -- update glow
         if not indicatorBooleans["raidDebuffs"] then
             -- to make sure top glow has highest priority
-            local topGlowType, topGlowOptions = self._debuffs_cache[topAuraInstanceID]["raidDebuffGlowType"], self._debuffs_cache[topAuraInstanceID]["raidDebuffGlowOptions"]
-            if topGlowType and topGlowType ~= "None" then
-                self._debuffs_glow_current[topGlowType] = topGlowOptions
+            if topAuraInstanceID then
+                local topGlowType, topGlowOptions = self._debuffs_cache[topAuraInstanceID]["raidDebuffGlowType"], self._debuffs_cache[topAuraInstanceID]["raidDebuffGlowOptions"]
+                if topGlowType and topGlowType ~= "None" then
+                    self._debuffs_glow_current[topGlowType] = topGlowOptions
+                end
             end
             for t, o in next, self._debuffs_glow_current do
                 self.indicators.raidDebuffs:ShowGlow(t, o, true)
@@ -1388,13 +1395,15 @@ local function UnitButton_UpdateDebuffs(self, isFullUpdate)
             end
             wipe(self._debuffs_glow_current)
         else
-            self.indicators.raidDebuffs:ShowGlow(
-                I.GetDebuffGlow(
-                    self._debuffs_cache[topAuraInstanceID]["name"],
-                    self._debuffs_cache[topAuraInstanceID]["spellId"],
-                    self._debuffs_cache[topAuraInstanceID]["applications"]
+            if topAuraInstanceID then
+                self.indicators.raidDebuffs:ShowGlow(
+                    I.GetDebuffGlow(
+                        self._debuffs_cache[topAuraInstanceID]["name"],
+                        self._debuffs_cache[topAuraInstanceID]["spellId"],
+                        self._debuffs_cache[topAuraInstanceID]["applications"]
+                    )
                 )
-            )
+            end
         end
     else
         self.indicators.raidDebuffs:Hide()
@@ -1498,12 +1507,15 @@ local function HandleBuff(self, auraInfo)
     local duration = auraInfo.duration
     -- Midnight 12.0.0+: expirationTime and duration may be secret even when spellId is not.
     -- Guard per-field: non-secret temporal fields get proper duration/cooldown display.
+    -- When secret, we still classify/show the buff — just without cooldown animation.
     local start
+    local hasSecretTime = false
     if F.IsValueNonSecret(expirationTime) and F.IsValueNonSecret(duration) then
         start = expirationTime - duration
     else
         start = 0
         duration = 0
+        hasSecretTime = true -- flag the original values were secret, don't skip the buff
     end
     local source = auraInfo.sourceUnit
     local spellId = auraInfo.spellId
@@ -1511,7 +1523,9 @@ local function HandleBuff(self, auraInfo)
 
     auraInfo.refreshing = false
 
-    if duration then
+    -- Midnight 12.0.0+: when time values are secret, duration is set to 0 (falsy),
+    -- but we still need to classify/show the buff. Use hasSecretTime flag instead.
+    if hasSecretTime or (duration and duration > 0) then
         UpdateAuraRefreshState(auraInfo)
         self._buffs_cache[auraInstanceID] = auraInfo
 
@@ -3326,13 +3340,18 @@ local function UnitButton_OnHide(self)
     ResetAuraTables(self)
 
     -- NOTE: update Cell.vars.guids
+    -- Midnight 12.0.0+: GUIDs may be secret values — guard before using as table key
     -- print("hide", self.states.unit, self.__unitGuid, self.__unitName)
     if self.__unitGuid then
-        if not self.isSpotlight then Cell.vars.guids[self.__unitGuid] = nil end
+        if not self.isSpotlight and not F.IsSecretValue(self.__unitGuid) then
+            Cell.vars.guids[self.__unitGuid] = nil
+        end
         self.__unitGuid = nil
     end
     if self.__unitName then
-        if not self.isSpotlight then Cell.vars.names[self.__unitName] = nil end
+        if not self.isSpotlight and not F.IsSecretValue(self.__unitName) then
+            Cell.vars.names[self.__unitName] = nil
+        end
         self.__unitName = nil
     end
     self.__displayedGuid = nil

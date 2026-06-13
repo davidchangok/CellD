@@ -157,6 +157,8 @@ end
 
 -- returns the number of characters in a UTF-8 string
 local function utf8len (s)
+	-- Midnight 12.0.0+: guard against secret strings (Grid2 pattern)
+	if issecretvalue and issecretvalue(s) then return 0 end
 	-- argument checking
 	if type(s) ~= "string" then
 		error("bad argument #1 to 'utf8len' (string expected, got ".. type(s).. ")")
@@ -183,6 +185,8 @@ end
 -- functions identically to string.sub except that i and j are UTF-8 characters
 -- instead of bytes
 local function utf8sub (s, i, j)
+	-- Midnight 12.0.0+: guard against secret strings (Grid2 pattern)
+	if issecretvalue and issecretvalue(s) then return "" end
 	-- argument defaults
 	j = j or -1
 

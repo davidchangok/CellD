@@ -520,6 +520,11 @@ function F.Utf8sub(str, startChar, numChars)
 end
 
 function F.FitWidth(fs, text, alignment)
+    -- Midnight 12.0.0+: guard against secret strings (Grid2 pattern)
+    if F.IsSecretValue(text) then
+        fs:SetText("")
+        return
+    end
     fs:SetText(text)
 
     if fs:IsTruncated() then
@@ -1072,6 +1077,9 @@ end
 
 function F.UpdateTextWidth(fs, text, width, relativeTo)
     if not text or not width then return end
+    -- Midnight 12.0.0+: UnitName() may return secret strings in PvP/instances;
+    -- string operations on secret values will throw — bail out safely.
+    if F.IsSecretValue(text) then return end
 
     if width == "unlimited" then
         fs:SetText(text)
@@ -1500,6 +1508,8 @@ function F.IsFriend(unitFlags)
 end
 
 function F.IsPlayer(guid)
+    -- Midnight 12.0.0+: guid may be secret; string.find on secret throws (Grid2 pattern)
+    if F.IsSecretValue(guid) then return false end
     if guid then
         return string.find(guid, "^Player")
     end
@@ -1509,18 +1519,21 @@ function F.IsPet(guid, unit)
     if unit then
         return strfind(unit, "pet%d*$")
     end
+    if F.IsSecretValue(guid) then return false end
     if guid then
         return string.find(guid, "^Pet")
     end
 end
 
 function F.IsNPC(guid)
+    if F.IsSecretValue(guid) then return false end
     if guid then
         return string.find(guid, "^Creature")
     end
 end
 
 function F.IsVehicle(guid)
+    if F.IsSecretValue(guid) then return false end
     if guid then
         return string.find(guid, "^Vehicle")
     end
