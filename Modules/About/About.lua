@@ -40,7 +40,7 @@ local function CreateOriginalAuthorPane()
     local pane = Cell.CreateTitledPane(aboutTab, L["Original Author"], 422, 30)
     pane:SetPoint("TOPLEFT", aboutTab, "TOPLEFT", 5, -130)
 
-    originalAuthorText = pane:CreateFontString(nil, "OVERLAY")
+    originalAuthorText = pane:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
     originalAuthorText:SetPoint("TOPLEFT", 5, -27)
     originalAuthorText:SetText("enderneko (Cell)")
 end
@@ -52,7 +52,7 @@ local function CreateRewriteAuthorPane()
     local pane = Cell.CreateTitledPane(aboutTab, L["Rewrite Author"], 422, 30)
     pane:SetPoint("TOPLEFT", aboutTab, "TOPLEFT", 5, -165)
 
-    authorText = pane:CreateFontString(nil, "OVERLAY")
+    authorText = pane:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
     authorText:SetPoint("TOPLEFT", 5, -27)
     authorText:SetText("David W Zhang (CellD)")
 end
