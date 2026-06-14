@@ -649,21 +649,16 @@ local function Dispels_SetDispels(self, dispelTypes)
         end
     end
 
-    -- 整格染色：优先用指示器设置中用户自定义的驱散颜色（r,g,b 来自高亮纹理计算，
-    -- 读的是 CellDB["debuffTypeColor"]），只有在 secret 环境无法获取类型名时才回退到
-    -- C 引擎 API（GetAuraDispelColor 按光环实际类型返回暴雪内置色）
+    -- 整格染色：优先用高亮纹理计算的颜色（来自 CellDB["debuffTypeColor"] 用户自定义色），
+    -- 仅在 debuff 类型因 secret 无法识别时回退到 C 引擎 API
     local topAuraID = self.parent._debuffs._topDispelAuraID
     if topAuraID then
-        if found and r > 0 then
-            -- 高亮路径已匹配到具体类型 → 使用用户自定义色
+        if found then
             self.glow:SetBackdropColor(r, g, b, 0.4)
         else
-            -- Secret 环境回退：用 C 引擎 API 按光环取色
             local cr, cg, cb = I.GetAuraDispelColor(topAuraID)
             if cr then
                 self.glow:SetBackdropColor(cr, cg, cb, 0.4)
-            else
-                self.glow:SetBackdropColor(0.5, 0.5, 0.5, 0.4)
             end
         end
         self.glow:Show()
