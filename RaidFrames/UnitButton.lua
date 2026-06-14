@@ -1223,9 +1223,13 @@ local function HandleDebuff(self, auraInfo)
 
         if enabledIndicators["debuffs"] and not isBlacklisted then
             -- all debuffs / only dispellableByMe
+            -- Midnight 12.0.0+: canActivePlayerDispel may be a secret boolean.
+            -- When secret, we cannot determine if the player can dispel this aura.
+            -- Default to false (conservative): avoid false positives showing
+            -- highlights on debuffs the player cannot actually dispel.
             local canDispel = auraInfo.canActivePlayerDispel
             if issecretvalue and issecretvalue(canDispel) then
-                canDispel = (debuffType ~= "") -- secret: dispelName exists=dispellable
+                canDispel = false -- conservative: don't assume we can dispel
             end
             if not indicatorBooleans["debuffs"] or canDispel then
                 if isBig then
@@ -1257,11 +1261,11 @@ local function HandleDebuff(self, auraInfo)
 
         if enabledIndicators["dispels"] and debuffType and debuffType ~= "" then
             -- all dispels / only dispellableByMe
-            -- Midnight 12.0.0+: canActivePlayerDispel may be a secret boolean;
-            -- guard the truthiness test with issecretvalue (Grid2 pattern)
+            -- Midnight 12.0.0+: canActivePlayerDispel may be a secret boolean.
+            -- When secret, default to false (conservative): avoid false positives.
             local canDispel = auraInfo.canActivePlayerDispel
             if issecretvalue and issecretvalue(canDispel) then
-                canDispel = (debuffType ~= "") -- secret: dispelName exists=dispellable
+                canDispel = false -- conservative: don't assume we can dispel
             end
             if not indicatorBooleans["dispels"]["dispellableByMe"] or canDispel then
                 -- Midnight 12.0.0+: when dispelName is secret, ALL debuffs fallback
