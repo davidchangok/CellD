@@ -3481,11 +3481,7 @@ function B.UpdateColor(button)
     UnitButton_UpdateHealthColor(button)
     UnitButton_UpdatePowerType(button)
     UnitButton_UpdatePowerTextColor(button)
-    if button._dispelsHighlightColor then
-        button:SetBackdropColor(unpack(button._dispelsHighlightColor))
-    else
-        button:SetBackdropColor(0, 0, 0, CellDB["appearance"]["bgAlpha"])
-    end
+    button:SetBackdropColor(0, 0, 0, CellDB["appearance"]["bgAlpha"])
 end
 
 local function IncomingHeal_SetValue_Horizontal(self, incomingPercent, healthPercent)
@@ -4037,11 +4033,7 @@ function B.UpdateBackdrop(button)
         button:SetBackdrop({bgFile = Cell.vars.whiteTexture, edgeFile = Cell.vars.whiteTexture, edgeSize = P.Scale(CELL_BORDER_SIZE)})
         button:SetBackdropBorderColor(unpack(CELL_BORDER_COLOR))
     end
-    if button._dispelsHighlightColor then
-        button:SetBackdropColor(unpack(button._dispelsHighlightColor))
-    else
-        button:SetBackdropColor(0, 0, 0, CellDB["appearance"]["bgAlpha"])
-    end
+    button:SetBackdropColor(0, 0, 0, CellDB["appearance"]["bgAlpha"])
 end
 
 -- pixel perfect
