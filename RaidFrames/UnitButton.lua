@@ -1147,6 +1147,11 @@ end
 
 
 local function HandleDebuff(self, auraInfo)
+    -- DEBUG: /dev 搜索 CellD_Debug 查看光环原始数据（仅赋值，不触发 secret 判断）
+    _G.CellD_Debug_Aura = auraInfo
+    _G.CellD_Debug_Unit = self.states.unit
+    _G.CellD_Debug_DispelFilters = indicatorBooleans["dispels"]
+
     local auraInstanceID = auraInfo.auraInstanceID
     local name = auraInfo.name
     -- auraInfo.icon may be a secret fileID on Midnight 12.0.0+
@@ -1280,6 +1285,16 @@ local function HandleDebuff(self, auraInfo)
                 end
             end
         end
+
+        -- DEBUG: /dev 搜索 CellD_Debug_Result 查看判定结果（不触发 secret 判断）
+        _G.CellD_Debug_Result = {
+            debuffType = debuffType,
+            name = name,
+            spellId = spellId,
+            auraID = auraInstanceID,
+            topAuraID = self._debuffs._topDispelAuraID,
+            dispelTableKeys = self._debuffs_dispel,
+        }
 
         -- crowdControls
         if enabledIndicators["crowdControls"] and I.IsCrowdControls(name, spellId) and self._debuffs.crowdControlsFound < indicatorNums["crowdControls"] then
