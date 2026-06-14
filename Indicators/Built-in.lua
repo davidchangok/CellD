@@ -622,7 +622,8 @@ local function Dispels_SetDispels(self, dispelTypes)
         end
     end
     -- Render secret-type debuffs: their dispelName was hidden by Midnight,
-    -- but GetAuraDispelColor(auraID) resolves the correct per-type color
+    -- but GetAuraDispelColor(auraID) resolves the correct per-type color.
+    -- Fallback to "Magic" blue when API fails — never black (invisible on dark bg).
     for typeKey, info in pairs(dispelTypes) do
         if strsub(typeKey, 1, 7) == "_secret" and not found then
             local showHighlight = (type(info) == "table" and info.highlight)
@@ -630,7 +631,7 @@ local function Dispels_SetDispels(self, dispelTypes)
             if showHighlight and auraID then
                 found = true
                 local cr, cg, cb = I.GetAuraDispelColor(auraID)
-                if cr then r, g, b = cr, cg, cb else r, g, b = 0, 0, 0 end
+                if cr then r, g, b = cr, cg, cb else r, g, b = I.GetDebuffTypeColor("Magic") end
                 if self.highlightType ~= "none" then
                     if self.highlightType == "entire" then
                         self.highlight:SetTexture(Cell.vars.whiteTexture)
