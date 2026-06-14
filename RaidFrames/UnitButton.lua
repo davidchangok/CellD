@@ -1264,13 +1264,17 @@ local function HandleDebuff(self, auraInfo)
                 canDispel = (debuffType ~= "") -- secret: dispelName exists=dispellable
             end
             if not indicatorBooleans["dispels"]["dispellableByMe"] or canDispel then
-                if indicatorBooleans["dispels"][debuffType] then
+                -- Midnight 12.0.0+: when dispelName is secret, ALL debuffs fallback
+                -- to "Magic". Using "Magic" as key causes all secret debuffs to
+                -- share the same color. Use unique per-aura key so each aura's
+                -- GetAuraDispelColor resolves the correct per-type color at render time.
+                local isSecretType = (auraInfo.dispelName and issecretvalue and issecretvalue(auraInfo.dispelName))
+                local typeKey = isSecretType and ("_secret"..auraInstanceID) or debuffType
+                if indicatorBooleans["dispels"][debuffType] or isSecretType then
                     if isDispelBlacklisted then
-                        -- no highlight
-                        self._debuffs_dispel[debuffType] = {highlight = false}
+                        self._debuffs_dispel[typeKey] = {highlight = false}
                     else
-                        -- store auraInstanceID for GetAuraDispelTypeColor API
-                        self._debuffs_dispel[debuffType] = {highlight = true, auraInstanceID = auraInstanceID}
+                        self._debuffs_dispel[typeKey] = {highlight = true, auraInstanceID = auraInstanceID, useApiColor = isSecretType}
                     end
                 end
             end

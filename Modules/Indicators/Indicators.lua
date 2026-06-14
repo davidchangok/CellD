@@ -371,31 +371,52 @@ local function InitIndicator(indicatorName)
             self.highlight:Hide()
 
             for dispelType, value in pairs(dispelTypes) do
-                local showHighlight = (type(value) == "table" and value.highlight) or (type(value) == "boolean" and value)
-                local auraID = type(value) == "table" and value.auraInstanceID or nil
-                if not found and self.highlightType ~= "none" and dispelType and showHighlight then
-                    found = true
-                    if auraID then
-                        local cr, cg, cb = I.GetAuraDispelColor(auraID)
-                        if cr then
-                            r, g, b = cr, cg, cb
+                -- Skip secret-type entries in the first pass
+                if strsub(dispelType or "", 1, 7) ~= "_secret" then
+                    local showHighlight = (type(value) == "table" and value.highlight) or (type(value) == "boolean" and value)
+                    local auraID = type(value) == "table" and value.auraInstanceID or nil
+                    if not found and self.highlightType ~= "none" and dispelType and showHighlight then
+                        found = true
+                        if auraID then
+                            local cr, cg, cb = I.GetAuraDispelColor(auraID)
+                            if cr then r, g, b = cr, cg, cb else r, g, b = I.GetDebuffTypeColor(dispelType) end
                         else
                             r, g, b = I.GetDebuffTypeColor(dispelType)
                         end
-                    else
-                        r, g, b = I.GetDebuffTypeColor(dispelType)
+                        if self.highlightType == "entire" then
+                            self.highlight:SetVertexColor(r, g, b, 0.5)
+                        elseif self.highlightType == "current" or self.highlightType == "current+" then
+                            self.highlight:SetVertexColor(r, g, b, 1)
+                        elseif self.highlightType == "gradient" or self.highlightType == "gradient-half" then
+                            self.highlight:SetGradient("VERTICAL", CreateColor(r, g, b, 1), CreateColor(r, g, b, 0))
+                        end
+                        if indicator.isVisible then self.highlight:Show() end
                     end
-                    if self.highlightType == "entire" then
-                        self.highlight:SetVertexColor(r, g, b, 0.5)
-                    elseif self.highlightType == "current" or self.highlightType == "current+" then
-                        self.highlight:SetVertexColor(r, g, b, 1)
-                    elseif self.highlightType == "gradient" or self.highlightType == "gradient-half" then
-                        self.highlight:SetGradient("VERTICAL", CreateColor(r, g, b, 1), CreateColor(r, g, b, 0))
+                    if self.showIcons then
+                        self[1]:SetDispel(dispelType)
                     end
-                    if indicator.isVisible then self.highlight:Show() end
                 end
-                if self.showIcons then
-                    self[1]:SetDispel(dispelType)
+            end
+            -- Second pass: secret-type debuffs (dispelName was hidden by Midnight)
+            for typeKey, value in pairs(dispelTypes) do
+                if strsub(typeKey, 1, 7) == "_secret" and not found then
+                    local showHighlight = (type(value) == "table" and value.highlight)
+                    local auraID = type(value) == "table" and value.auraInstanceID or nil
+                    if showHighlight and auraID then
+                        found = true
+                        local cr, cg, cb = I.GetAuraDispelColor(auraID)
+                        if cr then r, g, b = cr, cg, cb end
+                        if self.highlightType ~= "none" then
+                            if self.highlightType == "entire" then
+                                self.highlight:SetVertexColor(r, g, b, 0.5)
+                            elseif self.highlightType == "current" or self.highlightType == "current+" then
+                                self.highlight:SetVertexColor(r, g, b, 1)
+                            elseif self.highlightType == "gradient" or self.highlightType == "gradient-half" then
+                                self.highlight:SetGradient("VERTICAL", CreateColor(r, g, b, 1), CreateColor(r, g, b, 0))
+                            end
+                            if indicator.isVisible then self.highlight:Show() end
+                        end
+                    end
                 end
             end
 
