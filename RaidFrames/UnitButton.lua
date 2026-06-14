@@ -1147,10 +1147,8 @@ end
 
 
 local function HandleDebuff(self, auraInfo)
-    -- DEBUG: /dev 搜索 CellD_Debug 查看光环原始数据（仅赋值，不触发 secret 判断）
-    _G.CellD_Debug_Aura = auraInfo
-    _G.CellD_Debug_Unit = self.states.unit
-    _G.CellD_Debug_DispelFilters = indicatorBooleans["dispels"]
+    -- DEBUG: DevTool 注入式调试 — 数据自动出现在 DevTool 右侧面板
+    if DevTool then DevTool:AddData(auraInfo, "★ Debuff原始数据") end
 
     local auraInstanceID = auraInfo.auraInstanceID
     local name = auraInfo.name
@@ -1286,15 +1284,8 @@ local function HandleDebuff(self, auraInfo)
             end
         end
 
-        -- DEBUG: /dev 搜索 CellD_Debug_Result 查看判定结果（不触发 secret 判断）
-        _G.CellD_Debug_Result = {
-            debuffType = debuffType,
-            name = name,
-            spellId = spellId,
-            auraID = auraInstanceID,
-            topAuraID = self._debuffs._topDispelAuraID,
-            dispelTableKeys = self._debuffs_dispel,
-        }
+        -- DEBUG: DevTool 注入判定结果
+        if DevTool then DevTool:AddData({debuffType=debuffType, name=name, spellId=spellId, auraID=auraInstanceID, topAuraID=self._debuffs._topDispelAuraID, dispelTable=self._debuffs_dispel}, "★ 驱散判定结果") end
 
         -- crowdControls
         if enabledIndicators["crowdControls"] and I.IsCrowdControls(name, spellId) and self._debuffs.crowdControlsFound < indicatorNums["crowdControls"] then
