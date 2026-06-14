@@ -1147,8 +1147,10 @@ end
 
 
 local function HandleDebuff(self, auraInfo)
-    -- DEBUG: DevTool 注入式调试 — 数据自动出现在 DevTool 右侧面板
-    if DevTool then DevTool:AddData(auraInfo, "★ Debuff原始数据") end
+    -- DEBUG: 仅记录有 dispelName 的可驱散 Debuff（覆盖问题修正）
+    if DevTool and auraInfo.dispelName and auraInfo.isHarmful then
+        DevTool:AddData(auraInfo, "★ 可驱散Debuff(spell="..tostring(auraInfo.spellId)..")")
+    end
 
     local auraInstanceID = auraInfo.auraInstanceID
     local name = auraInfo.name
