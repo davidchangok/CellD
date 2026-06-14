@@ -649,11 +649,12 @@ local function Dispels_SetDispels(self, dispelTypes)
         end
     end
 
-    -- Full-cell color wash on parent (above healthBar, below indicators)
+    -- Full-cell background coloring via Frame backdrop (renders above healthBar StatusBar)
     if found then
-        self.glow:SetColorTexture(r, g, b, 0.5)
+        self.glow:SetBackdropColor(r, g, b, 0.55)
         self.glow:Show()
     else
+        self.glow:SetBackdropColor(0, 0, 0, 0)
         self.glow:Hide()
     end
 
@@ -775,17 +776,23 @@ function I.CreateDispels(parent)
 
     dispels:SetScript("OnHide", function()
         dispels.highlight:Hide()
-        dispels.glow:Hide()
+        if dispels.glow then
+            dispels.glow:SetBackdropColor(0, 0, 0, 0)
+            dispels.glow:Hide()
+        end
     end)
 
     -- Health bar highlight texture (original Cell design — "gradient-half" etc.)
     dispels.highlight = parent.widgets.midLevelFrame:CreateTexture(parent:GetName().."DispelHighlight")
     dispels.highlight:Hide()
 
-    -- Full-cell color wash on highLevelFrame — above healthBar (frameLevel +140), below indicators
-    dispels.glow = parent.widgets.highLevelFrame:CreateTexture(parent:GetName().."DispelGlow", "OVERLAY", nil, 1)
+    -- Full-cell color wash: a dedicated Frame at frameLevel parent+121 (just above healthBar's +120)
+    -- Frame with backdrop is not a texture — it renders as a real UI element, immune to drawLayer issues
+    dispels.glow = CreateFrame("Frame", parent:GetName().."DispelGlow", parent, "BackdropTemplate")
+    dispels.glow:SetFrameLevel(parent:GetFrameLevel() + 121)
     dispels.glow:SetAllPoints()
-    dispels.glow:SetBlendMode("ADD")
+    dispels.glow:SetBackdrop({bgFile = Cell.vars.whiteTexture})
+    dispels.glow:SetBackdropColor(0, 0, 0, 0)
     dispels.glow:Hide()
 
     dispels._SetSize = dispels.SetSize
