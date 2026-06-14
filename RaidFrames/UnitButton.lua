@@ -1228,8 +1228,8 @@ local function HandleDebuff(self, auraInfo)
             -- Default to false (conservative): avoid false positives showing
             -- highlights on debuffs the player cannot actually dispel.
             local canDispel = auraInfo.canActivePlayerDispel
-            if issecretvalue and issecretvalue(canDispel) then
-                canDispel = false -- conservative: don't assume we can dispel
+            if F.IsSecretValue and F.IsSecretValue(canDispel) then
+                canDispel = false
             end
             if not indicatorBooleans["debuffs"] or canDispel then
                 if isBig then
@@ -1262,13 +1262,11 @@ local function HandleDebuff(self, auraInfo)
         if enabledIndicators["dispels"] and debuffType and debuffType ~= "" then
             -- Midnight 12.0.0+: canActivePlayerDispel may be a secret boolean
             local canDispel = auraInfo.canActivePlayerDispel
-            if issecretvalue and issecretvalue(canDispel) then
+            if F.IsSecretValue and F.IsSecretValue(canDispel) then
                 canDispel = (debuffType ~= "")
             end
             if not indicatorBooleans["dispels"]["dispellableByMe"] or canDispel then
                 local isSecretType = (auraInfo.dispelName and issecretvalue and issecretvalue(auraInfo.dispelName))
-                -- DEBUG: 输出每个可驱散Debuff的检查结果
-                print("|cFF00FFFF[驱散检测]|r 类型="..tostring(debuffType).." secret="..tostring(isSecretType).." 勾选="..tostring(indicatorBooleans["dispels"][debuffType]).." 黑名单="..tostring(isDispelBlacklisted).." spellID="..tostring(spellId).." auraID="..tostring(auraInstanceID))
                 if indicatorBooleans["dispels"][debuffType] or isSecretType then
                     -- Always capture the first dispellable aura for glow coloring
                     if not self._debuffs._topDispelAuraID then
