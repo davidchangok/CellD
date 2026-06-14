@@ -1260,26 +1260,30 @@ local function HandleDebuff(self, auraInfo)
         end
 
         if enabledIndicators["dispels"] and debuffType and debuffType ~= "" then
-            -- all dispels / only dispellableByMe
-            -- Midnight 12.0.0+: canActivePlayerDispel may be a secret boolean.
-            -- When secret, default to false (conservative): avoid false positives.
+            -- Grid2-style dispel detection: store top-priority dispellable aura's
+            -- auraInstanceID for per-aura color lookup at render time.
+            -- Midnight 12.0.0+: canActivePlayerDispel may be a secret boolean;
+            -- when secret, fall back to dispelName presence check.
             local canDispel = auraInfo.canActivePlayerDispel
             if issecretvalue and issecretvalue(canDispel) then
-                canDispel = false -- conservative: don't assume we can dispel
+                canDispel = (debuffType ~= "") -- secret: dispelName exists → dispellable
             end
             if not indicatorBooleans["dispels"]["dispellableByMe"] or canDispel then
-                -- Midnight 12.0.0+: when dispelName is secret, ALL debuffs fallback
-                -- to "Magic". Using "Magic" as key causes all secret debuffs to
-                -- share the same color. Use unique per-aura key so each aura's
-                -- GetAuraDispelColor resolves the correct per-type color at render time.
                 local isSecretType = (auraInfo.dispelName and issecretvalue and issecretvalue(auraInfo.dispelName))
-                local typeKey = isSecretType and ("_secret"..auraInstanceID) or debuffType
                 if indicatorBooleans["dispels"][debuffType] or isSecretType then
                     if isDispelBlacklisted then
-                        self._debuffs_dispel[typeKey] = {highlight = false}
+                        -- no highlight
                     else
-                        self._debuffs_dispel[typeKey] = {highlight = true, auraInstanceID = auraInstanceID, useApiColor = isSecretType}
+                        -- Save top-priority auraID for color. First match in
+                        -- dispelOrder iteration order (HandleDebuff runs per-aura)
+                        -- wins: later auras skip this block (set once per update cycle).
+                        if not self._debuffs._topDispelAuraID then
+                            self._debuffs._topDispelAuraID = auraInstanceID
+                        end
                     end
+                    -- Store per-type icon visibility for dispel icon rendering
+                    local typeKey = isSecretType and ("_secret"..auraInstanceID) or debuffType
+                    self._debuffs_dispel[typeKey] = true
                 end
             end
         end

@@ -421,9 +421,10 @@ local function InitIndicator(indicatorName)
             end
 
             if found and self.glow then
-                self.glow:SetColorTexture(r, g, b, 0.45)
+                self.glow:SetBackdropColor(r, g, b, 0.55)
                 self.glow:Show()
             elseif self.glow then
+                self.glow:SetBackdropColor(0, 0, 0, 0)
                 self.glow:Hide()
             end
 

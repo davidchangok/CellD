@@ -786,11 +786,11 @@ function I.CreateDispels(parent)
     dispels.highlight = parent.widgets.midLevelFrame:CreateTexture(parent:GetName().."DispelHighlight")
     dispels.highlight:Hide()
 
-    -- Full-cell color wash: a dedicated Frame at frameLevel parent+121 (just above healthBar's +120)
-    -- Frame with backdrop is not a texture — it renders as a real UI element, immune to drawLayer issues
-    dispels.glow = CreateFrame("Frame", parent:GetName().."DispelGlow", parent, "BackdropTemplate")
-    dispels.glow:SetFrameLevel(parent:GetFrameLevel() + 121)
-    dispels.glow:SetAllPoints()
+    -- Grid2 IndicatorSquare pattern: independent Backdrop Frame for full-cell coloring.
+    -- Hosted on highLevelFrame (parent+140) to ensure rendering above healthBar (midLevelFrame +120).
+    dispels.glow = CreateFrame("Frame", parent:GetName().."DispelGlow", parent.widgets.highLevelFrame, "BackdropTemplate")
+    dispels.glow:SetFrameLevel(parent.widgets.highLevelFrame:GetFrameLevel() + 1)
+    dispels.glow:SetAllPoints(parent.widgets.highLevelFrame)
     dispels.glow:SetBackdrop({bgFile = Cell.vars.whiteTexture})
     dispels.glow:SetBackdropColor(0, 0, 0, 0)
     dispels.glow:Hide()
