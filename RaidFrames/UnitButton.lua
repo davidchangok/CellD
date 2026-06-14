@@ -1498,9 +1498,6 @@ end
 -------------------------------------------------
 
 local function HandleBuff(self, auraInfo)
-    -- DEBUG: DevTool 注入式调试 — 增益光环原始数据
-    if DevTool then DevTool:AddData(auraInfo, "★ Buff原始数据") end
-
     local unit = self.states.displayedUnit
 
     local auraInstanceID = auraInfo.auraInstanceID
