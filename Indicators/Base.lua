@@ -15,7 +15,7 @@ local LCG = LibStub("LibCustomGlow-1.0")
 
 -- Midnight 12.0.0+: aura count (applications) may be secret; sanitize for safe comparisons/table-key use
 local function _SanitizeCount(count)
-    if issecretvalue and issecretvalue(count) then return 0 end
+    if F.IsSecretValue and F.IsSecretValue(count) then return 0 end
     return count or 0
 end
 

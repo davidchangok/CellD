@@ -854,7 +854,7 @@ end)
 local function CheckCondition(operator, checkedValue, currentValue)
     -- Midnight 12.0.0+: applications (count) may be secret even when spellId is not;
     -- comparisons on secret values throw errors
-    if issecretvalue and (issecretvalue(currentValue) or issecretvalue(checkedValue)) then return end
+    if F.IsSecretValue and (F.IsSecretValue(currentValue) or F.IsSecretValue(checkedValue)) then return end
     if operator == "=" then
         if currentValue == checkedValue then return true end
     elseif operator == ">" then
@@ -873,8 +873,8 @@ end
 function I.GetDebuffOrder(spellName, spellId, count)
     -- Midnight 12.0.0+: spellId/spellName may be secret; cannot use as table key.
     -- Only bail if BOTH are secret — a non-secret spellId or spellName allows lookup.
-    local idSecret = issecretvalue and issecretvalue(spellId)
-    local nameSecret = issecretvalue and issecretvalue(spellName)
+    local idSecret = F.IsSecretValue and F.IsSecretValue(spellId)
+    local nameSecret = F.IsSecretValue and F.IsSecretValue(spellName)
     local t
     if not idSecret then t = currentAreaDebuffs[spellId] end
     if not t and not nameSecret then t = currentAreaDebuffs[spellName] end
@@ -895,8 +895,8 @@ end
 function I.GetDebuffGlow(spellName, spellId, count)
     -- Midnight 12.0.0+: spellId/spellName may be secret; cannot use as table key.
     -- Only bail if BOTH are secret — a non-secret spellId or spellName allows lookup.
-    local idSecret = issecretvalue and issecretvalue(spellId)
-    local nameSecret = issecretvalue and issecretvalue(spellName)
+    local idSecret = F.IsSecretValue and F.IsSecretValue(spellId)
+    local nameSecret = F.IsSecretValue and F.IsSecretValue(spellName)
     local t
     if not idSecret then t = currentAreaDebuffs[spellId] end
     if not t and not nameSecret then t = currentAreaDebuffs[spellName] end
@@ -922,8 +922,8 @@ end
 function I.IsDebuffUseElapsedTime(spellName, spellId)
     -- Midnight 12.0.0+: spellId/spellName may be secret; cannot use as table key.
     -- Only bail if BOTH are secret — a non-secret spellId or spellName allows lookup.
-    local idSecret = issecretvalue and issecretvalue(spellId)
-    local nameSecret = issecretvalue and issecretvalue(spellName)
+    local idSecret = F.IsSecretValue and F.IsSecretValue(spellId)
+    local nameSecret = F.IsSecretValue and F.IsSecretValue(spellName)
     local t
     if not idSecret then t = currentAreaDebuffs[spellId] end
     if not t and not nameSecret then t = currentAreaDebuffs[spellName] end
@@ -1477,7 +1477,7 @@ local function StatusText_ShowTimer(self)
 
     -- Midnight 12.0.0+: guid may be secret for NPC/boss units
     local showGuid = self.parent.states.guid
-    if not (issecretvalue and issecretvalue(showGuid)) then
+    if not (F.IsSecretValue and F.IsSecretValue(showGuid)) then
         if showGuid and not startTimeCache[showGuid] then startTimeCache[showGuid] = GetTime() end
     end
 
@@ -1486,7 +1486,7 @@ local function StatusText_ShowTimer(self)
             self.parent.states.guid = UnitGUID(self.parent.states.unit)
         end
         local tickGuid = self.parent.states.guid
-        if tickGuid and not (issecretvalue and issecretvalue(tickGuid)) and startTimeCache[tickGuid] then
+        if tickGuid and not (F.IsSecretValue and F.IsSecretValue(tickGuid)) and startTimeCache[tickGuid] then
             self.timer:SetFormattedText(F.FormatTime(GetTime() - startTimeCache[tickGuid]))
         else
             self.timer:SetText("")
@@ -1501,7 +1501,7 @@ local function StatusText_HideTimer(self, reset)
         if self.ticker then self.ticker:Cancel() end
         -- Midnight 12.0.0+: guid may be secret for NPC/boss units
         local guid = self.parent.states.guid
-        if guid and not (issecretvalue and issecretvalue(guid)) then
+        if guid and not (F.IsSecretValue and F.IsSecretValue(guid)) then
             startTimeCache[guid] = nil
         end
     end

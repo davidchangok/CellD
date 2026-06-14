@@ -188,7 +188,7 @@ function I.UpdateAoEHealings(t)
 end
 
 function I.IsAoEHealing(name, id)
-    if issecretvalue and (issecretvalue(name) or issecretvalue(id)) then return end
+    if F.IsSecretValue and (F.IsSecretValue(name) or F.IsSecretValue(id)) then return end
     return builtInAoEHealings[name] or builtInAoEHealings[id] or customAoEHealings[id]
 end
 
@@ -346,8 +346,8 @@ function I.IsExternalCooldown(name, id, source, target)
     -- Tables may be nil before I.UpdateExternals() is called
     if not builtInExternals then return end
     -- Midnight 12.0.0+: name/id may be secret; only bail if BOTH are secret
-    local nameSecret = issecretvalue and issecretvalue(name)
-    local idSecret = issecretvalue and issecretvalue(id)
+    local nameSecret = F.IsSecretValue and F.IsSecretValue(name)
+    local idSecret = F.IsSecretValue and F.IsSecretValue(id)
     if nameSecret and idSecret then return end
     if not nameSecret and name == bos then
         if source and target then
@@ -364,8 +364,8 @@ function I.IsDefensiveCooldown(name, id)
     -- Tables may be nil before I.UpdateDefensives() is called
     if not builtInDefensives then return end
     -- Midnight 12.0.0+: name/id may be secret; only bail if BOTH are secret
-    local nameSecret = issecretvalue and issecretvalue(name)
-    local idSecret = issecretvalue and issecretvalue(id)
+    local nameSecret = F.IsSecretValue and F.IsSecretValue(name)
+    local idSecret = F.IsSecretValue and F.IsSecretValue(id)
     if nameSecret and idSecret then return end
     if nameSecret then return builtInDefensives[id] or customDefensives[id] end
     if idSecret then return builtInDefensives[name] end
@@ -564,7 +564,7 @@ do
 end
 
 function I.IsTankActiveMitigation(spellId)
-    if issecretvalue and issecretvalue(spellId) then return end
+    if F.IsSecretValue and F.IsSecretValue(spellId) then return end
     return tankActiveMitigations[spellId]
 end
 
@@ -752,7 +752,7 @@ do
 end
 
 function I.IsDrinking(name)
-    if issecretvalue and issecretvalue(name) then return end
+    if F.IsSecretValue and F.IsSecretValue(name) then return end
     return drinks[name]
 end
 
@@ -1333,8 +1333,8 @@ end
 
 function I.IsCrowdControls(name, id)
     -- Midnight 12.0.0+: name/id may be secret; only bail if BOTH are secret
-    local nameSecret = issecretvalue and issecretvalue(name)
-    local idSecret = issecretvalue and issecretvalue(id)
+    local nameSecret = F.IsSecretValue and F.IsSecretValue(name)
+    local idSecret = F.IsSecretValue and F.IsSecretValue(id)
     if nameSecret and idSecret then return end
     if nameSecret then return builtInCrowdControls[id] end
     if idSecret then return builtInCrowdControls[name] or customCrowdControls[name] end

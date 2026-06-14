@@ -11,7 +11,7 @@ local I = Cell.iFuncs
 -- - DO NOT compare secret values with == or use arithmetic on them
 -- - DO NOT use secret values as table keys
 -- - FontString:SetText() and SetTexture() ACCEPT secrets safely
--- - Use issecretvalue(val) to check if a value is secret
+-- - Use F.IsSecretValue(val) to check if a value is secret
 -- - Use GetRestrictedActionStatus(0) to check if aura access is restricted
 
 -------------------------------------------------
@@ -259,7 +259,7 @@ function I.UpdateCustomIndicators(unitButton, auraInfo)
     local icon = auraInfo.icon
     -- Midnight 12.0.0+: dispelName may be secret; sanitize to avoid table-key/comparison crashes downstream
     local rawDispelName = auraInfo.dispelName
-    local debuffType = auraInfo.isHarmful and ((rawDispelName and (not issecretvalue or not issecretvalue(rawDispelName))) and rawDispelName or "") or nil
+    local debuffType = auraInfo.isHarmful and ((rawDispelName and (not F.IsSecretValue or not F.IsSecretValue(rawDispelName))) and rawDispelName or "") or nil
     local count = auraInfo.applications
     local duration = auraInfo.duration
     -- Use per-aura check for duration: non-secret auras get real timers, secret ones get zeroed.
@@ -291,7 +291,7 @@ function I.UpdateCustomIndicators(unitButton, auraInfo)
             end
 
             -- Midnight 12.0.0+: spell (name or spellId) may be secret; cannot use as table key
-            if spell and (not issecretvalue or not issecretvalue(spell)) and indicatorTable["auras"][spell] or (indicatorTable["auras"][0] and duration ~= 0) then -- is in indicator spell list
+            if spell and (not F.IsSecretValue or not F.IsSecretValue(spell)) and indicatorTable["auras"][spell] or (indicatorTable["auras"][0] and duration ~= 0) then -- is in indicator spell list
                 -- check caster
                 if (indicatorTable["castBy"] == "me" and castByMe) or (indicatorTable["castBy"] == "others" and not castByMe) or (indicatorTable["castBy"] == "anyone") then
                     if auraType == "buff" then

@@ -1158,7 +1158,7 @@ local function HandleDebuff(self, auraInfo)
     -- internally resolves secrets; but CellD needs the type string for indicatorBooleans filtering.
     local debuffType
     if auraInfo.dispelName then
-        if not issecretvalue or not issecretvalue(auraInfo.dispelName) then
+        if not F.IsSecretValue or not F.IsSecretValue(auraInfo.dispelName) then
             debuffType = auraInfo.dispelName
         else
             debuffType = "Magic" -- Secret fallback: aura IS dispellable but type is hidden
@@ -1199,7 +1199,7 @@ local function HandleDebuff(self, auraInfo)
     -- Midnight 12.0.0+: pre-compute dispel color via GetAuraDispelTypeColor API
     -- when debuffType came from secret fallback ("Magic"). Grid2 uses this API
     -- to get secret-safe colors without knowing the type string.
-    if debuffType == "Magic" and auraInfo.dispelName and issecretvalue and issecretvalue(auraInfo.dispelName) then
+    if debuffType == "Magic" and auraInfo.dispelName and F.IsSecretValue and F.IsSecretValue(auraInfo.dispelName) then
         local cr, cg, cb = I.GetAuraDispelColor(self.states.displayedUnit, auraInstanceID)
         if cr then
             auraInfo._dispelColor = {cr, cg, cb}
@@ -1266,7 +1266,7 @@ local function HandleDebuff(self, auraInfo)
                 canDispel = (debuffType ~= "")
             end
             if not indicatorBooleans["dispels"]["dispellableByMe"] or canDispel then
-                local isSecretType = (auraInfo.dispelName and issecretvalue and issecretvalue(auraInfo.dispelName))
+                local isSecretType = (auraInfo.dispelName and F.IsSecretValue and F.IsSecretValue(auraInfo.dispelName))
                 if indicatorBooleans["dispels"][debuffType] or isSecretType then
                     -- Always capture the first dispellable aura for glow coloring
                     if not self._debuffs._topDispelAuraID then
@@ -2106,7 +2106,7 @@ UnitButton_UpdateRole = function(self)
 
         --! check vehicle root
         -- Midnight 12.0.0+: guid may be secret for NPC/boss units
-        if self.states.guid and not (issecretvalue and issecretvalue(self.states.guid)) and strfind(self.states.guid, "^Vehicle") and not UnitInPartyIsAI(unit) then
+        if self.states.guid and not (F.IsSecretValue and F.IsSecretValue(self.states.guid)) and strfind(self.states.guid, "^Vehicle") and not UnitInPartyIsAI(unit) then
             CheckVehicleRoot(self, unit)
         end
     else

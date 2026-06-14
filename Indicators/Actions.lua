@@ -41,7 +41,7 @@ eventFrame:SetScript("OnEvent", function(self, event, unit, castGUID, spellID)
     end
 
     -- Midnight 12.0.0+: spellID from UNIT_SPELLCAST_SUCCEEDED is secret during restricted contexts
-    if Cell.isMidnight and issecretvalue and issecretvalue(spellID) then return end
+    if Cell.isMidnight and F.IsSecretValue and F.IsSecretValue(spellID) then return end
 
     if Cell.vars.actions[spellID] then
         F.HandleUnitButton("unit", unit, Display, unpack(Cell.vars.actions[spellID]))
