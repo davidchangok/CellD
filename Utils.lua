@@ -1089,10 +1089,13 @@ function F.UpdateTextWidth(fs, text, width, relativeTo)
         fs:SetText(text)
     elseif width[1] == "percentage" then
         local percent = width[2] or 0.75
-        local width = relativeTo:GetWidth() - 2
+        local maxWidth = relativeTo:GetWidth() - 2
+        -- Midnight: fs:GetWidth() may return secret if FontString previously
+        -- rendered secret text (e.g. pet name). Guard arithmetic/comparison.
         for i = string.utf8len(text), 0, -1 do
             fs:SetText(string.utf8sub(text, 1, i))
-            if fs:GetWidth() / width <= percent then
+            local w = fs:GetWidth()
+            if F.IsValueNonSecret(w) and (w / maxWidth <= percent) then
                 break
             end
         end
