@@ -649,14 +649,15 @@ local function Dispels_SetDispels(self, dispelTypes)
         end
     end
 
-    -- 整格染色：优先用高亮纹理计算的颜色（来自 CellDB["debuffTypeColor"] 用户自定义色），
-    -- 仅在 debuff 类型因 secret 无法识别时回退到 C 引擎 API
+    -- 整格染色：优先用高亮纹理计算的颜色（来自 CellDB["debuffTypeColor"] 用户自定义色）
     local topAuraID = self.parent._debuffs._topDispelAuraID
     if topAuraID then
         if found then
+            F.Debug("|cFF00FF00[DispelGlow]|r found=true typeColor r="..tostring(r).." g="..tostring(g).." b="..tostring(b))
             self.glow:SetBackdropColor(r, g, b, 0.4)
         else
             local cr, cg, cb = I.GetAuraDispelColor(topAuraID)
+            F.Debug("|cFFFFFF00[DispelGlow]|r found=false API r="..tostring(cr).." g="..tostring(cg).." b="..tostring(cb))
             if cr then
                 self.glow:SetBackdropColor(cr, cg, cb, 0.4)
             end
