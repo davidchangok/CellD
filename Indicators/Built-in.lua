@@ -655,10 +655,10 @@ local function Dispels_SetDispels(self, dispelTypes)
     if topAuraID then
         local cr, cg, cb = I.GetAuraDispelColor(topAuraID)
         if cr then
-            self.glow:SetBackdropColor(cr, cg, cb, 0.55)
+            self.glow:SetBackdropColor(cr, cg, cb, 0.3)
         else
-            -- API fallback: use the found color from above or default Magic blue
-            self.glow:SetBackdropColor(r, g, b, 0.55)
+            -- API fallback: use the highlight color computed above
+            self.glow:SetBackdropColor(r, g, b, 0.3)
         end
         self.glow:Show()
     else
