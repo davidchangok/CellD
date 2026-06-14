@@ -649,9 +649,9 @@ local function Dispels_SetDispels(self, dispelTypes)
         end
     end
 
-    -- Full-cell color wash on midLevelFrame (above health bar, always visible)
+    -- Full-cell color wash on parent (above healthBar, below indicators)
     if found then
-        self.glow:SetColorTexture(r, g, b, 0.45)
+        self.glow:SetColorTexture(r, g, b, 0.5)
         self.glow:Show()
     else
         self.glow:Hide()
@@ -782,8 +782,8 @@ function I.CreateDispels(parent)
     dispels.highlight = parent.widgets.midLevelFrame:CreateTexture(parent:GetName().."DispelHighlight")
     dispels.highlight:Hide()
 
-    -- Full-cell color wash texture on midLevelFrame (above health bar, below indicators)
-    dispels.glow = parent.widgets.midLevelFrame:CreateTexture(parent:GetName().."DispelGlow", "ARTWORK", nil, -7)
+    -- Full-cell color wash texture directly on parent (above healthBar, below indicators)
+    dispels.glow = parent:CreateTexture(parent:GetName().."DispelGlow", "ARTWORK", nil, 1)
     dispels.glow:SetAllPoints(parent)
     dispels.glow:SetBlendMode("BLEND")
     dispels.glow:Hide()
