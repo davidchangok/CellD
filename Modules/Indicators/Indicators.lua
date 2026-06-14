@@ -405,7 +405,7 @@ local function InitIndicator(indicatorName)
                     if showHighlight and auraID then
                         found = true
                         local cr, cg, cb = I.GetAuraDispelColor(auraID)
-                        if cr then r, g, b = cr, cg, cb end
+                        if cr then r, g, b = cr, cg, cb else r, g, b = I.GetDebuffTypeColor("Magic") end
                         if self.highlightType ~= "none" then
                             if self.highlightType == "entire" then
                                 self.highlight:SetVertexColor(r, g, b, 0.5)
@@ -421,10 +421,11 @@ local function InitIndicator(indicatorName)
             end
 
             if found then
-                self.glow:SetColorTexture(r, g, b, 0.45)
-                self.glow:Show()
+                self.parent._dispelsHighlightColor = {r, g, b, CellDB["appearance"]["bgAlpha"] or 1}
+                self.parent:SetBackdropColor(r, g, b, CellDB["appearance"]["bgAlpha"] or 1)
             else
-                self.glow:Hide()
+                self.parent._dispelsHighlightColor = nil
+                self.parent:SetBackdropColor(0, 0, 0, CellDB["appearance"]["bgAlpha"])
             end
 
             self:UpdateSize(1)

@@ -649,12 +649,13 @@ local function Dispels_SetDispels(self, dispelTypes)
         end
     end
 
-    -- Full-cell color wash on parent (above healthBar, below indicators)
+    -- Full-cell background color via SetBackdropColor (no sub-frame layering issue)
     if found then
-        self.glow:SetColorTexture(r, g, b, 0.5)
-        self.glow:Show()
+        self.parent._dispelsHighlightColor = {r, g, b, CellDB["appearance"]["bgAlpha"] or 1}
+        self.parent:SetBackdropColor(r, g, b, CellDB["appearance"]["bgAlpha"] or 1)
     else
-        self.glow:Hide()
+        self.parent._dispelsHighlightColor = nil
+        self.parent:SetBackdropColor(0, 0, 0, CellDB["appearance"]["bgAlpha"])
     end
 
     self:UpdateSize(i)
@@ -775,18 +776,11 @@ function I.CreateDispels(parent)
 
     dispels:SetScript("OnHide", function()
         dispels.highlight:Hide()
-        dispels.glow:Hide()
     end)
 
     -- Health bar highlight texture (original Cell design — "gradient-half" etc.)
     dispels.highlight = parent.widgets.midLevelFrame:CreateTexture(parent:GetName().."DispelHighlight")
     dispels.highlight:Hide()
-
-    -- Full-cell color wash texture directly on parent (above healthBar, below indicators)
-    dispels.glow = parent:CreateTexture(parent:GetName().."DispelGlow", "ARTWORK", nil, 1)
-    dispels.glow:SetAllPoints(parent)
-    dispels.glow:SetBlendMode("BLEND")
-    dispels.glow:Hide()
 
     dispels._SetSize = dispels.SetSize
     dispels.SetSize = Dispels_SetSize
