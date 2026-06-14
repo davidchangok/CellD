@@ -1260,28 +1260,21 @@ local function HandleDebuff(self, auraInfo)
         end
 
         if enabledIndicators["dispels"] and debuffType and debuffType ~= "" then
-            -- Grid2-style dispel detection: store top-priority dispellable aura's
-            -- auraInstanceID for per-aura color lookup at render time.
-            -- Midnight 12.0.0+: canActivePlayerDispel may be a secret boolean;
-            -- when secret, fall back to dispelName presence check.
+            -- Midnight 12.0.0+: canActivePlayerDispel may be a secret boolean
             local canDispel = auraInfo.canActivePlayerDispel
             if issecretvalue and issecretvalue(canDispel) then
-                canDispel = (debuffType ~= "") -- secret: dispelName exists → dispellable
+                canDispel = (debuffType ~= "")
             end
             if not indicatorBooleans["dispels"]["dispellableByMe"] or canDispel then
                 local isSecretType = (auraInfo.dispelName and issecretvalue and issecretvalue(auraInfo.dispelName))
                 if indicatorBooleans["dispels"][debuffType] or isSecretType then
-                    if isDispelBlacklisted then
-                        -- no highlight
-                    else
-                        -- Save top-priority auraID for color. First match in
-                        -- dispelOrder iteration order (HandleDebuff runs per-aura)
-                        -- wins: later auras skip this block (set once per update cycle).
-                        if not self._debuffs._topDispelAuraID then
-                            self._debuffs._topDispelAuraID = auraInstanceID
-                        end
+                    -- Always capture the first dispellable aura for glow coloring
+                    if not self._debuffs._topDispelAuraID then
+                        self._debuffs._topDispelAuraID = auraInstanceID
                     end
-                    -- Store per-type icon visibility for dispel icon rendering
+                    if isDispelBlacklisted then
+                        -- icon only, no highlight
+                    end
                     local typeKey = isSecretType and ("_secret"..auraInstanceID) or debuffType
                     self._debuffs_dispel[typeKey] = true
                 end
