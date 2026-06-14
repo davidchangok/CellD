@@ -1327,6 +1327,7 @@ local function UnitButton_UpdateDebuffs(self, isFullUpdate)
 
     self._debuffs.resurrectionFound = false
     self._debuffs.crowdControlsFound = 0
+    self._debuffs._topDispelAuraID = nil
     self.states.BGOrb = nil
 
     I.ResetCustomIndicators(self, "debuff")

@@ -649,9 +649,17 @@ local function Dispels_SetDispels(self, dispelTypes)
         end
     end
 
-    -- Full-cell background coloring via Frame backdrop (renders above healthBar StatusBar)
-    if found then
-        self.glow:SetBackdropColor(r, g, b, 0.55)
+    -- Grid2-style full-cell coloring: use _topDispelAuraID for per-aura color
+    -- (GetAuraDispelColor resolves secrets via C engine, Grid2 pattern)
+    local topAuraID = self.parent._debuffs._topDispelAuraID
+    if topAuraID then
+        local cr, cg, cb = I.GetAuraDispelColor(topAuraID)
+        if cr then
+            self.glow:SetBackdropColor(cr, cg, cb, 0.55)
+        else
+            -- API fallback: use the found color from above or default Magic blue
+            self.glow:SetBackdropColor(r, g, b, 0.55)
+        end
         self.glow:Show()
     else
         self.glow:SetBackdropColor(0, 0, 0, 0)
