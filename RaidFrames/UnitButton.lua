@@ -1267,6 +1267,8 @@ local function HandleDebuff(self, auraInfo)
             end
             if not indicatorBooleans["dispels"]["dispellableByMe"] or canDispel then
                 local isSecretType = (auraInfo.dispelName and issecretvalue and issecretvalue(auraInfo.dispelName))
+                -- DEBUG: 输出每个可驱散Debuff的检查结果
+                print("|cFF00FFFF[驱散检测]|r 类型="..tostring(debuffType).." secret="..tostring(isSecretType).." 勾选="..tostring(indicatorBooleans["dispels"][debuffType]).." 黑名单="..tostring(isDispelBlacklisted).." spellID="..tostring(spellId).." auraID="..tostring(auraInstanceID))
                 if indicatorBooleans["dispels"][debuffType] or isSecretType then
                     -- Always capture the first dispellable aura for glow coloring
                     if not self._debuffs._topDispelAuraID then
