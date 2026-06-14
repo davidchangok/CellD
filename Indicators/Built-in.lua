@@ -582,6 +582,7 @@ local dispelOrder = {"Magic", "Curse", "Disease", "Poison", "Bleed"}
 local function Dispels_SetDispels(self, dispelTypes)
     local r, g, b = 0, 0, 0
     local found
+    local unit = self.parent.states.displayedUnit
 
     self.highlight:Hide()
 
@@ -595,10 +596,10 @@ local function Dispels_SetDispels(self, dispelTypes)
             if not found and self.highlightType ~= "none" and dispelType then
                 found = true
                 if useApi and auraID then
-                    local cr, cg, cb = I.GetAuraDispelColor(auraID)
+                    local cr, cg, cb = I.GetAuraDispelColor(unit, auraID)
                     if cr then r, g, b = cr, cg, cb else r, g, b = I.GetDebuffTypeColor(dispelType) end
                 elseif auraID then
-                    local cr, cg, cb = I.GetAuraDispelColor(auraID)
+                    local cr, cg, cb = I.GetAuraDispelColor(unit, auraID)
                     if cr then r, g, b = cr, cg, cb else r, g, b = I.GetDebuffTypeColor(dispelType) end
                 else
                     r, g, b = I.GetDebuffTypeColor(dispelType)
@@ -630,7 +631,7 @@ local function Dispels_SetDispels(self, dispelTypes)
             local auraID = type(info) == "table" and info.auraInstanceID or nil
             if showHighlight and auraID then
                 found = true
-                local cr, cg, cb = I.GetAuraDispelColor(auraID)
+                local cr, cg, cb = I.GetAuraDispelColor(unit, auraID)
                 if cr then r, g, b = cr, cg, cb else r, g, b = I.GetDebuffTypeColor("Magic") end
                 if self.highlightType ~= "none" then
                     if self.highlightType == "entire" then
@@ -652,7 +653,7 @@ local function Dispels_SetDispels(self, dispelTypes)
     -- 整格染色：直接用 _topDispelAuraID 调 C 引擎 API 取色，避开 found/r>0 等条件
     local topAuraID = self.parent._debuffs._topDispelAuraID
     if topAuraID then
-        local cr, cg, cb = I.GetAuraDispelColor(topAuraID)
+        local cr, cg, cb = I.GetAuraDispelColor(unit, topAuraID)
         print("|cFF00FF00[CellD-DispelGlow]|r topAuraID="..tostring(topAuraID).." r="..tostring(cr).." g="..tostring(cg).." b="..tostring(cb))
         if cr then
             self.glow:SetBackdropColor(cr, cg, cb, 0.45)

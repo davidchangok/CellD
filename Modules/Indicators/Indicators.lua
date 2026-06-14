@@ -367,6 +367,7 @@ local function InitIndicator(indicatorName)
         indicator.SetDispels = function(self, dispelTypes)
             local r, g, b = 0, 0, 0
             local found
+            local unit = self.parent and self.parent.states and self.parent.states.displayedUnit
 
             self.highlight:Hide()
 
@@ -378,7 +379,7 @@ local function InitIndicator(indicatorName)
                     if not found and self.highlightType ~= "none" and dispelType and showHighlight then
                         found = true
                         if auraID then
-                            local cr, cg, cb = I.GetAuraDispelColor(auraID)
+                            local cr, cg, cb = I.GetAuraDispelColor(unit, auraID)
                             if cr then r, g, b = cr, cg, cb else r, g, b = I.GetDebuffTypeColor(dispelType) end
                         else
                             r, g, b = I.GetDebuffTypeColor(dispelType)
@@ -404,7 +405,7 @@ local function InitIndicator(indicatorName)
                     local auraID = type(value) == "table" and value.auraInstanceID or nil
                     if showHighlight and auraID then
                         found = true
-                        local cr, cg, cb = I.GetAuraDispelColor(auraID)
+                        local cr, cg, cb = I.GetAuraDispelColor(unit, auraID)
                         if cr then r, g, b = cr, cg, cb end
                         if self.highlightType ~= "none" then
                             if self.highlightType == "entire" then

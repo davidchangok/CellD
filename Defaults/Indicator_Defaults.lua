@@ -270,11 +270,13 @@ end
 -- internally resolves secrets. pcall guards against stale auraInstanceID.
 -- Returns the per-aura dispel color from Blizzard's C engine.
 -- Without a curve, the API returns the built-in color for that aura's dispel type.
-function I.GetAuraDispelColor(auraInstanceID)
-    if not C_UnitAuras or not C_UnitAuras.GetAuraDispelTypeColor or not auraInstanceID then
+-- Grid2 StatusAuras.lua:79 pattern: GetAuraDispelTypeColor(unit, auraInstanceID, colorCurve)
+-- Requires unit parameter in Midnight 12.0. pcall guards against stale auraInstanceID.
+function I.GetAuraDispelColor(unit, auraInstanceID)
+    if not C_UnitAuras or not C_UnitAuras.GetAuraDispelTypeColor or not unit or not auraInstanceID then
         return nil
     end
-    local ok, c = pcall(C_UnitAuras.GetAuraDispelTypeColor, auraInstanceID)
+    local ok, c = pcall(C_UnitAuras.GetAuraDispelTypeColor, unit, auraInstanceID)
     if ok and c then return c.r, c.g, c.b end
     return nil
 end
