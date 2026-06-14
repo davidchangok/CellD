@@ -782,10 +782,10 @@ function I.CreateDispels(parent)
     dispels.highlight = parent.widgets.midLevelFrame:CreateTexture(parent:GetName().."DispelHighlight")
     dispels.highlight:Hide()
 
-    -- Full-cell color wash on highLevelFrame — above healthBar (frameLevel +140 > +120)
+    -- Full-cell color wash on highLevelFrame — above healthBar (frameLevel +140), below indicators
     dispels.glow = parent.widgets.highLevelFrame:CreateTexture(parent:GetName().."DispelGlow", "OVERLAY", nil, 1)
-    dispels.glow:SetAllPoints(parent)
-    dispels.glow:SetBlendMode("BLEND")
+    dispels.glow:SetAllPoints()
+    dispels.glow:SetBlendMode("ADD")
     dispels.glow:Hide()
 
     dispels._SetSize = dispels.SetSize
