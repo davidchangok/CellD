@@ -649,15 +649,16 @@ local function Dispels_SetDispels(self, dispelTypes)
         end
     end
 
-    -- Grid2-style full-cell coloring: use _topDispelAuraID for per-aura color
-    -- (GetAuraDispelColor resolves secrets via C engine, Grid2 pattern)
+    -- Grid2-style full-cell coloring via color curve (Grid2 StatusAuras.lua:79 pattern)
+    -- Curve maps aura type → user-configured color from CellDB["debuffTypeColor"],
+    -- so Magic/Curse/Disease/Poison each render in the user's chosen color.
     local topAuraID = self.parent._debuffs._topDispelAuraID
     if topAuraID then
-        local cr, cg, cb = I.GetAuraDispelColor(topAuraID)
+        local curve = I.GetDispelColorCurve()
+        local cr, cg, cb = I.GetAuraDispelColor(topAuraID, curve)
         if cr then
             self.glow:SetBackdropColor(cr, cg, cb, 0.3)
         else
-            -- API fallback: use the highlight color computed above
             self.glow:SetBackdropColor(r, g, b, 0.3)
         end
         self.glow:Show()
