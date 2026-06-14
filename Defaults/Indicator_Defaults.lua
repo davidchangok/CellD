@@ -268,48 +268,15 @@ end
 -------------------------------------------------
 -- Blizzard C API (Midnight 12.0.5): C_UnitAuras.GetAuraDispelTypeColor(auraInstanceID [, curve])
 -- internally resolves secrets. pcall guards against stale auraInstanceID.
--- Optional colorCurve parameter (Grid2 pattern, StatusAuras.lua:79):
--- when provided, the C engine returns the curve-mapped color instead of the default.
-function I.GetAuraDispelColor(auraInstanceID, colorCurve)
+-- Returns the per-aura dispel color from Blizzard's C engine.
+-- Without a curve, the API returns the built-in color for that aura's dispel type.
+function I.GetAuraDispelColor(auraInstanceID)
     if not C_UnitAuras or not C_UnitAuras.GetAuraDispelTypeColor or not auraInstanceID then
         return nil
     end
-    local ok, c
-    if colorCurve then
-        ok, c = pcall(C_UnitAuras.GetAuraDispelTypeColor, auraInstanceID, colorCurve)
-    else
-        ok, c = pcall(C_UnitAuras.GetAuraDispelTypeColor, auraInstanceID)
-    end
+    local ok, c = pcall(C_UnitAuras.GetAuraDispelTypeColor, auraInstanceID)
     if ok and c then return c.r, c.g, c.b end
     return nil
-end
-
--- Grid2-style dispel color curve (Grid2 StatusAuras.lua:191-195)
--- Maps numeric priority → user-configured color from CellDB["debuffTypeColor"]
--- When passed to GetAuraDispelTypeColor, the C engine uses this curve
--- to return the user's custom color instead of Blizzard's default.
-local dispelColorCurve
-local dispelCurvePriorities = {
-    Magic   = 1,
-    Curse   = 2,
-    Disease = 3,
-    Poison  = 4,
-    Bleed   = 11,
-}
-function I.GetDispelColorCurve()
-    if not C_CurveUtil or not C_CurveUtil.CreateColorCurve then return nil end
-    if not dispelColorCurve then
-        dispelColorCurve = C_CurveUtil.CreateColorCurve()
-        dispelColorCurve:SetType(Enum.LuaCurveType.Step)
-    end
-    dispelColorCurve:ClearPoints()
-    for dispelType, priority in pairs(dispelCurvePriorities) do
-        local colorTable = CellDB["debuffTypeColor"][dispelType]
-        if colorTable then
-            dispelColorCurve:AddPoint(priority, colorTable)
-        end
-    end
-    return dispelColorCurve
 end
 
 function I.GetDebuffTypeColor(debuffType, fallbackColor)
