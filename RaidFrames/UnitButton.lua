@@ -1472,6 +1472,7 @@ local function UnitButton_UpdateDebuffs(self, isFullUpdate)
 
     -- update dispels
     if F.UnitInGroup(unit) or UnitIsFriend("player", unit) then
+        print("|cFF00FFFF[上色-调用]|r unit="..tostring(unit).." dispelKeys="..tostring(next(self._debuffs_dispel)))
         self.indicators.dispels:SetDispels(self._debuffs_dispel)
     end
 
