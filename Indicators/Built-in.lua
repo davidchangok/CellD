@@ -651,7 +651,7 @@ local function Dispels_SetDispels(self, dispelTypes)
     end
 
     if found then
-        self.glow:SetBackdropColor(r, g, b, 0.95)
+        self.glow:SetBackdropColor(r, g, b, 0.35)
         self.glow:Show()
     else
         self.glow:SetBackdropColor(0, 0, 0, 0)
