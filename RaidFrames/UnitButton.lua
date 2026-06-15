@@ -1276,7 +1276,7 @@ local function HandleDebuff(self, auraInfo)
                         -- icon only, no highlight
                     end
                     local typeKey = isSecretType and ("_secret"..auraInstanceID) or debuffType
-                    self._debuffs_dispel[typeKey] = true
+                    self._debuffs_dispel[typeKey] = {highlight = true, auraInstanceID = auraInstanceID}
                 end
             end
         end
@@ -1472,7 +1472,6 @@ local function UnitButton_UpdateDebuffs(self, isFullUpdate)
 
     -- update dispels
     if F.UnitInGroup(unit) or UnitIsFriend("player", unit) then
-        print("|cFF00FFFF[上色-调用]|r unit="..tostring(unit).." dispelKeys="..tostring(next(self._debuffs_dispel)))
         self.indicators.dispels:SetDispels(self._debuffs_dispel)
     end
 
