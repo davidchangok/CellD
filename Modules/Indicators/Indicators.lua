@@ -355,6 +355,16 @@ local function InitIndicator(indicatorName)
     elseif indicatorName == "dispels" then
         indicator.isDispels = true
 
+        -- 预览面板创建 glow Frame（与实际单位按钮的 I.CreateDispels 一致）
+        if not indicator.glow then
+            indicator.glow = CreateFrame("Frame", nil, indicator.parent.widgets.highLevelFrame, "BackdropTemplate")
+            indicator.glow:SetFrameLevel(indicator.parent.widgets.highLevelFrame:GetFrameLevel() + 1)
+            indicator.glow:SetAllPoints(indicator.parent.widgets.highLevelFrame)
+            indicator.glow:SetBackdrop({bgFile = Cell.vars.whiteTexture})
+            indicator.glow:SetBackdropColor(0, 0, 0, 0)
+            indicator.glow:Hide()
+        end
+
         local debuffTypes = {
             {["Curse"]=true},
             {["Disease"]=true},
