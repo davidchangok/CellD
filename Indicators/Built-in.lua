@@ -650,12 +650,12 @@ local function Dispels_SetDispels(self, dispelTypes)
         end
     end
 
-    -- 整格染色：直接复用高亮纹理的颜色 (r,g,b 来自 CellDB["debuffTypeColor"] 用户自定义色)
-    -- 不再调用 C_UnitAuras.GetAuraDispelTypeColor API (Midnight 12.0 上不可用)
     if found then
+        print("|cFF00FFFF[上色]|r found=true r="..string.format("%.2f",r).." g="..string.format("%.2f",g).." b="..string.format("%.2f",b))
         self.glow:SetBackdropColor(r, g, b, 0.95)
         self.glow:Show()
     else
+        print("|cFFFF0000[上色]|r found=false — glow不上色!")
         self.glow:SetBackdropColor(0, 0, 0, 0)
         self.glow:Hide()
     end
