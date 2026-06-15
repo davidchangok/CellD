@@ -583,14 +583,27 @@ local function Dispels_SetDispels(self, dispelTypes)
     local r, g, b = 0, 0, 0
     local found
 
+    self.highlight:Hide()
+
     local i = 0
     for _, dispelType in ipairs(dispelOrder) do
         local info = dispelTypes[dispelType]
         local showHighlight = (type(info) == "table" and info.highlight) or (type(info) == "boolean" and info)
         if showHighlight then
-            if not found then
+            if not found and self.highlightType ~= "none" and dispelType then
                 found = true
                 r, g, b = I.GetDebuffTypeColor(dispelType)
+                if self.highlightType == "entire" then
+                    self.highlight:SetTexture(Cell.vars.whiteTexture)
+                    self.highlight:SetVertexColor(r, g, b, 0.5)
+                elseif self.highlightType == "current" or self.highlightType == "current+" then
+                    self.highlight:SetTexture(Cell.vars.texture)
+                    self.highlight:SetVertexColor(r, g, b, 1)
+                elseif self.highlightType == "gradient" or self.highlightType == "gradient-half" then
+                    self.highlight:SetTexture(Cell.vars.whiteTexture)
+                    self.highlight:SetGradient("VERTICAL", CreateColor(r, g, b, 1), CreateColor(r, g, b, 0))
+                end
+                self.highlight:Show()
             end
             if self.showIcons then
                 i = i + 1
@@ -598,13 +611,16 @@ local function Dispels_SetDispels(self, dispelTypes)
             end
         end
     end
-    -- Secret-type debuffs (dispelName hidden by Midnight)
+    -- Render secret-type debuffs (dispelName hidden by Midnight)
     for typeKey, info in pairs(dispelTypes) do
         if strsub(typeKey, 1, 7) == "_secret" and not found then
             local showHighlight = (type(info) == "table" and info.highlight)
             if showHighlight then
                 found = true
                 r, g, b = I.GetDebuffTypeColor("Magic")
+                if self.highlightType ~= "none" then
+                    self.highlight:Show()
+                end
             end
         end
     end
@@ -686,6 +702,47 @@ local function Dispels_SetOrientation(self, orientation)
     self:UpdateSize()
 end
 
+local function Dispels_UpdateHighlight(self, highlightType)
+    self.highlightType = highlightType
+    self.highlight:SetBlendMode("BLEND")
+
+    if highlightType == "none" then
+        self.highlight:Hide()
+    elseif highlightType == "gradient" then
+        -- self.highlight:SetParent(self.parent.widgets.indicatorFrame)
+        self.highlight:ClearAllPoints()
+        self.highlight:SetAllPoints(self.parent.widgets.healthBar)
+        self.highlight:SetTexture(Cell.vars.whiteTexture)
+        self.highlight:SetDrawLayer("ARTWORK", 0)
+    elseif highlightType == "gradient-half" then
+        -- self.highlight:SetParent(self.parent.widgets.indicatorFrame)
+        self.highlight:ClearAllPoints()
+        self.highlight:SetPoint("BOTTOMLEFT", self.parent.widgets.healthBar)
+        self.highlight:SetPoint("TOPRIGHT", self.parent.widgets.healthBar, "RIGHT")
+        self.highlight:SetTexture(Cell.vars.whiteTexture)
+        self.highlight:SetDrawLayer("ARTWORK", 0)
+    elseif highlightType == "entire" then
+        -- self.highlight:SetParent(self.parent.widgets.indicatorFrame)
+        self.highlight:ClearAllPoints()
+        self.highlight:SetAllPoints(self.parent.widgets.healthBar)
+        self.highlight:SetTexture(Cell.vars.whiteTexture)
+        self.highlight:SetDrawLayer("ARTWORK", 0)
+    elseif highlightType == "current" then
+        -- self.highlight:SetParent(self.parent.widgets.healthBar)
+        self.highlight:ClearAllPoints()
+        self.highlight:SetAllPoints(self.parent.widgets.healthBar:GetStatusBarTexture())
+        self.highlight:SetTexture(Cell.vars.texture)
+        self.highlight:SetDrawLayer("ARTWORK", -7)
+    elseif highlightType == "current+" then
+        -- self.highlight:SetParent(self.parent.widgets.healthBar)
+        self.highlight:ClearAllPoints()
+        self.highlight:SetAllPoints(self.parent.widgets.healthBar:GetStatusBarTexture())
+        self.highlight:SetTexture(Cell.vars.texture)
+        self.highlight:SetDrawLayer("ARTWORK", -7)
+        self.highlight:SetBlendMode("ADD")
+    end
+end
+
 function I.CreateDispels(parent)
     local dispels = CreateFrame("Frame", parent:GetName().."DispelParent", parent.widgets.indicatorFrame)
     parent.indicators.dispels = dispels
@@ -693,11 +750,19 @@ function I.CreateDispels(parent)
     dispels:Hide()
 
     dispels:SetScript("OnHide", function()
-        dispels.glow:SetBackdropColor(0, 0, 0, 0)
-        dispels.glow:Hide()
+        dispels.highlight:Hide()
+        if dispels.glow then
+            dispels.glow:SetBackdropColor(0, 0, 0, 0)
+            dispels.glow:Hide()
+        end
     end)
 
-    -- Grid2 IndicatorSquare pattern: independent Backdrop Frame for full-cell coloring
+    -- Health bar highlight texture (original Cell design — "gradient-half" etc.)
+    dispels.highlight = parent.widgets.midLevelFrame:CreateTexture(parent:GetName().."DispelHighlight")
+    dispels.highlight:Hide()
+
+    -- Grid2 IndicatorSquare pattern: independent Backdrop Frame for full-cell coloring.
+    -- Hosted on highLevelFrame (parent+140) to ensure rendering above healthBar (midLevelFrame +120).
     dispels.glow = CreateFrame("Frame", parent:GetName().."DispelGlow", parent.widgets.highLevelFrame, "BackdropTemplate")
     dispels.glow:SetFrameLevel(parent.widgets.highLevelFrame:GetFrameLevel() + 1)
     dispels.glow:SetAllPoints(parent.widgets.highLevelFrame)
@@ -709,7 +774,7 @@ function I.CreateDispels(parent)
     dispels.SetSize = Dispels_SetSize
     dispels.UpdateSize = Dispels_UpdateSize
     dispels.SetDispels = Dispels_SetDispels
-    dispels.UpdateHighlight = function() end -- 已删除highlight纹理, 保留空函数避免UnitButton L324崩溃
+    dispels.UpdateHighlight = Dispels_UpdateHighlight
     dispels.SetIconStyle = Dispels_SetIconStyle
     dispels.SetOrientation = Dispels_SetOrientation
 
