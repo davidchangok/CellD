@@ -1449,6 +1449,7 @@ local function UnitButton_UpdateDebuffs(self, isFullUpdate)
                 break
             end
         end
+        -- then normal debuffs
         for auraInstanceID in next, self._debuffs_normal do
             local auraInfo = self._debuffs_cache[auraInstanceID]
             if DevTool and auraInfo and auraInfo.dispelName then
