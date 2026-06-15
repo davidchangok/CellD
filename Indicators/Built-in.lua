@@ -582,7 +582,6 @@ local dispelOrder = {"Magic", "Curse", "Disease", "Poison", "Bleed"}
 local function Dispels_SetDispels(self, dispelTypes)
     local r, g, b = 0, 0, 0
     local found
-    local unit = self.parent.states.displayedUnit
 
     self.highlight:Hide()
 
@@ -590,20 +589,10 @@ local function Dispels_SetDispels(self, dispelTypes)
     for _, dispelType in ipairs(dispelOrder) do
         local info = dispelTypes[dispelType]
         local showHighlight = (type(info) == "table" and info.highlight) or (type(info) == "boolean" and info)
-        local auraID = type(info) == "table" and info.auraInstanceID or nil
-        local useApi = type(info) == "table" and info.useApiColor
         if showHighlight then
             if not found and self.highlightType ~= "none" and dispelType then
                 found = true
-                if useApi and auraID then
-                    local cr, cg, cb = I.GetAuraDispelColor(unit, auraID)
-                    if cr then r, g, b = cr, cg, cb else r, g, b = I.GetDebuffTypeColor(dispelType) end
-                elseif auraID then
-                    local cr, cg, cb = I.GetAuraDispelColor(unit, auraID)
-                    if cr then r, g, b = cr, cg, cb else r, g, b = I.GetDebuffTypeColor(dispelType) end
-                else
-                    r, g, b = I.GetDebuffTypeColor(dispelType)
-                end
+                r, g, b = I.GetDebuffTypeColor(dispelType)
                 if self.highlightType == "entire" then
                     self.highlight:SetTexture(Cell.vars.whiteTexture)
                     self.highlight:SetVertexColor(r, g, b, 0.5)
@@ -622,28 +611,14 @@ local function Dispels_SetDispels(self, dispelTypes)
             end
         end
     end
-    -- Render secret-type debuffs: their dispelName was hidden by Midnight,
-    -- but GetAuraDispelColor(auraID) resolves the correct per-type color.
-    -- Fallback to "Magic" blue when API fails — never black (invisible on dark bg).
+    -- Render secret-type debuffs (dispelName hidden by Midnight)
     for typeKey, info in pairs(dispelTypes) do
         if strsub(typeKey, 1, 7) == "_secret" and not found then
             local showHighlight = (type(info) == "table" and info.highlight)
-            local auraID = type(info) == "table" and info.auraInstanceID or nil
-            if showHighlight and auraID then
+            if showHighlight then
                 found = true
-                local cr, cg, cb = I.GetAuraDispelColor(unit, auraID)
-                if cr then r, g, b = cr, cg, cb else r, g, b = I.GetDebuffTypeColor("Magic") end
+                r, g, b = I.GetDebuffTypeColor("Magic")
                 if self.highlightType ~= "none" then
-                    if self.highlightType == "entire" then
-                        self.highlight:SetTexture(Cell.vars.whiteTexture)
-                        self.highlight:SetVertexColor(r, g, b, 0.5)
-                    elseif self.highlightType == "current" or self.highlightType == "current+" then
-                        self.highlight:SetTexture(Cell.vars.texture)
-                        self.highlight:SetVertexColor(r, g, b, 1)
-                    elseif self.highlightType == "gradient" or self.highlightType == "gradient-half" then
-                        self.highlight:SetTexture(Cell.vars.whiteTexture)
-                        self.highlight:SetGradient("VERTICAL", CreateColor(r, g, b, 1), CreateColor(r, g, b, 0))
-                    end
                     self.highlight:Show()
                 end
             end
