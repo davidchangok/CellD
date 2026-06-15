@@ -709,32 +709,26 @@ local function Dispels_UpdateHighlight(self, highlightType)
     if highlightType == "none" then
         self.highlight:Hide()
     elseif highlightType == "gradient" then
-        -- self.highlight:SetParent(self.parent.widgets.indicatorFrame)
         self.highlight:ClearAllPoints()
-        self.highlight:SetAllPoints(self.parent.widgets.healthBar)
+        self.highlight:SetAllPoints(self.parent.widgets.highLevelFrame)
         self.highlight:SetTexture(Cell.vars.whiteTexture)
         self.highlight:SetDrawLayer("ARTWORK", 0)
     elseif highlightType == "gradient-half" then
-        -- self.highlight:SetParent(self.parent.widgets.indicatorFrame)
         self.highlight:ClearAllPoints()
-        self.highlight:SetPoint("BOTTOMLEFT", self.parent.widgets.healthBar)
-        self.highlight:SetPoint("TOPRIGHT", self.parent.widgets.healthBar, "RIGHT")
+        self.highlight:SetAllPoints(self.parent.widgets.highLevelFrame)
         self.highlight:SetTexture(Cell.vars.whiteTexture)
         self.highlight:SetDrawLayer("ARTWORK", 0)
     elseif highlightType == "entire" then
-        -- self.highlight:SetParent(self.parent.widgets.indicatorFrame)
         self.highlight:ClearAllPoints()
-        self.highlight:SetAllPoints(self.parent.widgets.healthBar)
+        self.highlight:SetAllPoints(self.parent.widgets.highLevelFrame)
         self.highlight:SetTexture(Cell.vars.whiteTexture)
         self.highlight:SetDrawLayer("ARTWORK", 0)
     elseif highlightType == "current" then
-        -- self.highlight:SetParent(self.parent.widgets.healthBar)
         self.highlight:ClearAllPoints()
         self.highlight:SetAllPoints(self.parent.widgets.healthBar:GetStatusBarTexture())
         self.highlight:SetTexture(Cell.vars.texture)
         self.highlight:SetDrawLayer("ARTWORK", -7)
     elseif highlightType == "current+" then
-        -- self.highlight:SetParent(self.parent.widgets.healthBar)
         self.highlight:ClearAllPoints()
         self.highlight:SetAllPoints(self.parent.widgets.healthBar:GetStatusBarTexture())
         self.highlight:SetTexture(Cell.vars.texture)
@@ -757,8 +751,8 @@ function I.CreateDispels(parent)
         end
     end)
 
-    -- Health bar highlight texture (original Cell design — "gradient-half" etc.)
-    dispels.highlight = parent.widgets.midLevelFrame:CreateTexture(parent:GetName().."DispelHighlight")
+    -- Highlight texture on highLevelFrame (covers entire cell, same as glow Frame)
+    dispels.highlight = parent.widgets.highLevelFrame:CreateTexture(parent:GetName().."DispelHighlight")
     dispels.highlight:Hide()
 
     -- Grid2 IndicatorSquare pattern: independent Backdrop Frame for full-cell coloring.
