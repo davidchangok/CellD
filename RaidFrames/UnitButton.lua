@@ -1147,11 +1147,6 @@ end
 
 
 local function HandleDebuff(self, auraInfo)
-    -- DEBUG: 仅记录有 dispelName 的可驱散 Debuff（覆盖问题修正）
-    if DevTool and auraInfo.dispelName and auraInfo.isHarmful then
-        DevTool:AddData(auraInfo, "★ 可驱散Debuff(spell="..tostring(auraInfo.spellId)..")")
-    end
-
     local auraInstanceID = auraInfo.auraInstanceID
     local name = auraInfo.name
     -- auraInfo.icon may be a secret fileID on Midnight 12.0.0+
@@ -1282,12 +1277,10 @@ local function HandleDebuff(self, auraInfo)
                     end
                     local typeKey = isSecretType and ("_secret"..auraInstanceID) or debuffType
                     self._debuffs_dispel[typeKey] = true
+                    if DevTool then DevTool:AddData({dType=debuffType, name=name, sId=spellId, aID=auraInstanceID, topAura=self._debuffs._topDispelAuraID}, "★ "..debuffType.."(spell="..tostring(spellId)..")") end
                 end
             end
         end
-
-        -- DEBUG: DevTool 注入判定结果
-        if DevTool then DevTool:AddData({debuffType=debuffType, name=name, spellId=spellId, auraID=auraInstanceID, topAuraID=self._debuffs._topDispelAuraID, dispelTable=self._debuffs_dispel}, "★ 驱散判定结果") end
 
         -- crowdControls
         if enabledIndicators["crowdControls"] and I.IsCrowdControls(name, spellId) and self._debuffs.crowdControlsFound < indicatorNums["crowdControls"] then
