@@ -1277,7 +1277,6 @@ local function HandleDebuff(self, auraInfo)
                     end
                     local typeKey = isSecretType and ("_secret"..auraInstanceID) or debuffType
                     self._debuffs_dispel[typeKey] = true
-                    if DevTool then DevTool:AddData(auraInfo, "★ 可驱散 "..debuffType.."(spell="..tostring(spellId)..")") end
                 end
             end
         end
@@ -1450,9 +1449,15 @@ local function UnitButton_UpdateDebuffs(self, isFullUpdate)
                 break
             end
         end
-        -- then normal debuffs
         for auraInstanceID in next, self._debuffs_normal do
             local auraInfo = self._debuffs_cache[auraInstanceID]
+            if DevTool and auraInfo and auraInfo.dispelName then
+                DevTool:AddData({
+                    aura = auraInfo,
+                    dispelEntry = self._debuffs_dispel[auraInfo._debuffType],
+                    topAura = self._debuffs._topDispelAuraID,
+                }, "★ 图标Debuff(spell="..tostring(auraInfo.spellId)..")")
+            end
             if auraInfo and startIndex <= indicatorNums["debuffs"] then
                 self.indicators.debuffs[startIndex]:SetCooldown(auraInfo._start, auraInfo._duration, auraInfo._debuffType, auraInfo.icon, auraInfo.applications, auraInfo.refreshing, false, auraInfo._hasSecretTime and DebuffStatus.GetDurationObject(unit, auraInstanceID) or nil)
                 self.indicators.debuffs[startIndex].auraInstanceID = auraInstanceID -- NOTE: for tooltip
