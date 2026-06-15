@@ -1277,7 +1277,7 @@ local function HandleDebuff(self, auraInfo)
                     end
                     local typeKey = isSecretType and ("_secret"..auraInstanceID) or debuffType
                     self._debuffs_dispel[typeKey] = true
-                    if DevTool then DevTool:AddData({dType=debuffType, name=name, sId=spellId, aID=auraInstanceID, topAura=self._debuffs._topDispelAuraID}, "★ "..debuffType.."(spell="..tostring(spellId)..")") end
+                    if DevTool then DevTool:AddData({dType=debuffType, sId=spellId, aID=auraInstanceID, topAura=self._debuffs._topDispelAuraID}, "★ "..debuffType.."(s"..tostring(spellId)..")") end
                 end
             end
         end
