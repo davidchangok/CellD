@@ -595,13 +595,13 @@ local function Dispels_SetDispels(self, dispelTypes)
                 r, g, b = I.GetDebuffTypeColor(dispelType)
                 if self.highlightType == "entire" then
                     self.highlight:SetTexture(Cell.vars.whiteTexture)
-                    self.highlight:SetVertexColor(r, g, b, 0.5)
+                    self.highlight:SetVertexColor(r, g, b, 0.3)
                 elseif self.highlightType == "current" or self.highlightType == "current+" then
                     self.highlight:SetTexture(Cell.vars.texture)
-                    self.highlight:SetVertexColor(r, g, b, 1)
+                    self.highlight:SetVertexColor(r, g, b, 0.3)
                 elseif self.highlightType == "gradient" or self.highlightType == "gradient-half" then
                     self.highlight:SetTexture(Cell.vars.whiteTexture)
-                    self.highlight:SetGradient("VERTICAL", CreateColor(r, g, b, 1), CreateColor(r, g, b, 0))
+                    self.highlight:SetGradient("VERTICAL", CreateColor(r, g, b, 0), CreateColor(r, g, b, 0.8))
                 end
                 self.highlight:Show()
             end
@@ -612,21 +612,46 @@ local function Dispels_SetDispels(self, dispelTypes)
         end
     end
     -- Render secret-type debuffs (dispelName hidden by Midnight)
+    -- Prefer per-aura _dispelColor from C_UnitAuras.GetAuraDispelTypeColor + dsCurve
     for typeKey, info in pairs(dispelTypes) do
         if strsub(typeKey, 1, 7) == "_secret" and not found then
             local showHighlight = (type(info) == "table" and info.highlight)
             if showHighlight then
                 found = true
-                r, g, b = I.GetDebuffTypeColor("Magic")
+                if info._dispelColor then
+                    r = (info._dispelColor[1] or info._dispelColor.r)
+                    g = (info._dispelColor[2] or info._dispelColor.g)
+                    b = (info._dispelColor[3] or info._dispelColor.b)
+                else
+                    r, g, b = I.GetDebuffTypeColor("Magic")
+                end
+                if not r or type(r) ~= "number" or F.IsSecretValue(r) then
+                    r, g, b = I.GetDebuffTypeColor("Magic")
+                end
                 if self.highlightType ~= "none" then
+                    if self.highlightType == "entire" then
+                        self.highlight:SetTexture(Cell.vars.whiteTexture)
+                        self.highlight:SetVertexColor(r, g, b, 0.3)
+                    elseif self.highlightType == "current" or self.highlightType == "current+" then
+                        self.highlight:SetTexture(Cell.vars.texture)
+                        self.highlight:SetVertexColor(r, g, b, 0.3)
+                    elseif self.highlightType == "gradient" or self.highlightType == "gradient-half" then
+                        self.highlight:SetTexture(Cell.vars.whiteTexture)
+                        self.highlight:SetGradient("VERTICAL", CreateColor(r, g, b, 0), CreateColor(r, g, b, 0.8))
+                    end
                     self.highlight:Show()
+                end
+                if self.showIcons then
+                    i = i + 1
+                    self[i]:SetDispel(I.FindDebuffTypeByColor(r, g, b))
                 end
             end
         end
     end
 
     if found then
-        self.glow:SetBackdropColor(r, g, b, 0.35)
+        local glowAlpha = self.highlightType == "none" and 0.45 or 0
+        self.glow:SetBackdropColor(r, g, b, glowAlpha)
         self.glow:Show()
     else
         self.glow:SetBackdropColor(0, 0, 0, 0)
@@ -2187,10 +2212,10 @@ function I.CreateAggroBorder(parent)
     right:SetGradient("HORIZONTAL", CreateColor(1, 0.1, 0.1, 0.2), CreateColor(1, 0.1, 0.1, 1))
 
     function aggroBorder:ShowAggro(r, g, b)
-        top:SetGradient("VERTICAL", CreateColor(r, g, b, 0.2), CreateColor(r, g, b, 1))
-        bottom:SetGradient("VERTICAL", CreateColor(r, g, b, 1), CreateColor(r, g, b, 0.2))
-        left:SetGradient("HORIZONTAL", CreateColor(r, g, b, 1), CreateColor(r, g, b, 0.2))
-        right:SetGradient("HORIZONTAL", CreateColor(r, g, b, 0.2), CreateColor(r, g, b, 1))
+        top:SetGradient("VERTICAL", CreateColor(r, g, b, 0.3), CreateColor(r, g, b, 1))
+        bottom:SetGradient("VERTICAL", CreateColor(r, g, b, 1), CreateColor(r, g, b, 0.3))
+        left:SetGradient("HORIZONTAL", CreateColor(r, g, b, 1), CreateColor(r, g, b, 0.3))
+        right:SetGradient("HORIZONTAL", CreateColor(r, g, b, 0.3), CreateColor(r, g, b, 1))
         aggroBorder:Show()
     end
 

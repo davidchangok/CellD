@@ -85,15 +85,85 @@ Dispels_SetDispels
 | ShieldBar secret 时 25% 固定宽度 | `GetDamageAbsorbs` secret 值无法算比例 | 低 |
 | PvP 中 healthPercent=0 导致血条全红 | secret healthPercent 无法读取 | 中 |
 | Overshield 检测 secret 环境失效 | 无法比较吸收值与血量 | 低 |
-| `GetAuraDispelTypeColor` API 不可用 | Midnight 12.0 持续返回 nil | 已切换查表 |
-| 冷却动画在 secret 环境丢失 | `expirationTime-duration` 算术不可行 | 低 |
+| 冷却动画在 secret 环境丢失 | `expirationTime-duration` 算术不可行 | BorderIcon 类已通过 DurationObject 修复（crowdControls/raidDebuffs/debuffs）；BarIcon 类（防御/外部/全部冷却）因使用 StatusBar 非 Cooldown Frame 暂不支持 |
 
 ---
 
-## 四、下一步计划
+## 四、Quick Assist / Buff Tracker Secret Value 审查 (2026-06-15)
 
-1. **Quick Assist / Buff Tracker** — 尚未完成 Midnight Secret Value 深度审查
+| 文件 | 修复位置 | 修复内容 | 严重度 |
+|------|----------|----------|:--:|
+| QuickAssist.lua | `OnEvent` | unit 参数 secret guard（对齐 BuffTracker 模式） | 中 |
+| QuickAssist.lua | `UpdateAllUnits` | `UnitGUID`→`LGI:GetCachedInfo` 调用前 GUID guard | 高 |
+| QuickAssist_Config.lua | `CreatePlayerList` | `GetUnitName` 返回值 secret guard | 中 |
+| BuffTracker.lua | `GetUnaffectedString` | `UnitName` 返回值 secret guard | 中 |
+| BuffTracker.lua | `SetTooltips` | `UnitName` 返回值 secret guard | 中 |
+
+> QuickAssist_ImportExport.lua —— 无游戏 API 调用，无需修改。
+> QuickAssist.lua 已有的 guard（`HandleBuff` IsAuraNonSecret、`UpdateCasts` spellId、`OnTick` GUID、`UpdateAllUnits` name）保持不变。
+
+---
+
+## 四、dsCurve 驱散颜色系统 (2026-06-15)
+
+借鉴 Decursive 的 `dsCurve` 方案，用 `C_CurveUtil.CreateColorCurve()` + `CreateColor()` 构建 Step ColorCurve，
+传入 `C_UnitAuras.GetAuraDispelTypeColor(unit, auraInstanceID, curve)`，使 Blizzard C 引擎在 secret 环境下
+也能返回匹配用户配置颜色的 per-aura 驱散颜色。
+
+### 改动文件 (5 个，~85 行)
+
+| 文件 | 改动 | 
+|------|------|
+| `Defaults/Indicator_Defaults.lua` | 新增 `DTtoBT` 映射 + `I.UpdateDispelColorCurve()` + 修改 `I.GetAuraDispelColor` 传入 dsCurve + `I.SetDebuffTypeColor`/`I.ResetDebuffTypeColor` 自动重建 curve |
+| `Core.lua` | 初始化时调用 `I.UpdateDispelColorCurve()` |
+| `RaidFrames/UnitButton.lua` | `HandleDebuff` 中 `_debuffs_dispel` entry 附加 `_dispelColor`（来自 `GetAuraDispelTypeColor`） |
+| `Indicators/Built-in.lua` | `Dispels_SetDispels` secret 渲染分支优先读 `info._dispelColor`，fallback `"Magic"` |
+| `Modules/Indicators/Indicators.lua` | 预览面板同样优先读 per-aura 颜色 |
+
+### DTtoBT 映射
+```
+Magic=1  Curse=2  Disease=3  Poison=4  Bleed=11
+```
+无 dispel(NORMAL)=0 → 暗绿 `(0, 0.3, 0.1, 1)`
+
+> 用户颜色选择器不变，`CellDB["debuffTypeColor"]` 仍是颜色来源；dsCurve 仅作为 secret 环境下的颜色传递通道。
+
+---
+
+## 五、BigDebuffs 深度分析 (2026-06-15)
+
+分析 BigDebuffs 上色与渲染架构，三项可用技术评估：
+
+### 1. DurationObject 冷却绕行 ✅ 已实施
+BigDebuffs 在 Midnight 中使用 `C_UnitAuras.GetAuraDuration` + `SetCooldownFromDurationObject` 绕过 secret duration/expirationTime 限制。
+CellD 将此能力从 raidDebuffs/debuffs 扩展至 crowdControls：
+
+| 文件 | 改动 |
+|------|------|
+| `RaidFrames/UnitButton.lua` | `crowdControls:SetCooldown` 传入 `DebuffStatus.GetDurationObject(unit, auraInstanceID)` |
+
+> `defensiveCooldowns`/`externalCooldowns`/`allCooldowns` 使用 `BarIcon`（StatusBar），非 `Cooldown` Frame，无法使用 `SetCooldownFromDurationObject`。
+> `tankActiveMitigation` 同理，使用 StatusBar。
+
+### 2. Filter String 预过滤 ❌ 不适用
+BigDebuffs 用 `"HARMFUL\|CROWD_CONTROL"` 等 filter 字符串在 API 层预过滤，但它使用的是 `GetAuraDataByIndex`（按索引单取）。
+CellD 使用 `GetUnitAuras`（批量获取所有有害/有益），且需要全部有害光环来驱动多个 indicator（debuffs/raidDebuffs/bigDebuffs/dispels/crowdControls），不能按驱散/控场类型预过滤。**当前架构已是最优。**
+
+### 3. Parent 法术继承 ❌ 收益低
+BigDebuffs 的法术字典支持 `parent = spellId` 继承。CellD 在外部队（Mass Barrier）中已有一例手动嵌套结构，
+但通用继承需要重写 `ConvertSpellTable` 系列函数，改动面大，且 CellD 的法术表是小规模手工维护（不同于 BigDebuffs 的巨量自动生成库）。
+
+### BigDebuffs 其他有价值参考
+- `AuraUtil.SetAuraBorderAtlas(border, dispelName, true)` — Midnight 原生 debuff 边框着色 API
+- `Cooldown:SetDrawEdge(false)` / `SetDrawBling(false)` — 冷却圈外观优化
+- Zone-aware PvE 尺寸覆盖（实例内统一放大 debuff 图标）
+
+---
+
+## 六、下一步计划
+
+1. ~~**Quick Assist / Buff Tracker**~~ ✅ 已完成 Midnight Secret Value 深度审查
 2. **Spell Request / Dispel Request** — 网络通信层未做适配
 3. **驱散透明度可配置** — 将 alpha 值加入选项面板
-4. **`GetAuraDispelTypeColor` 回归监控** — 暴雪修复后重新启用 C API 路径
+4. ~~**`GetAuraDispelTypeColor` 回归监控**~~ ✅ 已通过 dsCurve 方案重新启用 C API 路径
 5. **性能优化** — `OnTick` 高频更新中 GUID 比较可进一步优化

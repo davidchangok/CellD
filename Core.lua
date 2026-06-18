@@ -534,6 +534,7 @@ function eventFrame:ADDON_LOADED(arg1)
         if type(CellDB["debuffTypeColor"]) ~= "table" then
             I.ResetDebuffTypeColor()
         end
+        I.UpdateDispelColorCurve()
 
         -- aoeHealings ----------------------------------------------------------------------------
         if type(CellDB["aoeHealings"]) ~= "table" then CellDB["aoeHealings"] = {["disabled"]={}, ["custom"]={}} end

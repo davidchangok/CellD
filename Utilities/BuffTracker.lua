@@ -371,6 +371,10 @@ local function GetUnaffectedString(buff)
     local players = {}
     for unit in pairs(list) do
         local name = UnitName(unit)
+        -- Midnight 12.0.0+: UnitName may return secret string in restricted contexts
+        if F.IsSecretValue and F.IsSecretValue(name) then
+            name = unit -- fallback: use unit token
+        end
         tinsert(players, name)
     end
 
@@ -529,6 +533,10 @@ local function CreateBuffButton(parent, buff)
                 for unit in pairs(list) do
                     local class = UnitClassBase(unit)
                     local name = UnitName(unit)
+                    -- Midnight 12.0.0+: name may be secret; skip if so
+                    if F.IsSecretValue and F.IsSecretValue(name) then
+                        name = unit
+                    end
                     if class and name then
                         CellTooltip:AddLine(F.GetClassColorStr(class) .. name .. "|r")
                     end

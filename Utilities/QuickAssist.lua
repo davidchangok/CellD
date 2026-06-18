@@ -499,6 +499,8 @@ local function QuickAssist_UnregisterEvents(self)
 end
 
 local function QuickAssist_OnEvent(self, event, unit, arg, arg2)
+    -- Midnight 12.0.0+: unit parameter may be secret; skip if so
+    if F.IsSecretValue and F.IsSecretValue(unit) then return end
     if unit and self.unit == unit then
         if event == "UNIT_AURA" then
             QuickAssist_UpdateAuras(self, arg)
@@ -845,7 +847,11 @@ local function UpdateAllUnits()
                 name = unit -- fallback: use unit token as key
             end
             local guid = UnitGUID(unit)
-            local info = LGI:GetCachedInfo(guid)
+            -- Midnight 12.0.0+: GUID may be secret; LGI:GetCachedInfo would error on secret key
+            local info
+            if not (Cell.isMidnight and F.IsSecretValue and F.IsSecretValue(guid)) then
+                info = LGI:GetCachedInfo(guid)
+            end
             if info then
                 nameToPriority[name] = GetPriority(info.class, info.specId)
                 -- print(name, nameToPriority[name], info.class, info.specId)

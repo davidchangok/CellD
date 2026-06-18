@@ -1139,6 +1139,10 @@ local function CreatePlayerList(parent, box)
             players[i]:Show()
 
             local name = GetUnitName(unit, true)
+            -- Midnight 12.0.0+: name may be secret; use unit token as fallback
+            if F.IsSecretValue and F.IsSecretValue(name) then
+                name = unit
+            end
             local class = UnitClassBase(unit)
 
             players[i].name = name

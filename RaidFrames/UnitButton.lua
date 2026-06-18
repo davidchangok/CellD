@@ -1196,10 +1196,8 @@ local function HandleDebuff(self, auraInfo)
     auraInfo._debuffType = debuffType
     auraInfo._hasSecretTime = hasSecretTime
 
-    -- Midnight 12.0.0+: pre-compute dispel color via GetAuraDispelTypeColor API
-    -- when debuffType came from secret fallback ("Magic"). Grid2 uses this API
-    -- to get secret-safe colors without knowing the type string.
-    if debuffType == "Magic" and auraInfo.dispelName and F.IsSecretValue and F.IsSecretValue(auraInfo.dispelName) then
+    -- Midnight 12.0.0+: dispelName always secret in combat; always get per-aura color from C API
+    if auraInfo.dispelName then
         local cr, cg, cb = I.GetAuraDispelColor(self.states.displayedUnit, auraInstanceID)
         if cr then
             auraInfo._dispelColor = {cr, cg, cb}
@@ -1260,23 +1258,32 @@ local function HandleDebuff(self, auraInfo)
         end
 
         if enabledIndicators["dispels"] and debuffType and debuffType ~= "" then
-            -- Midnight 12.0.0+: canActivePlayerDispel may be a secret boolean
+            local isSecretType = (auraInfo.dispelName and F.IsSecretValue and F.IsSecretValue(auraInfo.dispelName))
+            local effectiveType = debuffType
+            -- Midnight: resolve actual type from C API color so we don't show non-matching debuffs
+            if isSecretType and auraInfo._dispelColor then
+                effectiveType = I.FindDebuffTypeByColor(
+                    auraInfo._dispelColor[1] or auraInfo._dispelColor.r,
+                    auraInfo._dispelColor[2] or auraInfo._dispelColor.g,
+                    auraInfo._dispelColor[3] or auraInfo._dispelColor.b)
+            end
             local canDispel = auraInfo.canActivePlayerDispel
             if F.IsSecretValue and F.IsSecretValue(canDispel) then
-                canDispel = (debuffType ~= "")
+                -- Secret: use effective type to check if player can dispel this type at all
+                canDispel = indicatorBooleans["dispels"][effectiveType] and true or false
             end
             if not indicatorBooleans["dispels"]["dispellableByMe"] or canDispel then
-                local isSecretType = (auraInfo.dispelName and F.IsSecretValue and F.IsSecretValue(auraInfo.dispelName))
-                if indicatorBooleans["dispels"][debuffType] or isSecretType then
-                    -- Always capture the first dispellable aura for glow coloring
+                if indicatorBooleans["dispels"][effectiveType] then
                     if not self._debuffs._topDispelAuraID then
                         self._debuffs._topDispelAuraID = auraInstanceID
                     end
                     if isDispelBlacklisted then
                         -- icon only, no highlight
                     end
-                    local typeKey = isSecretType and ("_secret"..auraInstanceID) or debuffType
-                    self._debuffs_dispel[typeKey] = {highlight = true, auraInstanceID = auraInstanceID}
+                    local typeKey = isSecretType and ("_secret"..auraInstanceID) or effectiveType
+                    local entry = {highlight = true, auraInstanceID = auraInstanceID}
+                    if auraInfo._dispelColor then entry._dispelColor = auraInfo._dispelColor end
+                    self._debuffs_dispel[typeKey] = entry
                 end
             end
         end

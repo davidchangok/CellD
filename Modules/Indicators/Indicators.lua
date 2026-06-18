@@ -141,6 +141,19 @@ local function SetOnUpdate(indicator, type, icon, stack, extra)
     end)
 end
 
+-- preview dispels 模拟数据：使用 _secret 格式与 Midnight 实际战斗路径一致
+-- 延迟构建（CellDB 在模块加载时尚未初始化）
+local debuffTypes
+local function _getDebuffTypes()
+    if debuffTypes then return debuffTypes end
+    local function entry(dt)
+        local r, g, b = I.GetDebuffTypeColor(dt)
+        return {["_secret0"] = {highlight = true, _dispelColor = {r, g, b}}}
+    end
+    debuffTypes = {entry("Magic"), entry("Curse"), entry("Disease"), entry("Poison"), entry("Bleed")}
+    return debuffTypes
+end
+
 -- init preview button indicator animation
 local function InitIndicator(indicatorName)
     local indicator = previewButton.indicators[indicatorName]
@@ -354,80 +367,9 @@ local function InitIndicator(indicatorName)
 
     elseif indicatorName == "dispels" then
         indicator.isDispels = true
-
-        -- 预览面板创建 glow Frame（与实际单位按钮的 I.CreateDispels 一致）
-        if not indicator.glow then
-            indicator.glow = CreateFrame("Frame", nil, indicator.parent.widgets.highLevelFrame, "BackdropTemplate")
-            indicator.glow:SetFrameLevel(indicator.parent.widgets.highLevelFrame:GetFrameLevel() + 1)
-            indicator.glow:SetAllPoints(indicator.parent.widgets.highLevelFrame)
-            indicator.glow:SetBackdrop({bgFile = Cell.vars.whiteTexture})
-            indicator.glow:SetBackdropColor(0, 0, 0, 0)
-            indicator.glow:Hide()
-        end
-
-        local debuffTypes = {
-            {["Curse"]=true},
-            {["Disease"]=true},
-            {["Magic"]=true},
-            {["Poison"]=true},
-            {["Bleed"]=true},
-        }
-
-        -- override
-        indicator.SetDispels = function(self, dispelTypes)
-            local r, g, b = 0, 0, 0
-            local found
-            local unit = self.parent and self.parent.states and self.parent.states.displayedUnit
-
-            self.highlight:Hide()
-
-            for dispelType, value in pairs(dispelTypes) do
-                -- Skip secret-type entries in the first pass
-                if strsub(dispelType or "", 1, 7) ~= "_secret" then
-                    local showHighlight = (type(value) == "table" and value.highlight) or (type(value) == "boolean" and value)
-                    local auraID = type(value) == "table" and value.auraInstanceID or nil
-                    if not found and self.highlightType ~= "none" and dispelType and showHighlight then
-                        found = true
-                        r, g, b = I.GetDebuffTypeColor(dispelType)
-                        if self.highlightType == "entire" then
-                            self.highlight:SetVertexColor(r, g, b, 0.5)
-                        elseif self.highlightType == "current" or self.highlightType == "current+" then
-                            self.highlight:SetVertexColor(r, g, b, 1)
-                        elseif self.highlightType == "gradient" or self.highlightType == "gradient-half" then
-                            self.highlight:SetGradient("VERTICAL", CreateColor(r, g, b, 1), CreateColor(r, g, b, 0))
-                        end
-                        if indicator.isVisible then self.highlight:Show() end
-                    end
-                    if self.showIcons then
-                        self[1]:SetDispel(dispelType)
-                    end
-                end
-            end
-            -- Second pass: secret-type debuffs (dispelName hidden by Midnight)
-            for typeKey, value in pairs(dispelTypes) do
-                if strsub(typeKey, 1, 7) == "_secret" and not found then
-                    local showHighlight = (type(value) == "table" and value.highlight)
-                    if showHighlight then
-                        found = true
-                        r, g, b = I.GetDebuffTypeColor("Magic")
-                        if self.highlightType ~= "none" then
-                            if indicator.isVisible then self.highlight:Show() end
-                        end
-                    end
-                end
-            end
-
-            if found and self.glow then
-                self.glow:SetBackdropColor(r, g, b, 0.35)
-                self.glow:Show()
-            elseif self.glow then
-                self.glow:SetBackdropColor(0, 0, 0, 0)
-                self.glow:Hide()
-            end
-
-            self:UpdateSize(1)
-            for j = 2, 5 do self[j]:Hide() end
-        end
+        -- highlight/glow 容器已在 CellUnitButton_OnLoad → I.CreateDispels 中创建，
+        -- 与运行时 UnitButton 完全一致。此处不覆盖 SetDispels，直接复用 Built-in 原生渲染。
+        -- previewButton.widgets.healthBar:SetValue(1) 确保 "current" 模式有可见的 status bar 纹理区域。
 
         if not indicator._UpdateHighlight then
             indicator._UpdateHighlight = indicator.UpdateHighlight
@@ -436,14 +378,15 @@ local function InitIndicator(indicatorName)
         indicator.UpdateHighlight = function(self, highlightType)
             indicator:_UpdateHighlight(highlightType)
 
-            -- preview
+            -- preview: 每 1 秒循环切换一种驱散类型的模拟数据，
+            -- 调用原生 SetDispels (Built-in.lua Dispels_SetDispels) 完成完整渲染
             indicator.elapsed = 1
             indicator.current = 1
             indicator:SetScript("OnUpdate", function(self, elapsed)
                 indicator.elapsed = indicator.elapsed + elapsed
                 if indicator.elapsed >= 1 then
                     indicator.elapsed = 0
-                    indicator:SetDispels(debuffTypes[indicator.current])
+                    indicator:SetDispels(_getDebuffTypes()[indicator.current])
                     indicator.current = indicator.current + 1
                     if indicator.current == 6 then indicator.current = 1 end
                 end
@@ -2226,6 +2169,18 @@ LoadIndicatorList = function()
         if i.isDispels then
             i.isVisible = true
             i.highlight:Show()
+            -- Restart preview animation (OnUpdate may have been cleared on deselect)
+            i.elapsed = 1
+            i.current = 1
+            i:SetScript("OnUpdate", function(self, elapsed)
+                self.elapsed = self.elapsed + elapsed
+                if self.elapsed >= 1 then
+                    self.elapsed = 0
+                    self:SetDispels(_getDebuffTypes()[self.current])
+                    self.current = self.current + 1
+                    if self.current == 6 then self.current = 1 end
+                end
+            end)
         elseif i.isTargetedSpells then
             i:ShowGlowPreview()
         end
@@ -2286,6 +2241,11 @@ LoadIndicatorList = function()
         if i.isDispels then
             i.isVisible = false
             i.highlight:Hide()
+            if i.glow then
+                i.glow:SetBackdropColor(0, 0, 0, 0)
+                i.glow:Hide()
+            end
+            i:SetScript("OnUpdate", nil)
         end
     end)
 end
