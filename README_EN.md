@@ -113,7 +113,7 @@ Blizzard introduced the Secret Value (opaque type) mechanism in patch 12.0, wrap
 
 | Command | Function |
 | ---- | ---- |
-| `/celld` or `/cell` | Show all available commands |
+| `/celld` | Show all available commands |
 | `/celld options` | Open settings window |
 | `/celld healers` | Create "Healers" indicator |
 | `/celld rescale` | Apply recommended scale |

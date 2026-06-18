@@ -10,7 +10,7 @@
     3. 管理布局自动切换逻辑 (solo/party/raid/battleground/arena)
     4. 注册游戏事件: VARIABLES_LOADED, ADDON_LOADED, PLAYER_LOGIN 等
     5. 初始化所有 SavedVariables 默认值 (CellDB 各类子表)
-    6. 处理斜杠命令 (/celld, /cell 兼容)
+    6. 处理斜杠命令 (/celld)
     7. 管理插件状态: 专精切换、进出副本、团队配置
 
     全局架构:
@@ -1002,10 +1002,9 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
 end)
 
 -------------------------------------------------
--- 斜杠命令 (/cell 和 /celld 双入口)
+-- 斜杠命令 (/celld)
 -------------------------------------------------
-SLASH_CELL1 = "/cell"                                            -- 兼容旧命令
-SLASH_CELL2 = "/celld"                                           -- CellD 新命令
+SLASH_CELL1 = "/celld"
 function SlashCmdList.CELL(msg, editbox)
     local command, rest = msg:match("^(%S*)%s*(.-)$")
     command = strlower(command or "")

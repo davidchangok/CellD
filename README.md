@@ -82,7 +82,7 @@ CellD 致力于提供**比以往更好的用户体验**。
 
 | 命令 | 功能 |
 | ---- | ---- |
-| `/celld` 或 `/cell` | 显示所有可用命令 |
+| `/celld` | 显示所有可用命令 |
 | `/celld options` | 打开设置窗口 |
 | `/celld healers` | 创建"治疗者"指示器 |
 | `/celld rescale` | 应用推荐缩放比例 |
@@ -260,7 +260,7 @@ Blizzard introduced the Secret Value (opaque type) mechanism in patch 12.0, wrap
 
 | Command | Function |
 | ---- | ---- |
-| `/celld` or `/cell` | Show all available commands |
+| `/celld` | Show all available commands |
 | `/celld options` | Open settings window |
 
 ### Links
