@@ -153,6 +153,29 @@ The following addons were referenced during Midnight 12.0 Secret Value compatibi
 
 ---
 
+## 🤖 Special Thanks / 特别鸣谢
+
+<p align="center">
+  <a href="https://www.deepseek.com/">
+    <img src="https://img.shields.io/badge/DeepSeek-4D6BFE?style=for-the-badge&logo=deepseek&logoColor=white" alt="DeepSeek">
+  </a>
+</p>
+
+|                                                                                                    |
+| :------------------------------------------------------------------------------------------------- |
+|   **This addon's Midnight 12.0 Secret Value compatibility, dispels dsCurve architecture             |
+|   (aligned with Grid2 StatusAuras), Quick Assist / Buff Tracker security audit,                    |
+|   BigDebuffs / Decursive technical analysis, and README documentation were all                     |
+|   deeply assisted by [DeepSeek](https://www.deepseek.com/) LLM. Without DeepSeek,                  |
+|   this work could not have been completed so efficiently and correctly. 🙏**                       |
+|                                                                                                    |
+|   **本插件的 Midnight 12.0 Secret Value 兼容性开发、驱散上色 dsCurve 架构（对齐 Grid2 StatusAuras）、** |
+|   **Quick Assist / Buff Tracker 安全审查、BigDebuffs / Decursive 技术分析、以及 README 文档撰写，**        |
+|   **均由 [DeepSeek](https://www.deepseek.com/) 大语言模型深度协助完成！ 🙏**                                |
+
+---
 ## Acknowledgements
 
 CellD is based on [enderneko's Cell](https://github.com/enderneko/Cell). Thanks to the original author and all code contributors for their outstanding work.
+
+**Special thanks to [DeepSeek](https://www.deepseek.com/) LLM** — see the banner above for full details.

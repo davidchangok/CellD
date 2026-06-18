@@ -41,7 +41,7 @@ CellD 致力于提供**比以往更好的用户体验**。
 - **智能复活** — 对死亡单位自动替换为复活法术（支持普通复活 + 战复）
 - **丰富的指示器** — 内置数十种指示器（图标、进度条、矩形、文字、发光等），支持无限自定义
 - **副本减益** — 带优先级排序的减益列表，内置多种发光效果（像素、闪耀、触发），支持当前活跃 Boss 自动筛选
-- **可驱散减益醒目染色** — 借鉴 Grid2 IndicatorSquare 架构，通过 Blizzard `C_UnitAuras.GetAuraDispelTypeColor` C 引擎 API（含 `pcall` 保护）获取颜色，结合 `canActivePlayerDispel`（12.0 新字段，NeverSecret）判断当前角色驱散能力。在单元格背景上以选项定义的驱散颜色整格染色（按钮自身 `SetBackdropColor`），第一时间吸引治疗注意
+- **可驱散减益醒目染色** — 借鉴 Grid2 IndicatorSquare + StatusAuras 架构，`C_CurveUtil.CreateColorCurve()` Step 曲线用 `DEBUFF_TYPE_*_COLOR` Blizzard 原生 ColorMixin 对象，传入 `C_UnitAuras.GetAuraDispelTypeColor(unit, auraInstanceID, dsCurve)`。Secret 环境中 C 引擎返回可读的 per-aura 驱散颜色，通过 highlight 纹理（0.3 alpha）+ glow Frame（仅 none 模式 0.45）在单元格上染色，第一时间吸引治疗注意。支持 entire / current / current+ / gradient / gradient-half 五种高亮模式，实际团队框体和选项预览共用同一段渲染代码
 - **防御 / 外部 / 全技能冷却** — Mirror Image、Mass Barrier 等特殊技能通过 UNIT_AURA 检测
 - **团队工具** — 就位确认、职责确认、开怪倒计时、补增益检查、死亡通报、世界/目标标记、战复计时
 - **特别关注框体** — 额外 15 个单位按钮，可设为目标、焦点、坦克、指定单位等
@@ -55,15 +55,10 @@ CellD 致力于提供**比以往更好的用户体验**。
 
 ## 已知未实现功能
 
-以下功能在原始 Cell 中存在，但 CellD 尚未完成适配，目前可能无法正常工作：
-
-### 快速协助（Quick Assist）
-
-- **快速协助模块** — 增辉唤魔师等专精的快速协助功能基于原始 Cell 代码，尚未针对 Midnight 12.0 Secret Value 进行全面防护审查。Secret 环境下的光环检测可能受影响。
+以下功能在原始 Cell 中存在，但 CellD 尚未完成适配：
 
 ### 团队工具
 
-- **补增益检查（Buff Tracker）** — 基于原始 Cell 代码，尚未完整审查 Secret Value 兼容性。
 - **法术请求 / 驱散请求（Spell Request / Dispel Request）** — 请求系统依赖网络通信，底层代码未做 Midnight 适配审查。
 
 ### 其他
@@ -71,7 +66,6 @@ CellD 致力于提供**比以往更好的用户体验**。
 - **BigDebuffs 集成** — CellD 保留了 BigDebuffs 兼容代码，但未在 Midnight 12.0 环境下验证，BigDebuffs 自身的 Midnight 兼容性也需确认。
 - **WeakAuras** — 12.0 新版本不再支持此插件，已从兼容列表中移除。
 - **代码片段（Snippets）** — 已从 CellD 中彻底移除。
-- **部分工具模块** — `Utilities/` 目录下的部分模块（Buff Tracker、Quick Assist 配置等）保留了原始 Cell 的实现，未进行 Midnight API 迁移。
 
 > 如果你发现某个功能在 Midnight 12.0 上无法正常工作，请在 [GitHub Issues](https://github.com/davidchangok/CellD/issues) 中报告。
 
@@ -173,10 +167,36 @@ CellD 致力于提供**比以往更好的用户体验**。
 | [VuhDo](https://www.curseforge.com/wow/addons/vuhdo) | `hasSecretName` 标记模式、`GetAuraDispelTypeColor(unit, auraID, curve)` 用法 |
 
 ---
+## 🤖 特别鸣谢 / Special Thanks
 
-## 致谢
+<p align="center">
+  <a href="https://www.deepseek.com/">
+    <img src="https://img.shields.io/badge/DeepSeek-4D6BFE?style=for-the-badge&logo=deepseek&logoColor=white" alt="DeepSeek">
+  </a>
+</p>
 
+## ════════════════════════════════════
+
+|                                                                                                    |
+| :------------------------------------------------------------------------------------------------- |
+|   **🎯 本插件的 Midnight 12.0 Secret Value 兼容性开发、驱散上色 dsCurve 架构（对齐 Grid2 StatusAuras）、** |
+|   **Quick Assist / Buff Tracker 安全审查、BigDebuffs / Decursive 技术分析、以及 README 文档撰写，**        |
+|   **均由 [DeepSeek](https://www.deepseek.com/) 大语言模型深度协助完成！**                                 |
+|   **没有 DeepSeek 的助力，这些工作不可能如此高效、正确地完成。 🙏**                                        |
+|                                                                                                    |
+|   **This addon's Midnight 12.0 Secret Value compatibility, dispels dsCurve architecture             |
+|   (aligned with Grid2 StatusAuras), Quick Assist / Buff Tracker security audit,                    |
+|   BigDebuffs / Decursive technical analysis, and README documentation were all                     |
+|   deeply assisted by [DeepSeek](https://www.deepseek.com/) LLM. Without DeepSeek,                  |
+|   this work could not have been completed so efficiently and correctly. 🙏**                       |
+|                                                                                                    |
+
+## ════════════════════════════════════
+
+---
+## 致谢 / Acknowledgements
 CellD 基于 [enderneko 的 Cell](https://github.com/enderneko/Cell) 继续开发。感谢原作者和所有代码贡献者的卓越工作。
+CellD is based on [enderneko's Cell](https://github.com/enderneko/Cell). Thanks to the original author and all code contributors for their outstanding work.
 
 
 ## CellD — World of Warcraft Raid Frame Addon
@@ -267,3 +287,5 @@ Blizzard introduced the Secret Value (opaque type) mechanism in patch 12.0, wrap
 ### Acknowledgements
 
 CellD is based on [enderneko's Cell](https://github.com/enderneko/Cell). Thanks to the original author and all code contributors for their outstanding work.
+
+**Special thanks to [DeepSeek](https://www.deepseek.com/) LLM** — see the Chinese/English banner above for full details.
