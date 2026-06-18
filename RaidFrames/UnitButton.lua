@@ -1259,28 +1259,21 @@ local function HandleDebuff(self, auraInfo)
 
         if enabledIndicators["dispels"] and debuffType and debuffType ~= "" then
             local isSecretType = (auraInfo.dispelName and F.IsSecretValue and F.IsSecretValue(auraInfo.dispelName))
-            local effectiveType = debuffType
-            -- Midnight: resolve actual type from C API color so we don't show non-matching debuffs
-            if isSecretType and auraInfo._dispelColor then
-                effectiveType = I.FindDebuffTypeByColor(
-                    auraInfo._dispelColor[1] or auraInfo._dispelColor.r,
-                    auraInfo._dispelColor[2] or auraInfo._dispelColor.g,
-                    auraInfo._dispelColor[3] or auraInfo._dispelColor.b)
-            end
             local canDispel = auraInfo.canActivePlayerDispel
             if F.IsSecretValue and F.IsSecretValue(canDispel) then
-                -- Secret: use effective type to check if player can dispel this type at all
-                canDispel = indicatorBooleans["dispels"][effectiveType] and true or false
+                canDispel = isSecretType -- secret: dispelName exists → it IS dispellable
             end
             if not indicatorBooleans["dispels"]["dispellableByMe"] or canDispel then
-                if indicatorBooleans["dispels"][effectiveType] then
+                -- Secret: exact type unknown, show all dispellable. Named: check indicatorBooleans.
+                local showIt = isSecretType or indicatorBooleans["dispels"][debuffType]
+                if showIt then
                     if not self._debuffs._topDispelAuraID then
                         self._debuffs._topDispelAuraID = auraInstanceID
                     end
                     if isDispelBlacklisted then
                         -- icon only, no highlight
                     end
-                    local typeKey = isSecretType and ("_secret"..auraInstanceID) or effectiveType
+                    local typeKey = isSecretType and ("_secret"..auraInstanceID) or debuffType
                     local entry = {highlight = true, auraInstanceID = auraInstanceID}
                     if auraInfo._dispelColor then entry._dispelColor = auraInfo._dispelColor end
                     self._debuffs_dispel[typeKey] = entry

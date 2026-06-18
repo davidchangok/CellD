@@ -29,7 +29,7 @@
     安全说明 (Secret Values / Opaque Types):
     暴雪在 12.0.0+ 中对战斗中敏感数据实施了 Secret Value 机制。
     在战斗/首领战/PvP中，UnitHealth/UnitPower/光环持续时间等会返回
-    不可运算的 opaque 值。详见 BlackBox 自检模块和 Utils.lua 中的保护措施。
+    不可运算的 opaque 值。详见 Utils.lua 中的保护措施。
     -- 可通过以下 CVar 在非战斗时强制模拟 Secret Value 限制进行测试:
     -- /run SetCVar("secretCombatRestrictionsForced", 1)
     -- /run SetCVar("secretEncounterRestrictionsForced", 1)
@@ -1014,14 +1014,6 @@ function SlashCmdList.CELL(msg, editbox)
     if command == "options" or command == "opt" then
         F.ShowOptionsFrame()
 
-    elseif command == "blackbox" then
-        -- CellD 黑箱自检: Secret Value 安全测试
-        if CellD_BlackBox then
-            CellD_BlackBox()
-        else
-            F.Print("|cFFFF0000BlackBox 自检模块未加载，请检查插件完整性")
-        end
-
     elseif command == "healers" then
         F.FirstRun()
 
@@ -1106,7 +1098,6 @@ function SlashCmdList.CELL(msg, editbox)
             "|cFFFFB5C5/celld options|r: "..L["show Cell options frame"]..".\n"..
             "|cFFFFB5C5/celld healers|r: "..L["create a \"Healers\" indicator"]..".\n"..
             "|cFFFFB5C5/celld rescale|r: "..strlower(L["Apply Recommended Scale"])..".\n"..
-            "|cFFFFB5C5/celld blackbox|r: Secret Value 黑箱自检.\n"..
             "|cFFFF7777"..L["These \"reset\" commands below affect all your characters in this account"]..".|r\n"..
             "|cFFFFB5C5/celld reset position|r: "..L["reset Cell position"]..".\n"..
             "|cFFFFB5C5/celld reset layouts|r: "..L["reset all Layouts and Indicators"]..".\n"..

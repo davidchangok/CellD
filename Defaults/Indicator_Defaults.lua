@@ -273,30 +273,27 @@ end
 -- Grid2 StatusAuras.lua:79 pattern: GetAuraDispelTypeColor(unit, auraInstanceID, colorCurve)
 -- Requires unit parameter in Midnight 12.0. pcall guards against stale auraInstanceID.
 
--- DTtoBT: dispel type string → Blizzard dispel bitfield enum for dsCurve AddPoint x-values
-local DTtoBT = {["Magic"]=1, ["Curse"]=2, ["Disease"]=3, ["Poison"]=4, ["Bleed"]=11}
+-- Grid2 StatusAuras.lua:27-35 pattern — dispel type → {curve_index, Blizzard_ColorMixin}
+-- Blizzard native ColorMixin objects (DEBUFF_TYPE_*_COLOR) work correctly as dsCurve
+-- AddPoint arguments where Lua CreateColor() objects do not.
+local DispelCurveDefaults = {
+    Magic   = { 1,  DEBUFF_TYPE_MAGIC_COLOR   },
+    Curse   = { 2,  DEBUFF_TYPE_CURSE_COLOR   },
+    Disease = { 3,  DEBUFF_TYPE_DISEASE_COLOR },
+    Poison  = { 4,  DEBUFF_TYPE_POISON_COLOR  },
+    Bleed   = { 11, DEBUFF_TYPE_BLEED_COLOR   },
+}
 
 function I.UpdateDispelColorCurve()
     if not C_CurveUtil then return end
-    if not I._dsCurve then I._dsCurve = C_CurveUtil.CreateColorCurve(); I._dsCurve:SetType(Enum.LuaCurveType.Step) end
+    if not I._dsCurve then
+        I._dsCurve = C_CurveUtil.CreateColorCurve()
+        I._dsCurve:SetType(Enum.LuaCurveType.Step)
+    end
     I._dsCurve:ClearPoints()
-    I._dsCurve:AddPoint(0, CreateColor(0, 0.3, 0.1, 1))
-    for tn, bv in pairs(DTtoBT) do local c = CellDB["debuffTypeColor"] and CellDB["debuffTypeColor"][tn]
-        if c then I._dsCurve:AddPoint(bv, CreateColor(c.r, c.g, c.b, 1)) end
+    for _, def in pairs(DispelCurveDefaults) do
+        I._dsCurve:AddPoint(def[1], def[2])
     end
-end
-
--- Match an (r,g,b) color against user-configured debuffTypeColor to find nearest type
-local _dispelTypes = {"Magic", "Curse", "Disease", "Poison", "Bleed"}
-function I.FindDebuffTypeByColor(r, g, b)
-    if not r or type(r) ~= "number" or F.IsSecretValue(r) then return "Magic" end
-    local best, bestDist = "Magic", 999
-    for _, dt in ipairs(_dispelTypes) do
-        local tr, tg, tb = I.GetDebuffTypeColor(dt)
-        local dist = (r-tr)*(r-tr) + (g-tg)*(g-tg) + (b-tb)*(b-tb)
-        if dist < bestDist then bestDist = dist; best = dt end
-    end
-    return best
 end
 
 function I.GetAuraDispelColor(unit, auraInstanceID)
@@ -304,15 +301,22 @@ function I.GetAuraDispelColor(unit, auraInstanceID)
         return nil
     end
     local ok, c = pcall(C_UnitAuras.GetAuraDispelTypeColor, unit, auraInstanceID, I._dsCurve)
-    if ok and c then
-        if type(c.GetRGB) == "function" then
-            local cr, cg, cb = c:GetRGB()
-            if cr and type(cr) == "number" and not F.IsSecretValue(cr) then return cr, cg, cb end
-        end
-        local cr, cg, cb = c.r, c.g, c.b
-        if cr and type(cr) == "number" and not F.IsSecretValue(cr) then return cr, cg, cb end
-    end
+    if ok and c then return c.r, c.g, c.b end
     return nil
+end
+
+-- Match C API (r,g,b) color against Blizzard DEBUFF_TYPE_*_COLOR globals to find dispel type
+local _dispelTypes = {"Magic", "Curse", "Disease", "Poison", "Bleed"}
+function I.FindDebuffTypeByColor(r, g, b)
+    -- Secret numbers pass type()=="number" but fail arithmetic; guard early
+    if not r or F.IsSecretValue(r) then return "Magic" end
+    local best, bestDist = "Magic", 999
+    for _, dt in ipairs(_dispelTypes) do
+        local tr, tg, tb = I.GetDebuffTypeColor(dt)
+        local dist = (r-tr)*(r-tr) + (g-tg)*(g-tg) + (b-tb)*(b-tb)
+        if dist < bestDist then bestDist = dist; best = dt end
+    end
+    return best
 end
 
 function I.GetDebuffTypeColor(debuffType, fallbackColor)
@@ -334,7 +338,6 @@ function I.SetDebuffTypeColor(debuffType, r, g, b)
         CellDB["debuffTypeColor"][debuffType]["g"] = g
         CellDB["debuffTypeColor"][debuffType]["b"] = b
     end
-    I.UpdateDispelColorCurve()
 end
 
 -- Midnight 12.0.0 removed the DebuffTypeColor global; provide a local fallback
@@ -352,5 +355,4 @@ function I.ResetDebuffTypeColor()
     local source = DebuffTypeColor or CellDebuffTypeColorFallback
     CellDB["debuffTypeColor"] = F.Copy(source)
     CellDB["debuffTypeColor"]["Bleed"] = {r = 1, g = 0.2, b = 0.6}
-    I.UpdateDispelColorCurve()
 end

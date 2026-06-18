@@ -48,5 +48,3 @@ RaidFrames\Groups\NPCFrame.lua
 RaidFrames\Groups\SpotlightFrame.lua
 
 Supporters.lua
-
-BlackBox.lua

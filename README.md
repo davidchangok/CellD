@@ -46,7 +46,7 @@ CellD 致力于提供**比以往更好的用户体验**。
 - **团队工具** — 就位确认、职责确认、开怪倒计时、补增益检查、死亡通报、世界/目标标记、战复计时
 - **特别关注框体** — 额外 15 个单位按钮，可设为目标、焦点、坦克、指定单位等
 - **快速协助** — 一键辅助功能（增辉唤魔师适配）
-- **黑箱自检** — 内置 Secret Value 安全性检测（`/celld blackbox`），覆盖所有敏感数据代码路径
+
 - **精致的选项界面** — 简洁直观的配置面板，操作体验极佳，预览按钮实时展示效果
 - **中文注释覆盖** — 全部非第三方库源文件已添加详细中文注释，涵盖函数职责、数据流说明和 Midnight Secret Value 防护点标注
 - **兼容性** — [BigDebuffs](https://www.curseforge.com/wow/addons/bigdebuffs)、[OmniCD](https://www.curseforge.com/wow/addons/omnicd)
@@ -86,7 +86,6 @@ CellD 致力于提供**比以往更好的用户体验**。
 | `/celld options` | 打开设置窗口 |
 | `/celld healers` | 创建"治疗者"指示器 |
 | `/celld rescale` | 应用推荐缩放比例 |
-| `/celld blackbox` | Secret Value 黑箱自检 |
 | `/celld reset position` | 重置 CellD 位置 |
 | `/celld reset layouts` | 重置全部布局和指示器 |
 | `/celld reset clickcastings` | 重置全部点击施法 |
@@ -127,19 +126,6 @@ CellD 致力于提供**比以往更好的用户体验**。
 | 名字显示 | `UpdateTextWidth/FitWidth` secret 时跳过字符串操作，直接 `SetText` → `SetSize` 回退 `parent:GetWidth` |
 | GUID 操作 | `F.IsPlayer/IsPet/IsNPC/IsVehicle` 前置 `IsSecretValue` guard |
 | 排序 | `SortRaidDebuffs` cache miss nil guard |
-
-### 黑箱自检
-
-使用 `/celld blackbox` 可随时运行黑箱自检，对所有涉及敏感数据的代码路径进行安全性验证。17 项测试覆盖基础 API、吸收量、光环数据、速度检测、安全函数自测、指示器路径、模块安全、配置完整性、CVar 状态。
-
-> 开发提示：可在非战斗时通过 CVar 强制开启所有限制进行测试：
-> ```
-> /run SetCVar("secretCombatRestrictionsForced", 1)
-> /run SetCVar("secretEncounterRestrictionsForced", 1)
-> /run SetCVar("secretChallengeModeRestrictionsForced", 1)
-> /run SetCVar("secretPvPMatchRestrictionsForced", 1)
-> ```
-> 关闭：`/run SetCVar("secretCombatRestrictionsForced", 0)`
 
 ---
 
@@ -236,7 +222,7 @@ Inspired by: **CompactRaid**, **Grid2**, **Aptechka**, **VuhDo**
 - **Raid Tools** — ready check, role check, pull timer, buff tracker, death report, world/target markers, battle res timer
 - **Spotlight Frame** — 15 extra unit buttons configurable as target, focus, tanks, or specific units
 - **Quick Assist** — one-click assist (Evoker Augmentation adapted)
-- **BlackBox Self-Test** — built-in Secret Value safety verification (`/celld blackbox`) covering all sensitive data code paths
+
 - **Polished Options UI** — clean and intuitive configuration panel with live preview
 
 ### Midnight 12.0 Secret Value Safety Architecture
@@ -276,7 +262,6 @@ Blizzard introduced the Secret Value (opaque type) mechanism in patch 12.0, wrap
 | ---- | ---- |
 | `/celld` or `/cell` | Show all available commands |
 | `/celld options` | Open settings window |
-| `/celld blackbox` | Secret Value self-test |
 
 ### Links
 

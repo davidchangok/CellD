@@ -46,7 +46,7 @@ Inspired by: **CompactRaid**, **Grid2**, **Aptechka**, **VuhDo**
 - **Raid Tools** — ready check, role check, pull timer, buff tracker, death report, world/target markers, battle res timer
 - **Spotlight Frame** — 15 extra unit buttons configurable as target, focus, tanks, or specific units
 - **Quick Assist** — one-click assist (Evoker Augmentation adapted)
-- **BlackBox Self-Test** — built-in Secret Value safety verification (`/celld blackbox`) covering all sensitive data code paths
+
 - **Polished Options UI** — clean and intuitive configuration panel with live preview
 - **Chinese Code Comments** — all non-third-party source files annotated with detailed Chinese comments covering function roles, data flows, and Midnight Secret Value guard points
 - **Compatibility** — [BigDebuffs](https://www.curseforge.com/wow/addons/bigdebuffs)、[OmniCD](https://www.curseforge.com/wow/addons/omnicd)
@@ -117,7 +117,6 @@ Blizzard introduced the Secret Value (opaque type) mechanism in patch 12.0, wrap
 | `/celld options` | Open settings window |
 | `/celld healers` | Create "Healers" indicator |
 | `/celld rescale` | Apply recommended scale |
-| `/celld blackbox` | Secret Value self-test |
 | `/celld reset position` | Reset CellD position |
 | `/celld reset layouts` | Reset all layouts and indicators |
 | `/celld reset clickcastings` | Reset all click-castings |
