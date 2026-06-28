@@ -1,5 +1,27 @@
 # CellD 发布说明 / Release Notes
 
+## v1.0.3 — 2026-06-29
+
+### 中文
+
+本次发布将插件版本同步更新为 1.0.3，并以当前本地代码基线为准进行发布整理。
+
+主要内容：
+- 将 AddOn 版本号更新为 1.0.3
+- 保留 /celld 作为当前支持的命令入口，清理 /cell 兼容别名
+- 继续以当前 Midnight 12.0 维护状态为基础进行发布
+
+### English
+
+This release bumps the addon version to 1.0.3 and publishes the current local codebase state.
+
+Highlights:
+- Bump the addon version to 1.0.3
+- Keep /celld as the supported command entrypoint and remove the /cell alias
+- Publish the current Midnight 12.0 maintenance baseline
+
+---
+
 ## v1.0.0 — 2026-06-13
 
 ### 中文
