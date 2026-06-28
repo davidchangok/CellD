@@ -3,7 +3,17 @@
 [![version](https://img.shields.io/github/v/release/davidchangok/CellD)](https://github.com/davidchangok/CellD/releases)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/davidchangok/CellD/blob/main/LICENSE)
 
-**CellD** 是一款优秀的魔兽世界团队框架插件，继承自 [enderneko 的 Cell](https://github.com/enderneko/Cell)。原作者因工作繁忙停止更新后，由 **David W Zhang** 维护这个版本，专注于正式服最新版本。此版本仅供 David W Zhang 使用（当然任何人都可以随便用）。
+**CellD** 是一款面向正式服的魔兽世界团队框架插件，基于 [enderneko 的 Cell](https://github.com/enderneko/Cell) 继续开发。它专注于最新零售版本的体验、兼容性与稳定性，保留了丰富的布局、指示器与团队工具能力，同时持续加强核心事件与通信路径的容错处理，降低复杂场景下的异常行为。
+
+> 本版本由 **David W Zhang** 维护，当前重点是把插件在副本、组队切换与战斗场景下的运行可靠性持续打磨到更稳。
+
+---
+
+## 最近更新
+
+- 增强了核心初始化与事件分发的兜底保护，避免单个模块异常影响整体插件流程。
+- 提升了通讯链路与单位按钮刷新路径的容错能力，减少异常数据或失败回调造成的中断。
+- 持续对正式服最新版本进行兼容性与稳定性收敛，优先修复高频场景下的脆弱点。
 
 ---
 
