@@ -100,6 +100,28 @@ function F.Print(msg)
     print("|cFFFF3030[CellD]|r " .. msg)                            -- CellD 日志前缀
 end
 
+local function SafeCoreCall(name, func, ...)
+    if type(func) ~= "function" then return false end
+
+    local ok, err = pcall(func, ...)
+    if not ok then
+        F.Debug("|cffff0000Core:|r " .. name .. " failed: " .. tostring(err))
+    end
+
+    return ok, err
+end
+
+local function SafeFire(eventName, ...)
+    if not Cell or type(Cell.Fire) ~= "function" then return false end
+
+    local ok, err = pcall(Cell.Fire, Cell, eventName, ...)
+    if not ok then
+        F.Debug("|cffff0000Core:|r fire event failed: " .. tostring(eventName) .. " - " .. tostring(err))
+    end
+
+    return ok, err
+end
+
 --------------------------------------------------
 -- CellParent — 主框架的父级容器，覆盖整个屏幕
 --------------------------------------------------
@@ -157,8 +179,8 @@ function F.UpdateLayout(layoutGroupType)
             b._indicatorsReady = nil
         end, true)
 
-        Cell.Fire("UpdateLayout", layout)                                -- 触发所有模块的布局更新回调
-        Cell.Fire("UpdateIndicators")                                    -- 触发指示器重新加载
+        SafeFire("UpdateLayout", layout)                                -- 触发所有模块的布局更新回调
+        SafeFire("UpdateIndicators")                                    -- 触发指示器重新加载
     end
 end
 
@@ -602,7 +624,7 @@ function eventFrame:ADDON_LOADED(arg1)
         end
 
         Cell.loaded = true
-        Cell.Fire("AddonLoaded")
+        SafeFire("AddonLoaded")
     end
 
     -- omnicd -------------------------------------------------------------------------------------
@@ -648,7 +670,7 @@ function eventFrame:GROUP_ROSTER_UPDATE(skipFallbackUpdate)
         if Cell.vars.groupType ~= "raid" then
             Cell.vars.groupType = "raid"
             F.Debug("|cffffbb77GroupTypeChanged:|r raid")
-            Cell.Fire("GroupTypeChanged", "raid")                        -- 通知所有模块队伍类型变为团队
+            SafeFire("GroupTypeChanged", "raid")                        -- 通知所有模块队伍类型变为团队
         end
 
         -- 重置团队配置统计数据
@@ -695,7 +717,7 @@ function eventFrame:GROUP_ROSTER_UPDATE(skipFallbackUpdate)
         if Cell.vars.groupType ~= "party" then
             Cell.vars.groupType = "party"
             F.Debug("|cffffbb77GroupTypeChanged:|r party")
-            Cell.Fire("GroupTypeChanged", "party")
+            SafeFire("GroupTypeChanged", "party")
         end
 
         -- update Cell.unitButtons.raid.units
@@ -714,7 +736,7 @@ function eventFrame:GROUP_ROSTER_UPDATE(skipFallbackUpdate)
         if Cell.vars.groupType ~= "solo" then
             Cell.vars.groupType = "solo"
             F.Debug("|cffffbb77GroupTypeChanged:|r solo")
-            Cell.Fire("GroupTypeChanged", "solo")
+            SafeFire("GroupTypeChanged", "solo")
         end
 
         -- update Cell.unitButtons.raid.units
@@ -735,7 +757,7 @@ function eventFrame:GROUP_ROSTER_UPDATE(skipFallbackUpdate)
     if Cell.vars.hasPermission ~= F.HasPermission() or Cell.vars.hasPartyMarkPermission ~= F.HasPermission(true) then
         Cell.vars.hasPermission = F.HasPermission()
         Cell.vars.hasPartyMarkPermission = F.HasPermission(true)
-        Cell.Fire("PermissionChanged")
+        SafeFire("PermissionChanged")
         F.Debug("|cffbb00bbPermissionChanged")
     end
 
@@ -758,7 +780,7 @@ local function UpdateFallbackGroupType()
     if Cell.vars.groupType ~= CellDB.fallbackGroupType then
         Cell.vars.groupType = CellDB.fallbackGroupType
         F.Debug("|cffffbb77GroupTypeChanged:|r", Cell.vars.groupType, "(fallback validation)")
-        Cell.Fire("GroupTypeChanged", Cell.vars.groupType)
+        SafeFire("GroupTypeChanged", Cell.vars.groupType)
     end
 end
 
@@ -777,7 +799,7 @@ function eventFrame:PLAYER_ENTERING_WORLD(isInitialLogin, isReloadingUi)
 
     if isIn then                                                         -- 进入副本
         F.Debug("|cffff1111*** Entered Instance:|r", iType)
-        Cell.Fire("EnterInstance", iType)
+        SafeFire("EnterInstance", iType)
 
         -- PLAYER_LOGIN/PEW(initial) 时 IsInRaid/IsInGroup 始终返回 false
         -- 必须从上次保存的 fallbackGroupType 恢复正确的队伍类型
@@ -787,7 +809,7 @@ function eventFrame:PLAYER_ENTERING_WORLD(isInitialLogin, isReloadingUi)
             Cell.vars.inMythic = CellDB.fallbackInMythic
             CellDB.fallbackGroupType = nil
             CellDB.fallbackInMythic = nil
-            Cell.Fire("GroupTypeChanged", Cell.vars.groupType)
+            SafeFire("GroupTypeChanged", Cell.vars.groupType)
         else
             PreUpdateLayout()
         end
@@ -802,7 +824,7 @@ function eventFrame:PLAYER_ENTERING_WORLD(isInitialLogin, isReloadingUi)
 
                 if Cell.vars.inMythic and Cell.vars.layoutGroupType ~= "raid_mythic" then
                     F.Debug("|cffff1111*** Switch to Mythic Raid layout|r")
-                    Cell.Fire("EnterInstance", iType)
+                    SafeFire("EnterInstance", iType)
                     PreUpdateLayout()                                        -- 切换到史诗团队布局
                 end
             end)
@@ -812,7 +834,7 @@ function eventFrame:PLAYER_ENTERING_WORLD(isInitialLogin, isReloadingUi)
 
     elseif inInstance then                                                -- 离开副本
         F.Debug("|cffff1111*** Left Instance|r")
-        Cell.Fire("LeaveInstance")
+        SafeFire("LeaveInstance")
         PreUpdateLayout()                                                  -- 切换回副本外的布局
         inInstance = false
 
@@ -893,38 +915,38 @@ function eventFrame:PLAYER_LOGIN()
     -- REVIEW: register unitframes for click casting
     -- RegisterGlobalClickCastings()
     -- update click-castings
-    Cell.Fire("UpdateClickCastings")
+    SafeFire("UpdateClickCastings")
     -- update indicators
-    -- Cell.Fire("UpdateIndicators") -- NOTE: already update in GROUP_ROSTER_UPDATE -> GroupTypeChanged -> F.UpdateLayout
+    -- SafeFire("UpdateIndicators") -- NOTE: already update in GROUP_ROSTER_UPDATE -> GroupTypeChanged -> F.UpdateLayout
     -- update texture and font
-    Cell.Fire("UpdateAppearance")
+    SafeFire("UpdateAppearance")
     Cell.UpdateOptionsFont(CellDB["appearance"]["optionsFontSizeOffset"], CellDB["appearance"]["useGameFont"])
     Cell.UpdateAboutFont(CellDB["appearance"]["optionsFontSizeOffset"])
     -- update tools
-    Cell.Fire("UpdateTools")
+    SafeFire("UpdateTools")
     -- update requests
-    Cell.Fire("UpdateRequests")
+    SafeFire("UpdateRequests")
     -- update quick assist
-    -- Cell.Fire("UpdateQuickAssist") -- NOTE: update in GroupTypeChanged/SpecChanged
+    -- SafeFire("UpdateQuickAssist") -- NOTE: update in GroupTypeChanged/SpecChanged
     -- update quick cast
-    Cell.Fire("UpdateQuickCast")
+    SafeFire("UpdateQuickCast")
     -- update raid debuff list
-    Cell.Fire("UpdateRaidDebuffs")
+    SafeFire("UpdateRaidDebuffs")
     -- hide blizzard
     if CellDB["general"]["hideBlizzardParty"] then F.HideBlizzardParty() end
     if CellDB["general"]["hideBlizzardRaid"] then F.HideBlizzardRaid() end
     if CellDB["general"]["hideBlizzardRaidManager"] then F.HideBlizzardRaidManager() end
     -- lock & menu
-    Cell.Fire("UpdateMenu")
+    SafeFire("UpdateMenu")
     -- update CLEU health
-    Cell.Fire("UpdateCLEU")
+    SafeFire("UpdateCLEU")
     -- update builtIns and customs
     I.UpdateAoEHealings(CellDB["aoeHealings"])
     I.UpdateDefensives(CellDB["defensives"])
     I.UpdateExternals(CellDB["externals"])
     I.UpdateCrowdControls(CellDB["crowdControls"])
     -- update pixel perfect
-    Cell.Fire("UpdatePixelPerfect")
+    SafeFire("UpdatePixelPerfect")
     -- update LGF
     F.UpdateFramePriority()
 end
@@ -932,8 +954,8 @@ end
 local function UpdatePixels()
     if not InCombatLockdown() then
         F.Debug("UI_SCALE_CHANGED: ", UIParent:GetScale(), CellParent:GetEffectiveScale())
-        Cell.Fire("UpdatePixelPerfect")
-        Cell.Fire("UpdateAppearance", "scale")
+        SafeFire("UpdatePixelPerfect")
+        SafeFire("UpdateAppearance", "scale")
     end
 end
 
@@ -990,15 +1012,21 @@ function eventFrame:ACTIVE_TALENT_GROUP_CHANGED()
             checkSpecFrame:UnregisterEvent("PLAYER_REGEN_ENABLED")
             F.Debug("|cffffbb77SpecChanged:|r", Cell.vars.playerSpecID, Cell.vars.playerSpecRole)
             if not CellDB["clickCastings"][Cell.vars.playerClass]["useCommon"] then
-                Cell.Fire("UpdateClickCastings")
+                SafeFire("UpdateClickCastings")
             end
-            Cell.Fire("SpecChanged", Cell.vars.playerSpecID, Cell.vars.playerSpecRole)
+            SafeFire("SpecChanged", Cell.vars.playerSpecID, Cell.vars.playerSpecRole)
         end
     end
 end
 
 eventFrame:SetScript("OnEvent", function(self, event, ...)
-    self[event](self, ...)
+    local handler = self[event]
+    if type(handler) ~= "function" then return end
+
+    local ok, err = pcall(handler, self, ...)
+    if not ok then
+        F.Debug("|cffff0000Core event handler failed|r " .. tostring(event) .. ": " .. tostring(err))
+    end
 end)
 
 -------------------------------------------------
@@ -1077,7 +1105,7 @@ function SlashCmdList.CELL(msg, editbox)
                 F.Print(string.format(L["Cell will report first %d deaths during a raid encounter."], rest))
             end
             CellDB["tools"]["deathReport"][2] = rest
-            Cell.Fire("UpdateTools", "deathReport")
+            SafeFire("UpdateTools", "deathReport")
         else
             F.Print(L["A 0-40 integer is required."])
         end

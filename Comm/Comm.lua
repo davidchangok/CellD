@@ -8,22 +8,39 @@ local Serializer = LibStub:GetLibrary("LibSerialize")
 local Comm = LibStub:GetLibrary("AceComm-3.0")
 
 local function Serialize(data)
+    if not Serializer or not LibDeflate then return nil end
     local serialized = Serializer:Serialize(data) -- serialize
+    if not serialized then return nil end
     local compressed = LibDeflate:CompressDeflate(serialized, deflateConfig) -- compress
+    if not compressed then return nil end
     return LibDeflate:EncodeForWoWAddonChannel(compressed) -- encode
 end
 
 local function Deserialize(encoded)
+    if type(encoded) ~= "string" or encoded == "" then
+        return nil
+    end
+
+    if not LibDeflate or not Serializer then
+        return nil
+    end
+
     local decoded = LibDeflate:DecodeForWoWAddonChannel(encoded) -- decode
+    if not decoded then
+        F.Debug("Cell: failed to decode addon message")
+        return nil
+    end
+
     local decompressed = LibDeflate:DecompressDeflate(decoded) -- decompress
     if not decompressed then
-        F.Debug("Error decompressing: " .. errorMsg)
-        return
+        F.Debug("Cell: failed to decompress addon message")
+        return nil
     end
+
     local success, data = Serializer:Deserialize(decompressed) -- deserialize
     if not success then
-        F.Debug("Error deserializing: " .. data)
-        return
+        F.Debug("Cell: failed to deserialize addon message")
+        return nil
     end
     return data
 end
@@ -55,13 +72,32 @@ local function QueueComm(prefix, message, channel, target, priority)
     tinsert(pendingComms, {prefix=prefix, message=message, channel=channel, target=target, priority=priority})
 end
 
+local function SendCommMessage(prefix, message, channel, target, priority, callbackFn, callbackArg)
+    if not prefix or not channel or message == nil then
+        return false
+    end
+
+    if IsCommRestricted() then
+        QueueComm(prefix, message, channel, target, priority)
+        return false
+    end
+
+    local ok, err = pcall(Comm.SendCommMessage, Comm, prefix, message, channel, target, priority, callbackFn, callbackArg)
+    if not ok then
+        F.Debug("Cell: comm send failed: " .. tostring(err))
+        return false
+    end
+
+    return true
+end
+
 local function FlushPendingComms()
     if IsCommRestricted() then return end
     if #pendingComms == 0 then return end
     local toSend = pendingComms
     pendingComms = {}
     for _, msg in ipairs(toSend) do
-        Comm:SendCommMessage(msg.prefix, msg.message, msg.channel, msg.target, msg.priority or "NORMAL")
+        SendCommMessage(msg.prefix, msg.message, msg.channel, msg.target, msg.priority or "NORMAL")
     end
 end
 
@@ -76,8 +112,11 @@ end)
 -- for WA
 -----------------------------------------
 function F.Notify(type, ...)
-    if WeakAuras then
-        WeakAuras.ScanEvents("CELL_NOTIFY", type, ...)
+    if WeakAuras and WeakAuras.ScanEvents then
+        local ok, err = pcall(WeakAuras.ScanEvents, WeakAuras, "CELL_NOTIFY", type, ...)
+        if not ok then
+            F.Debug("Cell: WeakAuras notification failed: " .. tostring(err))
+        end
     end
 end
 
@@ -113,7 +152,7 @@ function eventFrame:GROUP_ROSTER_UPDATE()
             F.Debug("Cell: Comm suppressed - restricted context (CELL_VERSION group)")
             return
         end
-        Comm:SendCommMessage("CELL_VERSION", Cell.version, sendChannel, nil, "NORMAL")
+        SendCommMessage("CELL_VERSION", Cell.version, sendChannel, nil, "NORMAL")
     end
 end
 
@@ -125,7 +164,7 @@ function eventFrame:PLAYER_LOGIN()
             F.Debug("Cell: Comm suppressed - restricted context (CELL_VERSION guild)")
             return
         end
-        Comm:SendCommMessage("CELL_VERSION", Cell.version, "GUILD", nil, "NORMAL")
+        SendCommMessage("CELL_VERSION", Cell.version, "GUILD", nil, "NORMAL")
     end
 end
 
@@ -166,7 +205,7 @@ function F.NotifyMarkLock(mark, name, class)
         F.Debug("Cell: Comm suppressed - restricted context (CELL_MARKS lock)")
         return
     end
-    Comm:SendCommMessage("CELL_MARKS", Serialize({true, mark, name}), sendChannel, nil, "ALERT")
+    SendCommMessage("CELL_MARKS", Serialize({true, mark, name}), sendChannel, nil, "ALERT")
 end
 
 function F.NotifyMarkUnlock(mark, name, class)
@@ -179,7 +218,7 @@ function F.NotifyMarkUnlock(mark, name, class)
         F.Debug("Cell: Comm suppressed - restricted context (CELL_MARKS unlock)")
         return
     end
-    Comm:SendCommMessage("CELL_MARKS", Serialize({false, mark, name}), sendChannel, nil, "ALERT")
+    SendCommMessage("CELL_MARKS", Serialize({false, mark, name}), sendChannel, nil, "ALERT")
 end
 
 -----------------------------------------
@@ -236,7 +275,7 @@ function F.CheckPriority()
             F.Debug("Cell: Comm suppressed - restricted context (CELL_CPRIO chk)")
             return
         end
-        Comm:SendCommMessage("CELL_CPRIO", "chk", sendChannel, nil, "ALERT")
+        SendCommMessage("CELL_CPRIO", "chk", sendChannel, nil, "ALERT")
     end)
     -- if t_check then t_check:Cancel() end
     -- t_check = C_Timer.NewTimer(2, function()
@@ -258,7 +297,7 @@ Comm:RegisterComm("CELL_CPRIO", function(prefix, message, channel, sender)
             F.Debug("Cell: Comm suppressed - restricted context (CELL_PRIO)")
             return
         end
-        Comm:SendCommMessage("CELL_PRIO", tostring(myPriority), sendChannel, nil, "ALERT")
+        SendCommMessage("CELL_PRIO", tostring(myPriority), sendChannel, nil, "ALERT")
     end)
 end)
 
@@ -289,12 +328,12 @@ local function CrossRealmSendCommMessage(prefix, message, playerName, priority, 
     end
     -- NOTE: unit needs to be in your group, or it will always return true
     if UnitIsSameServer(playerName) then
-        Comm:SendCommMessage(prefix, message, "WHISPER", playerName, priority, callbackFn)
+        SendCommMessage(prefix, message, "WHISPER", playerName, priority, callbackFn)
     else
         if UnitInParty(playerName) then
-            Comm:SendCommMessage(prefix, playerName..":"..message, "PARTY", nil, priority, callbackFn)
+            SendCommMessage(prefix, playerName..":"..message, "PARTY", nil, priority, callbackFn)
         elseif UnitInRaid(playerName) then
-            Comm:SendCommMessage(prefix, playerName..":"..message, "RAID", nil, priority, callbackFn)
+            SendCommMessage(prefix, playerName..":"..message, "RAID", nil, priority, callbackFn)
         end
     end
 end
@@ -388,10 +427,11 @@ Comm:RegisterComm("CELL_SEND_PROG", function(prefix, message, channel, sender)
     end
 
     local done, total = strsplit("|", message)
-    done, total = tonumber(done), tonumber(total)
+    local doneNum = tonumber(done)
+    local totalNum = tonumber(total)
 
     if Cell.frames.receivingFrame then
-        Cell.frames.receivingFrame:ShowProgress(done, total)
+        Cell.frames.receivingFrame:ShowProgress(doneNum, totalNum)
     end
 end)
 

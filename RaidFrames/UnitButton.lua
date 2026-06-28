@@ -2907,35 +2907,49 @@ end)
 -------------------------------------------------
 -- update all
 -------------------------------------------------
+local function SafeUnitButtonCall(self, func, ...)
+    if not self or not func then return false end
+
+    local ok, err = pcall(func, self, ...)
+    if not ok then
+        F.Debug("UnitButton update failed: " .. tostring(err))
+        return false
+    end
+
+    return true
+end
+
 UnitButton_UpdateAll = function(self)
+    if not self or not self.states or not self.widgets or not self.indicators then return end
     if not self:IsVisible() then return end
+    if not self._indicatorsReady then return end
 
     -- print(GetTime(), "UpdateAll", self:GetName())
 
-    UnitButton_UpdateVehicleStatus(self)
-    UnitButton_UpdateName(self)
-    UnitButton_UpdateNameTextColor(self)
-    UnitButton_UpdateHealthTextColor(self)
-    UnitButton_UpdateHealthMax(self)
-    UnitButton_UpdateHealth(self, nil, true)
-    UnitButton_UpdateHealPrediction(self, true)
-    UnitButton_UpdateStatusText(self)
-    UnitButton_UpdateHealthColor(self)
-    UnitButton_UpdateTarget(self)
-    UnitButton_UpdatePlayerRaidIcon(self)
-    UnitButton_UpdateTargetRaidIcon(self)
-    UnitButton_UpdateShieldAbsorbs(self, true)
-    UnitButton_UpdateHealAbsorbs(self, true)
-    UnitButton_UpdateInRange(self)
-    UnitButton_UpdateRole(self)
-    UnitButton_UpdateLeader(self)
-    UnitButton_UpdateReadyCheck(self)
-    UnitButton_UpdateThreat(self)
-    UnitButton_UpdateThreatBar(self)
+    SafeUnitButtonCall(self, UnitButton_UpdateVehicleStatus)
+    SafeUnitButtonCall(self, UnitButton_UpdateName)
+    SafeUnitButtonCall(self, UnitButton_UpdateNameTextColor)
+    SafeUnitButtonCall(self, UnitButton_UpdateHealthTextColor)
+    SafeUnitButtonCall(self, UnitButton_UpdateHealthMax)
+    SafeUnitButtonCall(self, UnitButton_UpdateHealth, nil, true)
+    SafeUnitButtonCall(self, UnitButton_UpdateHealPrediction, true)
+    SafeUnitButtonCall(self, UnitButton_UpdateStatusText)
+    SafeUnitButtonCall(self, UnitButton_UpdateHealthColor)
+    SafeUnitButtonCall(self, UnitButton_UpdateTarget)
+    SafeUnitButtonCall(self, UnitButton_UpdatePlayerRaidIcon)
+    SafeUnitButtonCall(self, UnitButton_UpdateTargetRaidIcon)
+    SafeUnitButtonCall(self, UnitButton_UpdateShieldAbsorbs, true)
+    SafeUnitButtonCall(self, UnitButton_UpdateHealAbsorbs, true)
+    SafeUnitButtonCall(self, UnitButton_UpdateInRange)
+    SafeUnitButtonCall(self, UnitButton_UpdateRole)
+    SafeUnitButtonCall(self, UnitButton_UpdateLeader)
+    SafeUnitButtonCall(self, UnitButton_UpdateReadyCheck)
+    SafeUnitButtonCall(self, UnitButton_UpdateThreat)
+    SafeUnitButtonCall(self, UnitButton_UpdateThreatBar)
     -- UnitButton_UpdateStatusIcon(self)
-    I.UpdateStatusIcon_Resurrection(self)
+    SafeUnitButtonCall(self, I.UpdateStatusIcon_Resurrection)
 
-    UnitButton_UpdatePowerStates(self)
+    SafeUnitButtonCall(self, UnitButton_UpdatePowerStates)
     if Cell.loaded then
         if self._powerUpdateRequired then
             self._powerUpdateRequired = nil
@@ -2945,10 +2959,12 @@ UnitButton_UpdateAll = function(self)
             CheckPowerEventRegistration(self)
 
             if self._shouldShowPowerText then
-                UnitButton_UpdatePowerTextColor(self)
-                UnitButton_UpdatePowerText(self)
+                SafeUnitButtonCall(self, UnitButton_UpdatePowerTextColor)
+                SafeUnitButtonCall(self, UnitButton_UpdatePowerText)
             else
-                self.indicators.powerText:Hide()
+                if self.indicators and self.indicators.powerText then
+                    self.indicators.powerText:Hide()
+                end
             end
 
             if self._shouldShowPowerBar then
@@ -2960,7 +2976,7 @@ UnitButton_UpdateAll = function(self)
         end
     end
 
-    UnitButton_UpdateAuras(self)
+    SafeUnitButtonCall(self, UnitButton_UpdateAuras)
 end
 
 -------------------------------------------------
@@ -3386,12 +3402,12 @@ local function UnitButton_OnTick(self)
 
     if self._updateRequired and self._indicatorsReady then
         self._updateRequired = nil
-        UnitButton_UpdateAll(self)
+        SafeUnitButtonCall(self, UnitButton_UpdateAll)
     end
 
     --! for Xtarget
     if self:GetAttribute("refreshOnUpdate") then
-        UnitButton_UpdateAll(self)
+        SafeUnitButtonCall(self, UnitButton_UpdateAll)
     end
 end
 
