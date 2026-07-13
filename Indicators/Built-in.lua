@@ -1203,23 +1203,29 @@ function I.CreateNameText(parent)
         -- override relativeTo
         nameText:_SetPoint(point, relativeTo, relativePoint, x, y)
 
+        -- cache horizontal anchor (avoid reading GetPoint which returns secret/tainted strings on NPC frames)
+        if string.find(point, "LEFT") then
+            nameText._horizAnchor = "LEFT"
+        elseif string.find(point, "RIGHT") then
+            nameText._horizAnchor = "RIGHT"
+        else
+            nameText._horizAnchor = ""
+        end
+
         -- update name
         nameText.name:ClearAllPoints()
         nameText.name:SetPoint(point)
 
-        -- update vehicle
-        local vp, _, vrp, _, vy = nameText.vehicle:GetPoint(1)
-        if vp and vrp and vy then
-            if string.find(vp, "TOP") then
-                vp, vrp = "TOP", "BOTTOM"
-            else -- BOTTOM
-                vp, vrp = "BOTTOM", "TOP"
-            end
+        -- update vehicle using cached vertical anchor (set in UpdateVehicleNamePosition)
+        local vp = nameText._vehicleVertAnchor
+        if vp and nameText._vehicleVertOffset then
+            local vrp = (vp == "TOP") and "BOTTOM" or "TOP"
+            local vy = nameText._vehicleVertOffset
 
             nameText.vehicle:ClearAllPoints()
-            if string.find(point, "LEFT") then
+            if nameText._horizAnchor == "LEFT" then
                 nameText.vehicle:SetPoint(vp.."LEFT", nameText.name, vrp.."LEFT", 0, vy)
-            elseif string.find(point, "RIGHT") then
+            elseif nameText._horizAnchor == "RIGHT" then
                 nameText.vehicle:SetPoint(vp.."RIGHT", nameText.name, vrp.."RIGHT", 0, vy)
             else -- "CENTER"
                 nameText.vehicle:SetPoint(vp, nameText.name, vrp, 0, vy)
@@ -1298,27 +1304,27 @@ function I.CreateNameText(parent)
     end
 
     function nameText:UpdateVehicleNamePosition(pTable)
-        local p = nameText:GetPoint(1) or ""
-        if string.find(p, "LEFT") then
-            p = "LEFT"
-        elseif string.find(p, "RIGHT") then
-            p = "RIGHT"
-        else -- "CENTER"
-            p = ""
-        end
+        -- use cached horizontal anchor (set in SetPoint override) to avoid GetPoint taint on NPC frames
+        local p = nameText._horizAnchor or ""
 
         nameText.vehicle:ClearAllPoints()
         if pTable[1] == "TOP" then
             nameText.vehicle:Show()
             nameText.vehicle:SetPoint("BOTTOM"..p, nameText.name, "TOP"..p, 0, pTable[2])
             nameText.vehicleEnabled = true
+            nameText._vehicleVertAnchor = "TOP"
+            nameText._vehicleVertOffset = pTable[2]
         elseif pTable[1] == "BOTTOM" then
             nameText.vehicle:Show()
             nameText.vehicle:SetPoint("TOP"..p, nameText.name, "BOTTOM"..p, 0, pTable[2])
             nameText.vehicleEnabled = true
+            nameText._vehicleVertAnchor = "BOTTOM"
+            nameText._vehicleVertOffset = pTable[2]
         else -- Hide
             nameText.vehicle:Hide()
             nameText.vehicleEnabled = false
+            nameText._vehicleVertAnchor = nil
+            nameText._vehicleVertOffset = nil
         end
     end
 
