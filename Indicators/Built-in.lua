@@ -585,6 +585,9 @@ local function Dispels_SetDispels(self, dispelTypes)
 
     self.highlight:Hide()
 
+    -- Read highlight alpha from config (default 0.30), glow alpha = highlight alpha * 1.5 (default 0.45)
+    local highlightAlpha = (self.configs and self.configs["alpha"]) or 0.30
+    local glowAlpha = highlightAlpha * 1.5
     local i = 0
     for _, dispelType in ipairs(dispelOrder) do
         local info = dispelTypes[dispelType]
@@ -595,10 +598,10 @@ local function Dispels_SetDispels(self, dispelTypes)
                 r, g, b = I.GetDebuffTypeColor(dispelType)
                 if self.highlightType == "entire" then
                     self.highlight:SetTexture(Cell.vars.whiteTexture)
-                    self.highlight:SetVertexColor(r, g, b, 0.3)
+                    self.highlight:SetVertexColor(r, g, b, highlightAlpha)
                 elseif self.highlightType == "current" or self.highlightType == "current+" then
                     self.highlight:SetTexture(Cell.vars.texture)
-                    self.highlight:SetVertexColor(r, g, b, 0.3)
+                    self.highlight:SetVertexColor(r, g, b, highlightAlpha)
                 elseif self.highlightType == "gradient" or self.highlightType == "gradient-half" then
                     self.highlight:SetTexture(Cell.vars.whiteTexture)
                     self.highlight:SetGradient("VERTICAL", CreateColor(r, g, b, 0), CreateColor(r, g, b, 0.8))
@@ -631,10 +634,10 @@ local function Dispels_SetDispels(self, dispelTypes)
                 if self.highlightType ~= "none" then
                     if self.highlightType == "entire" then
                         self.highlight:SetTexture(Cell.vars.whiteTexture)
-                        self.highlight:SetVertexColor(r, g, b, 0.3)
+                        self.highlight:SetVertexColor(r, g, b, highlightAlpha)
                     elseif self.highlightType == "current" or self.highlightType == "current+" then
                         self.highlight:SetTexture(Cell.vars.texture)
-                        self.highlight:SetVertexColor(r, g, b, 0.3)
+                        self.highlight:SetVertexColor(r, g, b, highlightAlpha)
                     elseif self.highlightType == "gradient" or self.highlightType == "gradient-half" then
                         self.highlight:SetTexture(Cell.vars.whiteTexture)
                         self.highlight:SetGradient("VERTICAL", CreateColor(r, g, b, 0), CreateColor(r, g, b, 0.8))
@@ -650,8 +653,8 @@ local function Dispels_SetDispels(self, dispelTypes)
     end
 
     if found then
-        local glowAlpha = self.highlightType == "none" and 0.45 or 0
-        self.glow:SetBackdropColor(r, g, b, glowAlpha)
+        local actualGlowAlpha = self.highlightType == "none" and glowAlpha or 0
+        self.glow:SetBackdropColor(r, g, b, actualGlowAlpha)
         self.glow:Show()
     else
         self.glow:SetBackdropColor(0, 0, 0, 0)

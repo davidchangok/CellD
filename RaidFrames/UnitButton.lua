@@ -1204,9 +1204,10 @@ local function HandleDebuff(self, auraInfo)
         end
     end
 
-    -- Midnight 12.0.0+: when time values are secret, duration is set to 0 (falsy),
+    -- Midnight 12.0.0+: when time values are secret, duration is set to 0,
     -- but we still need to classify/show the debuff. Use hasSecretTime flag instead.
-    if hasSecretTime or (duration and duration > 0) then
+    -- Also allow infinite-duration debuffs (duration=0 from API is truthy in Lua).
+    if hasSecretTime or duration then
         UpdateAuraRefreshState(auraInfo)
         self._debuffs_cache[auraInstanceID] = auraInfo
 
@@ -1521,9 +1522,10 @@ local function HandleBuff(self, auraInfo)
 
     auraInfo.refreshing = false
 
-    -- Midnight 12.0.0+: when time values are secret, duration is set to 0 (falsy),
+    -- Midnight 12.0.0+: when time values are secret, duration is set to 0,
     -- but we still need to classify/show the buff. Use hasSecretTime flag instead.
-    if hasSecretTime or (duration and duration > 0) then
+    -- Also allow infinite-duration buffs (duration=0 from API is truthy in Lua).
+    if hasSecretTime or duration then
         UpdateAuraRefreshState(auraInfo)
         self._buffs_cache[auraInstanceID] = auraInfo
 
@@ -1541,11 +1543,19 @@ local function HandleBuff(self, auraInfo)
             self.indicators.externalCooldowns[self._buffs.externalFound]:SetCooldown(start, duration, nil, icon, count, auraInfo.refreshing)
         end
 
-        -- allCooldowns
-        if enabledIndicators["allCooldowns"] and (I.IsExternalCooldown(name, spellId, source, unit) or I.IsDefensiveCooldown(name, spellId)) and self._buffs.allFound < indicatorNums["allCooldowns"] then
-            self._buffs.allFound = self._buffs.allFound + 1
-            -- start, duration, debuffType, texture, count, refreshing
-            self.indicators.allCooldowns[self._buffs.allFound]:SetCooldown(start, duration, nil, icon, count, auraInfo.refreshing)
+        -- allCooldowns (合并视图：跳过已在专用指示器中显示的buff，避免重复图标)
+        -- 当 externalCooldowns 已启用且匹配当前buff时，allCooldowns 不再重复渲染
+        -- 当 defensiveCooldowns 已启用且匹配当前buff时，allCooldowns 不再重复渲染
+        if enabledIndicators["allCooldowns"] and self._buffs.allFound < indicatorNums["allCooldowns"] then
+            local isExternal = I.IsExternalCooldown(name, spellId, source, unit)
+            local isDefensive = I.IsDefensiveCooldown(name, spellId)
+            local alreadyShownByExternal = enabledIndicators["externalCooldowns"] and isExternal
+            local alreadyShownByDefensive = enabledIndicators["defensiveCooldowns"] and isDefensive
+            if not alreadyShownByExternal and not alreadyShownByDefensive and (isExternal or isDefensive) then
+                self._buffs.allFound = self._buffs.allFound + 1
+                -- start, duration, debuffType, texture, count, refreshing
+                self.indicators.allCooldowns[self._buffs.allFound]:SetCooldown(start, duration, nil, icon, count, auraInfo.refreshing)
+            end
         end
 
         -- tankActiveMitigation

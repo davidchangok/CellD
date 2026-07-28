@@ -340,7 +340,7 @@ local DR = CreateFrame("Frame")
 local function HideAllDRGlows()
     -- NOTE: hide all
     for unit in pairs(drUnits) do
-        F.HandleUnitButton("guid", destGUID, function(b)
+        F.HandleUnitButton("unit", unit, function(b)
             HideGlow(b.widgets.drGlowFrame)
             HideText(b.widgets.drText)
         end)

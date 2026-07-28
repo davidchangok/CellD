@@ -15,9 +15,9 @@ end
 
 local function Deserialize(encoded)
     local decoded = LibDeflate:DecodeForWoWAddonChannel(encoded) -- decode
-    local decompressed = LibDeflate:DecompressDeflate(decoded) -- decompress
+    local decompressed, errorMsg = LibDeflate:DecompressDeflate(decoded) -- decompress
     if not decompressed then
-        F.Debug("Error decompressing: " .. errorMsg)
+        F.Debug("Error decompressing: " .. (errorMsg or "unknown error"))
         return
     end
     local success, data = Serializer:Deserialize(decompressed) -- deserialize
@@ -130,7 +130,9 @@ function eventFrame:PLAYER_LOGIN()
 end
 
 Comm:RegisterComm("CELL_VERSION", function(prefix, message, channel, sender)
-    if sender == UnitName("player") then return end
+    -- Midnight 12.0.0+: UnitName may return secret string; skip self-check when secret
+    local playerName = UnitName("player")
+    if playerName and not F.IsSecretValue(playerName) and sender == playerName then return end
     local version = tonumber(string.match(message, "%d+"))
     local myVersion = tonumber(string.match(Cell.version, "%d+"))
     if (not CellDB["lastVersionCheck"] or time()-CellDB["lastVersionCheck"]>=25200) and version and myVersion and myVersion < version then
@@ -143,10 +145,16 @@ end)
 -- Notify Marks
 -----------------------------------------
 Comm:RegisterComm("CELL_MARKS", function(prefix, message, channel, sender)
-    if sender == UnitName("player") then return end
+    -- Midnight 12.0.0+: UnitName may return secret string; skip self-check when secret
+    local playerName = UnitName("player")
+    if playerName and not F.IsSecretValue(playerName) and sender == playerName then return end
     local data = Deserialize(message)
     if Cell.vars.hasPartyMarkPermission and CellDB["tools"]["marks"][1] and (strfind(CellDB["tools"]["marks"][3], "^target") or strfind(CellDB["tools"]["marks"][3], "^both")) and data then
-        sender = F.GetClassColorStr(select(2, UnitClass(sender)))..sender.."|r"
+        -- Midnight 12.0.0+: UnitClass may return secret string; keep sender name as-is (no color prefix)
+        local _, class = UnitClass(sender)
+        if class and not F.IsSecretValue(class) then
+            sender = F.GetClassColorStr(class)..sender.."|r"
+        end
 
         if data[1] then -- lock
             F.Print(L["%s lock %s on %s."]:format(sender, F.GetMarkEscapeSequence(data[2]), data[3]))

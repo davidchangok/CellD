@@ -73,7 +73,7 @@ local debuffs = {
             -- 1214038, -- Ethereal Shackles
             -- 1243905, -- Unstable Energy
             -- 1214081, -- Arcane Expulsion
-            -- 474407, -- Arcane Empowerment
+            -- 1254550, -- Arcane Empowerment
             -- 1214089, -- Arcane Residue
         },
         [2661] = { -- Seranel Sunlash
