@@ -362,6 +362,8 @@ local isRequesting
 
 -- NOTE: received
 Comm:RegisterComm("CELL_SEND", function(prefix, message, channel, sender)
+    -- Midnight 12.0.0+: 受限环境（战斗/M+/PvP）忽略导入数据
+    if IsCommRestricted() then return end
     if not isRequesting then return end
     if channel ~= "WHISPER" then
         local target
@@ -388,6 +390,8 @@ end)
 
 -- NOTE: progress received
 Comm:RegisterComm("CELL_SEND_PROG", function(prefix, message, channel, sender)
+    -- Midnight 12.0.0+: 受限环境（战斗/M+/PvP）忽略导入进度
+    if IsCommRestricted() then return end
     if not isRequesting then return end
     if channel ~= "WHISPER" then
         local target
@@ -407,6 +411,8 @@ end)
 
 -- NOTE: request received
 Comm:RegisterComm("CELL_REQ", function(prefix, message, channel, requester)
+    -- Midnight 12.0.0+: 受限环境（战斗/M+/PvP）忽略数据请求
+    if IsCommRestricted() then return end
     if channel ~= "WHISPER" then
         local target
         target, message = strsplit(":", message, 2)
