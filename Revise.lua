@@ -3308,7 +3308,10 @@ function F.Revise()
 
     -- r247-release
     if CellDB["revise"] and dbRevision < 247 then
-        CellDB["appearance"]["scale"] = 1
+        -- 仅当用户未设置过 scale 时才写入默认值，避免覆盖已保存的偏好
+        if CellDB["appearance"]["scale"] == nil then
+            CellDB["appearance"]["scale"] = 1
+        end
     end
 
     -- r250-release
@@ -3365,7 +3368,10 @@ function F.Revise()
 
     -- r262-release
     if CellDB["revise"] and dbRevision < 262 then
-        CellDB["general"]["alwaysUpdateAuras"] = false
+        -- 仅当用户未设置过 alwaysUpdateAuras 时才写入默认，避免覆盖已保存的偏好
+        if CellDB["general"]["alwaysUpdateAuras"] == nil then
+            CellDB["general"]["alwaysUpdateAuras"] = false
+        end
 
         if type(CellDB["general"]["hideBlizzardRaidManager"]) ~= "boolean" then
             CellDB["general"]["hideBlizzardRaidManager"] = true

@@ -14,6 +14,9 @@ local importExportFrame, importBtn, title, textArea
 local function DoImport(overwriteExisting)
     local name, layout = imported["name"], imported["data"]
 
+    -- 防御：损坏/恶意 payload 安全失败
+    if type(layout) ~= "table" or type(layout["indicators"]) ~= "table" or type(layout["powerFilters"]) ~= "table" then return end
+
     -- indicators
     local builtInFound = {}
     for i =  #layout["indicators"], 1, -1 do
@@ -137,7 +140,7 @@ local function CreateLayoutImportExportFrame()
                         success, data = pcall(LibDeflate.DecompressDeflate, LibDeflate, data) -- decompress
                         success, data = Serializer:Deserialize(data) -- deserialize
 
-                        if success and data then
+                        if success and data and type(data) == "table" then
                             title:SetText(L["Import"]..": "..(name == "default" and _G.DEFAULT or name))
                             importBtn:SetEnabled(true)
                             imported["name"] = name
@@ -248,7 +251,7 @@ function Cell.ImportLayout(layoutString, overwriteExisting)
             success, data = pcall(LibDeflate.DecompressDeflate, LibDeflate, data) -- decompress
             success, data = Serializer:Deserialize(data) -- deserialize
 
-            if success and data then
+            if success and data and type(data) == "table" then
                 imported = {}
                 imported["name"] = name
                 imported["data"] = data

@@ -31,7 +31,8 @@ end
 local function CheckSendLimit()
     if instanceType == "raid" and IsEncounterInProgress() then
         count = count + 1
-        if count > limit then
+        -- limit=0 表示"全部报告"（不设上限），仅 limit>0 时拦截
+        if limit > 0 and count > limit then
             return false
         end
     end

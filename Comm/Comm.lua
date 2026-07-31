@@ -149,6 +149,8 @@ Comm:RegisterComm("CELL_MARKS", function(prefix, message, channel, sender)
     local playerName = UnitName("player")
     if playerName and not F.IsSecretValue(playerName) and sender == playerName then return end
     local data = Deserialize(message)
+    -- 防御：只接受结构完整的标记消息，拒绝畸形/恶意 payload（data[2] 标记索引数字、data[3] 目标名）
+    if type(data) ~= "table" or type(data[2]) ~= "number" or type(data[3]) ~= "string" then return end
     if Cell.vars.hasPartyMarkPermission and CellDB["tools"]["marks"][1] and (strfind(CellDB["tools"]["marks"][3], "^target") or strfind(CellDB["tools"]["marks"][3], "^both")) and data then
         -- Midnight 12.0.0+: UnitClass may return secret string; keep sender name as-is (no color prefix)
         local _, class = UnitClass(sender)

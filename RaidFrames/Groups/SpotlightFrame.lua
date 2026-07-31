@@ -11,7 +11,7 @@ local placeholders, assignmentButtons = {}, {}
 local menu, target, targettarget, focus, focustarget, unit, unitname, unitpet, unittarget, tank, boss1target, clear
 local tanks, healers, names = {}, {}, {}
 local UpdateTanks, UpdateHealers, UpdateNames
-local tankUpdateRequired, nameUpdateRequired
+local tankUpdateRequired, nameUpdateRequired, healerUpdateRequired
 local tooltipPoint, tooltipRelativePoint, tooltipX, tooltipY
 local NONE = strlower(_G.NONE)
 -------------------------------------------------

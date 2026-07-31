@@ -124,7 +124,7 @@ local function CreateDebuffsImportExportFrame()
                             success, data = pcall(LibDeflate.DecompressDeflate, LibDeflate, data) -- decompress
                             success, data = Serializer:Deserialize(data) -- deserialize
 
-                            if success and data then
+                            if success and data and type(data) == "table" then
                                 local builtIn, custom = F.CalcRaidDebuffs(instanceId, bossId, data)
                                 title:SetText(L["Import"]..": ".."|cff90EE90"..builtIn.." "..L["built-in(s)"].."|r, |cffFFB5C5"..custom.." "..L["custom(s)"].."|r")
 

@@ -499,7 +499,7 @@ local function UpdatePreviewButton()
     local offensiveIcons = previewButton.offensiveIcons
     -- point
     P.ClearPoints(offensiveIcons)
-    P.Point(offensiveIcons, oit["position"][1], b, oit["position"][2], oit["position"][3], oit["position"][4])
+    P.Point(offensiveIcons, oit["position"][1], previewButton, oit["position"][2], oit["position"][3], oit["position"][4])
     -- size
     P.Size(offensiveIcons, oit["size"][1], oit["size"][2])
     -- orientation
@@ -521,7 +521,7 @@ local function UpdatePreviewButton()
     local buffIcons = previewButton.buffIcons
     -- point
     P.ClearPoints(buffIcons)
-    P.Point(buffIcons, bit["position"][1], b, bit["position"][2], bit["position"][3], bit["position"][4])
+    P.Point(buffIcons, bit["position"][1], previewButton, bit["position"][2], bit["position"][3], bit["position"][4])
     -- size
     P.Size(buffIcons, bit["size"][1], bit["size"][2])
     -- orientation
@@ -537,7 +537,7 @@ local function UpdatePreviewButton()
     local buffBars = previewButton.buffBars
     -- point
     P.ClearPoints(buffBars)
-    P.Point(buffBars, bbt["position"][1], b, bbt["position"][2], bbt["position"][3], bbt["position"][4])
+    P.Point(buffBars, bbt["position"][1], previewButton, bbt["position"][2], bbt["position"][3], bbt["position"][4])
     -- size
     P.Size(buffBars, bbt["size"][1], bbt["size"][2])
     -- orientation
@@ -802,14 +802,14 @@ local function CreateQuickAssistPane()
     -- import/export --------------------------------------------------------- --
     local export = Cell.CreateButton(qaPane, nil, "accent-hover", {27, 17}, nil, nil, nil, nil, nil, L["Export"])
     export:SetPoint("TOPRIGHT")
-    export:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\export", {15, 15}, {"CENTER", 0, 0})
+    export:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\export", {15, 15}, {"CENTER", 0, 0})
     export:SetScript("OnClick", function()
         F.ShowQuickAssistExportFrame(quickAssistTable)
     end)
 
     local import = Cell.CreateButton(qaPane, nil, "accent-hover", {27, 17}, nil, nil, nil, nil, nil, L["Import"])
     import:SetPoint("TOPRIGHT", export, "TOPLEFT", -1, 0)
-    import:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\import", {15, 15}, {"CENTER", 0, 0})
+    import:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\import", {15, 15}, {"CENTER", 0, 0})
     import:SetScript("OnClick", function()
         F.ShowQuickAssistImportFrame()
     end)
@@ -1099,7 +1099,7 @@ local function CreatePlayerList(parent, box)
         players[i].label:SetPoint("LEFT", P.Scale(13), 0)
 
         players[i].index = players[i]:CreateFontString(nil, "OVERLAY")
-        players[i].index:SetFont("Interface\\AddOns\\Cell\\Media\\Fonts\\Accidental_Presidency.ttf", 12)
+        players[i].index:SetFont("Interface\\AddOns\\CellD\\Media\\Fonts\\Accidental_Presidency.ttf", 12)
         players[i].index:SetShadowColor(0, 0, 0)
         players[i].index:SetShadowOffset(1, -1)
         players[i].index:SetPoint("LEFT", P.Scale(1), 0)
@@ -1758,7 +1758,7 @@ local textures, textureNames
 
 local function LoadTextures()
     local items = {}
-    local defaultTexture, defaultTextureName = "Interface\\AddOns\\Cell\\Media\\statusbar.tga", "Cell ".._G.DEFAULT
+    local defaultTexture, defaultTextureName = "Interface\\AddOns\\CellD\\Media\\statusbar.tga", "Cell ".._G.DEFAULT
     textures, textureNames = F.Copy(LSM:HashTable("statusbar")), F.Copy(LSM:List("statusbar"))
 
     -- make default texture first
@@ -3007,7 +3007,7 @@ end
 -- my buff --------------------------------------------------------------- --
 local function CreateMyBuffWidget(parent, index)
     local b = Cell.CreateButton(parent, " ", "accent-hover", {180, 20})
-    b:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\create", {16, 16}, {"LEFT", 2, 0})
+    b:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\create", {16, 16}, {"LEFT", 2, 0})
     b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     b:GetFontString():SetJustifyH("LEFT")
 
@@ -3037,7 +3037,7 @@ local function CreateMyBuffWidget(parent, index)
             b.id = nil
             b.icon = nil
             b:SetText("")
-            b.tex:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\create")
+            b.tex:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\create")
             b.tex:SetTexCoord(0, 1, 0, 1)
             spellTable["mine"]["buffs"][index][1] = 0
             Cell.Fire("UpdateQuickAssist", "mine")
@@ -3196,7 +3196,7 @@ local function CreateSpellsPane()
 
     buffsAddBtn = Cell.CreateButton(buffsPane, nil, "accent-hover", {24, 24})
     buffsAddBtn:SetPoint("TOPLEFT", 5, -27)
-    buffsAddBtn:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\create", {20, 20}, {"CENTER", 0, 0})
+    buffsAddBtn:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\create", {20, 20}, {"CENTER", 0, 0})
     buffsAddBtn:SetScript("OnClick", function()
         local popup = Cell.CreatePopupEditBox(qaPane, function(text)
             local spellId = tonumber(text)
@@ -3227,7 +3227,7 @@ local function CreateSpellsPane()
 
     castsAddBtn = Cell.CreateButton(castsPane, nil, "accent-hover", {24, 24})
     castsAddBtn:SetPoint("TOPLEFT", 5, -27)
-    castsAddBtn:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\create", {20, 20}, {"CENTER", 0, 0})
+    castsAddBtn:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\create", {20, 20}, {"CENTER", 0, 0})
     castsAddBtn:SetScript("OnClick", function()
         local popup = Cell.CreateDualPopupEditBox(qaPane, "ID", L["Duration"], true, function(spellId, duration)
             local spellName = F.GetSpellInfo(spellId)
@@ -3414,7 +3414,7 @@ LoadMyBuff = function(b, t)
 
     if t[1] == 0 then -- no setting
         b:SetText("")
-        b.tex:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\create")
+        b.tex:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\create")
         b.tex:SetTexCoord(0, 1, 0, 1)
     else
         local name, icon = F.GetSpellInfo(t[1])

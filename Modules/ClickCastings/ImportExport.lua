@@ -77,7 +77,7 @@ local function CreateClickCastingImportExportFrame()
                         success, data = pcall(LibDeflate.DecompressDeflate, LibDeflate, data) -- decompress
                         success, data = Serializer:Deserialize(data) -- deserialize
 
-                        if success and data then
+                        if success and data and type(data) == "table" then
                             title:SetText(L["Import"]..": "..F.GetClassColorStr(class)..F.GetLocalizedClassName(class))
                             imported = data
                             importBtn:SetEnabled(class == Cell.vars.playerClass)

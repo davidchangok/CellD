@@ -375,8 +375,8 @@ local function GetHealthColor(r, g, b)
     end
 
     -- alpha
-    hpA =  styleTable["hpColor"][1] == "custom" and styleTable["hpColor"][2][4] or 1
-    lossA =  styleTable["lossColor"][1] == "custom" and styleTable["lossColor"][2][4] or 1
+    local hpA =  styleTable["hpColor"][1] == "custom" and styleTable["hpColor"][2][4] or 1
+    local lossA =  styleTable["lossColor"][1] == "custom" and styleTable["lossColor"][2][4] or 1
 
     return hpR, hpG, hpB, hpA, lossR, lossG, lossB, lossA
 end

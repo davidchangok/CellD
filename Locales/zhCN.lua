@@ -873,6 +873,17 @@ L["Changelogs"] = "更新记录"
 L["Click to view recent changelogs"] = "点击查看近期更新记录"
 L["Click to view older changelogs"] = "点击查看远古更新记录"
 
+-------------------------------------------------
+-- zhCN 缺失键补充（2026-07-31 审计修复）
+-------------------------------------------------
+L["Default"] = _G.DEFAULT
+L["notBound"] = "|cff777777".._G.NOT_BOUND
+L["showDispelTypeIcons"] = "显示驱散类型图标"
+L["Go!"] = "出发！"
+L["Vehicle Name"] = "载具名称"
+L["Overwrite Quick Assist"] = "覆盖快速协助"
+L["[Alt+LeftClick] to edit"] = "[Alt+左键] 编辑"
+
 -- <h1>About the M+ Afflicted Souls</h1>
 -- <p>I've received some requests about showing Afflicted Souls on Cell. Simply put, due to the limitation of the plugin API, it is not possible. I can make them display on Cell, but these buttons will not be clickable, so there is no need. It is better to use WA.</p>
 -- <br/>

@@ -81,7 +81,7 @@ local function CreateIndicatorsImportFrame()
             -- texplore(toLayoutTable)
 
             -- related
-            for k, v in pairs(imported.related) do
+            for k, v in pairs(type(imported.related) == "table" and imported.related or {}) do
                 if k ~= "cleuGlow" and k ~= "targetedSpellsGlow" then
                     F.FilterInvalidSpells(v)
                 end
@@ -159,7 +159,7 @@ local function CreateIndicatorsImportFrame()
                     success, data = pcall(LibDeflate.DecompressDeflate, LibDeflate, data) -- decompress
                     success, data = Serializer:Deserialize(data) -- deserialize
 
-                    if success and data then
+                    if success and data and type(data) == "table" and type(data["indicators"]) == "table" then
                         -- check data
                         local builtIn, custom = 0, 0
                         for i, t in pairs(data["indicators"]) do
@@ -187,7 +187,7 @@ local function CreateIndicatorsImportFrame()
                                     b.typeIcon = b:CreateTexture(nil, "ARTWORK")
                                     b.typeIcon:SetPoint("RIGHT", -2, 0)
                                     b.typeIcon:SetSize(16, 16)
-                                    b.typeIcon:SetTexture("Interface\\AddOns\\Cell\\Media\\Indicators\\indicator-"..t["type"])
+                                    b.typeIcon:SetTexture("Interface\\AddOns\\CellD\\Media\\Indicators\\indicator-"..t["type"])
                                     b.typeIcon:SetAlpha(0.5)
 
                                     b:GetFontString():ClearAllPoints()

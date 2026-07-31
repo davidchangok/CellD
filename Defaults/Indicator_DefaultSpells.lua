@@ -863,6 +863,7 @@ function F.FirstRun()
         local currentLayoutTable = Cell.vars.currentLayoutTable
 
         local last = #currentLayoutTable["indicators"]
+        local indicatorName
         if currentLayoutTable["indicators"][last]["type"] == "built-in" then
             indicatorName = "indicator1"
         else

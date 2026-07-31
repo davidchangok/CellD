@@ -414,7 +414,7 @@ local function CreateWidgets()
 
     -- help
     local helpBtn = Cell.CreateButton(debuffsTab, "", "accent-hover", {33, 20})
-    helpBtn:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\info2.tga", {16, 16}, {"CENTER", 0, 0})
+    helpBtn:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\info2.tga", {16, 16}, {"CENTER", 0, 0})
     helpBtn:SetPoint("TOPRIGHT", -5, -7)
     helpBtn:HookScript("OnEnter", function()
         CellTooltip:SetOwner(helpBtn, "ANCHOR_NONE")
@@ -444,14 +444,14 @@ local function CreateWidgets()
     -- import/export button
     local exportBtn = Cell.CreateButton(debuffsTab, "", "accent-hover", {33, 20}, nil, nil, nil, nil, nil, L["Export"])
     exportBtn:SetPoint("TOPRIGHT", showCurrentBtn, "TOPLEFT", P.Scale(-5), 0)
-    exportBtn:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\export.blp", {16, 16}, {"CENTER", 0, 0})
+    exportBtn:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\export.blp", {16, 16}, {"CENTER", 0, 0})
     exportBtn:SetScript("OnClick", function()
         F.ShowRaidDebuffsExportFrame(loadedInstance, loadedInstance == loadedBoss and "general" or loadedBoss)
     end)
 
     local importBtn = Cell.CreateButton(debuffsTab, "", "accent-hover", {33, 20}, nil, nil, nil, nil, nil, L["Import"])
     importBtn:SetPoint("TOPRIGHT", exportBtn, "TOPLEFT", P.Scale(-5), 0)
-    importBtn:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\import.blp", {16, 16}, {"CENTER", 0, 0})
+    importBtn:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\import.blp", {16, 16}, {"CENTER", 0, 0})
     importBtn:SetScript("OnClick", function()
         F.ShowRaidDebuffsImportFrame()
     end)
@@ -941,7 +941,7 @@ local function RegisterForDrag(b)
         dragged:Hide()
         local newB = F.GetMouseFocus()
         -- move on a debuff button & not on currently moving button & not disabled
-        if newB:GetParent() == debuffListFrame.scrollFrame.content and newB ~= self and newB.enabled then
+        if newB and newB:GetParent() == debuffListFrame.scrollFrame.content and newB ~= self and newB.enabled then
             local temp, from, to = self, self.index, newB.index
             local moved = currentBossTable["enabled"][from]
 

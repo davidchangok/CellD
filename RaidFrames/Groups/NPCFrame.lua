@@ -284,8 +284,10 @@ for i = 6, 8 do
 
         if button.helper.elapsed >= 0.25 then
             local guid = UnitGUID(button.states.unit)
+            -- Midnight 12.0.0+: GUID may be secret in instances; skip change detection (mirrors UnitButton.lua guidReadable)
+            local guidReadable = not (Cell.isMidnight and F.IsSecretValue and F.IsSecretValue(guid))
             -- check old guid
-            if guid and boss678_buttonToGuid[i] ~= guid then --! unit changed
+            if guidReadable and guid and boss678_buttonToGuid[i] ~= guid then --! unit changed
                 -- remove old
                 boss678_guidToButton[boss678_buttonToGuid[i] or ""] = nil
                 -- add new

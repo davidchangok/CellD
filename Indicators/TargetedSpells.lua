@@ -286,7 +286,7 @@ eventFrame:SetScript("OnEvent", function(_, event, sourceUnit)
         -- Midnight 12.0.0+: UnitGUID may return secret strings — can't use as table key
         if F.IsSecretValue and F.IsSecretValue(sourceGUID) then return end
         if casts[sourceGUID] then
-            previousTarget = casts[sourceGUID]["targetGUID"]
+            local previousTarget = casts[sourceGUID]["targetGUID"]
             casts[sourceGUID] = nil
             UpdateCastsOnUnit(previousTarget)
         end
@@ -296,7 +296,7 @@ eventFrame:SetScript("OnEvent", function(_, event, sourceUnit)
         -- Midnight 12.0.0+: UnitGUID may return secret strings — can't use as table key
         if F.IsSecretValue and F.IsSecretValue(sourceGUID) then return end
         if casts[sourceGUID] and not casts[sourceGUID]["nonNameplate"] then
-            previousTarget = casts[sourceGUID]["targetGUID"]
+            local previousTarget = casts[sourceGUID]["targetGUID"]
             casts[sourceGUID] = nil
             UpdateCastsOnUnit(previousTarget)
         end

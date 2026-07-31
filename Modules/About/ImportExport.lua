@@ -18,6 +18,13 @@ local ignoredIndices = {}
 -- do import
 ---------------------------------------------------------------------
 local function DoImport(noReload)
+    -- 防御：损坏/恶意 payload 缺键时安全失败
+    if type(imported) ~= "table" then return end
+    imported["raidDebuffs"] = type(imported["raidDebuffs"]) == "table" and imported["raidDebuffs"] or {}
+    imported["appearance"] = type(imported["appearance"]) == "table" and imported["appearance"] or {}
+    imported["appearance"]["healAbsorb"] = type(imported["appearance"]["healAbsorb"]) == "table" and imported["appearance"]["healAbsorb"] or {}
+    imported["layouts"] = type(imported["layouts"]) == "table" and imported["layouts"] or {}
+
     -- raid debuffs
     for instanceID in pairs(imported["raidDebuffs"]) do
         if not Cell.snippetVars.loadedDebuffs[instanceID] then
@@ -35,6 +42,9 @@ local function DoImport(noReload)
     -- layouts
     local builtInFound = {}
     for _, layout in pairs(imported["layouts"]) do
+        -- 防御：损坏布局直接中断导入
+        if type(layout) ~= "table" or type(layout["indicators"]) ~= "table" or type(layout["powerFilters"]) ~= "table" then break end
+
         -- indicators
         for i =  #layout["indicators"], 1, -1 do
             if layout["indicators"][i]["type"] == "built-in" then -- remove unsupported built-in
@@ -419,7 +429,7 @@ local function CreateImportExportFrame()
                         success, data = pcall(LibDeflate.DecompressDeflate, LibDeflate, data) -- decompress
                         success, data = Serializer:Deserialize(data) -- deserialize
 
-                        if success and data then
+                        if success and data and type(data) == "table" then
                             title:SetText(L["Import"]..": r"..version)
                             importBtn:SetEnabled(true)
                             imported = data
@@ -548,7 +558,7 @@ function Cell.ImportProfile(profileString, profileName, ignoredIndicesExternal)
             success, data = pcall(LibDeflate.DecompressDeflate, LibDeflate, data) -- decompress
             success, data = Serializer:Deserialize(data) -- deserialize
 
-            if success and data then
+            if success and data and type(data) == "table" then
                 imported = data
             end
         end

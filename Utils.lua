@@ -1583,20 +1583,20 @@ end
 -------------------------------------------------
 -- LibSharedMedia
 -------------------------------------------------
-Cell.vars.texture = "Interface\\AddOns\\Cell\\Media\\statusbar.tga"
-Cell.vars.emptyTexture = "Interface\\AddOns\\Cell\\Media\\empty.tga"
-Cell.vars.whiteTexture = "Interface\\AddOns\\Cell\\Media\\white.tga"
+Cell.vars.texture = "Interface\\AddOns\\CellD\\Media\\statusbar.tga"
+Cell.vars.emptyTexture = "Interface\\AddOns\\CellD\\Media\\empty.tga"
+Cell.vars.whiteTexture = "Interface\\AddOns\\CellD\\Media\\white.tga"
 
 local LSM = LibStub("LibSharedMedia-3.0", true)
 LSM:Register("statusbar", "Cell ".._G.DEFAULT, Cell.vars.texture)
-LSM:Register("font", "Visitor", [[Interface\Addons\Cell\Media\Fonts\visitor.ttf]], 255)
+LSM:Register("font", "Visitor", [[Interface\AddOns\CellD\Media\Fonts\visitor.ttf]], 255)
 
 function F.GetBarTexture()
     --! update Cell.vars.texture for further use in UnitButton_OnLoad
     if LSM:IsValid("statusbar", CellDB["appearance"]["texture"]) then
         Cell.vars.texture = LSM:Fetch("statusbar", CellDB["appearance"]["texture"])
     else
-        Cell.vars.texture = "Interface\\AddOns\\Cell\\Media\\statusbar.tga"
+        Cell.vars.texture = "Interface\\AddOns\\CellD\\Media\\statusbar.tga"
     end
     return Cell.vars.texture
 end
@@ -1605,7 +1605,7 @@ function F.GetBarTextureByName(name)
     if LSM:IsValid("statusbar", name) then
         return LSM:Fetch("statusbar", name)
     end
-    return "Interface\\AddOns\\Cell\\Media\\statusbar.tga"
+    return "Interface\\AddOns\\CellD\\Media\\statusbar.tga"
 end
 
 function F.GetFont(font)
@@ -1617,7 +1617,7 @@ function F.GetFont(font)
         if CellDB["appearance"]["useGameFont"] then
             return GameFontNormal:GetFont()
         else
-            return "Interface\\AddOns\\Cell\\Media\\Fonts\\Accidental_Presidency.ttf"
+            return "Interface\\AddOns\\CellD\\Media\\Fonts\\Accidental_Presidency.ttf"
         end
     end
 end
@@ -1628,7 +1628,7 @@ function F.GetFontItems()
     if CellDB["appearance"]["useGameFont"] then
         defaultFont = GameFontNormal:GetFont()
     else
-        defaultFont = "Interface\\AddOns\\Cell\\Media\\Fonts\\Accidental_Presidency.ttf"
+        defaultFont = "Interface\\AddOns\\CellD\\Media\\Fonts\\Accidental_Presidency.ttf"
     end
 
     local items = {}
@@ -1775,7 +1775,7 @@ function F.GetTextures()
 
     -- built-ins
     for _, s in pairs(shapes) do
-        tinsert(t, "Interface\\AddOns\\Cell\\Media\\Shapes\\"..s..".tga")
+        tinsert(t, "Interface\\AddOns\\CellD\\Media\\Shapes\\"..s..".tga")
     end
 
     -- add weakauras textures
@@ -1796,12 +1796,12 @@ end
 
 function F.GetDefaultRoleIcon(role)
     if not role or role == "NONE" then return "" end
-    return "Interface\\AddOns\\Cell\\Media\\Roles\\Default_" .. role
+    return "Interface\\AddOns\\CellD\\Media\\Roles\\Default_" .. role
 end
 
 function F.GetDefaultRoleIconEscapeSequence(role, size)
     if not role or role == "NONE" then return "" end
-    return "|TInterface\\AddOns\\Cell\\Media\\Roles\\Default_" .. role .. ":" .. (size or 0) .. "|t"
+    return "|TInterface\\AddOns\\CellD\\Media\\Roles\\Default_" .. role .. ":" .. (size or 0) .. "|t"
 end
 
 -------------------------------------------------
@@ -2095,7 +2095,7 @@ else
             end
 
             if types == "all" or types[debuffType] then
-                debuffs[spellId] = I.CheckDebuffType(s, spellId)
+                debuffs[spellId] = I.CheckDebuffType(debuffType, spellId)
             end
         end
         return debuffs

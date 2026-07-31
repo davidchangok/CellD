@@ -183,7 +183,7 @@ local function CreateSupportersPane()
     local heartIcon = supportersPane:CreateTexture(nil, "OVERLAY")
     heartIcon:SetPoint("TOPRIGHT")
     heartIcon:SetSize(16, 16)
-    heartIcon:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\sparkling_heart")
+    heartIcon:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\sparkling_heart")
 
     local bgTex = supportersPane:CreateTexture(nil, "BACKGROUND", nil, 0)
     bgTex:SetPoint("TOPLEFT", -5, 5)
@@ -244,7 +244,7 @@ local function CreateSupportersPane()
     end)
 
     -- button
-    local supportersBtn1 = CreateButton(17, 157, [[Interface\AddOns\Cell\Media\Icons\right]])
+    local supportersBtn1 = CreateButton(17, 157, [[Interface\AddOns\CellD\Media\Icons\right]])
     supportersBtn1:SetPoint("TOPLEFT", aboutTab, "TOPRIGHT", 1, -5)
 
     local label = supportersBtn1:GetFontString()
@@ -262,7 +262,7 @@ local function CreateSupportersPane()
     --     Cell.StartRainbowText(label)
     -- end
 
-    local supportersBtn2 = CreateButton(17, 17, [[Interface\AddOns\Cell\Media\Icons\left]])
+    local supportersBtn2 = CreateButton(17, 17, [[Interface\AddOns\CellD\Media\Icons\left]])
     -- supportersBtn2:SetPoint("TOPLEFT", aboutTab, "TOPRIGHT", 6, -5)
     supportersBtn2:SetPoint("TOPLEFT", supportersPane)
     supportersBtn2:SetPoint("TOPRIGHT", supportersPane, P.Scale(-20), 0)
@@ -338,7 +338,7 @@ local function CreateLinksPane()
     end)
 
     --! github (CellD)
-    local github = CreateLink(linksPane, "github", "Interface\\AddOns\\Cell\\Media\\Links\\github.tga", function()
+    local github = CreateLink(linksPane, "github", "Interface\\AddOns\\CellD\\Media\\Links\\github.tga", function()
         current = "https://github.com/davidchangok/CellD"
         linksEB:SetText(current)
         linksEB:ClearFocus()
@@ -360,17 +360,17 @@ local function CreateImportExportPane()
     local importBtn = Cell.CreateButton(iePane, L["Import"], "accent-hover", {134, 20})
     importBtn:SetPoint("TOPLEFT", 5, -27)
     importBtn:SetScript("OnClick", F.ShowImportFrame)
-    importBtn:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\import", {16, 16}, {"LEFT", 2, 0})
+    importBtn:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\import", {16, 16}, {"LEFT", 2, 0})
 
     local exportBtn = Cell.CreateButton(iePane, L["Export"], "accent-hover", {134, 20})
     exportBtn:SetPoint("TOPLEFT", importBtn, "TOPRIGHT", 5, 0)
     exportBtn:SetScript("OnClick", F.ShowExportFrame)
-    exportBtn:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\export", {16, 16}, {"LEFT", 2, 0})
+    exportBtn:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\export", {16, 16}, {"LEFT", 2, 0})
 
     local backupBtn = Cell.CreateButton(iePane, L["Backups"], "accent-hover", {134, 20})
     backupBtn:SetPoint("TOPLEFT", exportBtn, "TOPRIGHT", 5, 0)
     backupBtn:SetScript("OnClick", F.ShowBackupFrame)
-    backupBtn:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\backup", {16, 16}, {"LEFT", 2, 0})
+    backupBtn:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\backup", {16, 16}, {"LEFT", 2, 0})
 end
 
 -------------------------------------------------
