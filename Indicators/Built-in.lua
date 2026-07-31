@@ -2616,7 +2616,7 @@ function I.CreateCombatIcon(parent)
 
     A.CreateBlinkAnimation(combatIcon.flashTex, nil, true)
 
-    combatIcon:SetScript("OnEvent", CombatIcon_OnEvent)
+    -- 移除：CombatIcon_OnEvent 从未定义（死代码），战斗图标显示由 UnitButton_UpdateCombatIcon 驱动
 
     combatIcon.UpdatePixelPerfect = CombatIcon_UpdatePixelPerfect
 

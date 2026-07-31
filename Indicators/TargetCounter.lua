@@ -181,10 +181,12 @@ function I.CreateTargetCounter(parent)
         end
 
         local point = targetCounter:GetPoint(1)
+        -- Midnight 12.0.0+: GetPoint may return nil/secret strings; treat as unreadable → CENTER
+        local readablePoint = point and not (F.IsSecretValue and F.IsSecretValue(point)) and point
         text:ClearAllPoints()
-        if string.find(point, "LEFT") then
+        if readablePoint and string.find(readablePoint, "LEFT") then
             text:SetPoint("LEFT")
-        elseif string.find(point, "RIGHT") then
+        elseif readablePoint and string.find(readablePoint, "RIGHT") then
             text:SetPoint("RIGHT")
         else
             text:SetPoint("CENTER")

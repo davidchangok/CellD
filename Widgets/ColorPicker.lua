@@ -319,7 +319,7 @@ local function CreateColorPicker()
     P.Size(alpha.thumb1, 17, 1)
     alpha:SetThumbTexture(alpha.thumb1)
 
-    alpha.thumb2 = brightness:CreateTexture(nil, "ARTWORK")
+    alpha.thumb2 = alpha:CreateTexture(nil, "ARTWORK")
     alpha.thumb2:SetTexture("Interface\\AddOns\\CellD\\Media\\Icons\\thumb.tga")
     P.Size(alpha.thumb2, 16, 16)
     alpha.thumb2:SetPoint("LEFT", alpha.thumb1, "RIGHT", -5, 0)

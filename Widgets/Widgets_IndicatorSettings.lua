@@ -2392,7 +2392,7 @@ local function CreateSetting_BlockColors(parent)
         secEditBox:SetScript("OnTextChanged", function(self, userChanged)
             if userChanged then
                 local newSec = tonumber(self:GetText())
-                if newSec and newSec ~= widget.colorsTable[3][2] then
+                if newSec and newSec ~= widget.colorsTable[4][2] then
                     secEditBox.confirmBtn:Show()
                 else
                     secEditBox.confirmBtn:Hide()

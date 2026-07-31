@@ -227,18 +227,20 @@ local function LoadBuiltIn(instanceId, bossId, bossTable)
     if not loadedDebuffs[instanceId][bossId] then loadedDebuffs[instanceId][bossId] = {["enabled"]={}, ["disabled"]={}} end
     -- load
     for i, spellId in pairs(bossTable) do
-        if not (CellDB["raidDebuffs"][instanceId] and CellDB["raidDebuffs"][instanceId][bossId] and CellDB["raidDebuffs"][instanceId][bossId][abs(tonumber(spellId))]) then
+        local spellIdNum = tonumber(spellId)
+        -- 防御：非数字 spellId（损坏数据）跳过，避免 tonumber nil 比较崩溃
+        if spellIdNum and not (CellDB["raidDebuffs"][instanceId] and CellDB["raidDebuffs"][instanceId][bossId] and CellDB["raidDebuffs"][instanceId][bossId][abs(spellIdNum)]) then
             -- NOTE: is built-in and not modified
             if type(spellId) == "string" then --* track by id
-                if tonumber(spellId) < 0 then
-                    tinsert(loadedDebuffs[instanceId][bossId]["disabled"], {["id"]=abs(tonumber(spellId)), ["order"]=0, ["trackByID"]=true, ["condition"]={"None"}, ["built-in"]=true})
+                if spellIdNum < 0 then
+                    tinsert(loadedDebuffs[instanceId][bossId]["disabled"], {["id"]=abs(spellIdNum), ["order"]=0, ["trackByID"]=true, ["condition"]={"None"}, ["built-in"]=true})
                 else
-                    F.TInsert(loadedDebuffs[instanceId][bossId]["enabled"], {["id"]=abs(tonumber(spellId)), ["order"]=#loadedDebuffs[instanceId][bossId]["enabled"]+1, ["trackByID"]=true, ["condition"]={"None"}, ["built-in"]=true})
+                    F.TInsert(loadedDebuffs[instanceId][bossId]["enabled"], {["id"]=abs(spellIdNum), ["order"]=#loadedDebuffs[instanceId][bossId]["enabled"]+1, ["trackByID"]=true, ["condition"]={"None"}, ["built-in"]=true})
                 end
-            elseif spellId < 0 then --* disabled by default
-                tinsert(loadedDebuffs[instanceId][bossId]["disabled"], {["id"]=abs(spellId), ["order"]=0, ["condition"]={"None"}, ["built-in"]=true})
+            elseif spellIdNum < 0 then --* disabled by default
+                tinsert(loadedDebuffs[instanceId][bossId]["disabled"], {["id"]=abs(spellIdNum), ["order"]=0, ["condition"]={"None"}, ["built-in"]=true})
             else
-                F.TInsert(loadedDebuffs[instanceId][bossId]["enabled"], {["id"]=spellId, ["order"]=#loadedDebuffs[instanceId][bossId]["enabled"]+1, ["condition"]={"None"}, ["built-in"]=true})
+                F.TInsert(loadedDebuffs[instanceId][bossId]["enabled"], {["id"]=spellIdNum, ["order"]=#loadedDebuffs[instanceId][bossId]["enabled"]+1, ["condition"]={"None"}, ["built-in"]=true})
             end
         else
             -- NOTE: exists in both CellDB and built-in, mark it as built-in (not deletable)
@@ -1824,7 +1826,8 @@ UpdateCondition = function(condition)
 end
 
 LoadCondition = function(condition)
-    if condition[1] == "None" then
+    -- 防御：condition 缺失（如导入数据缺该键）时按默认处理
+    if not condition or condition[1] == "None" then
         conditionDropDown:SetSelectedValue("None")
         conditionHeight = 0
         conditionFrame:Hide()

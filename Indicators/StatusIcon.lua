@@ -102,8 +102,9 @@ else
                 end
                 soulstones[guid] = nil
             else
-                -- unit came back alive; clear soulstone state
-                soulstones[guid] = nil
+                -- unit came back alive; keep soulstone window open.
+                -- flag 仅由 UNIT_AURA（buff 移除）或死亡分支清除，
+                -- 否则 buff 存续期间任何血量变化都会清掉 flag，导致死亡检测失效
             end
         end
     end)

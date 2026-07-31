@@ -1081,7 +1081,7 @@ local function Text_SetCooldown(frame, start, duration, debuffType, texture, cou
             count = _SanitizeCount(count)
             if frame.showStack and count ~= 0 then
                 if frame.circledStackNums then
-                    frame._count = circled[count].." "
+                    frame._count = (circled[count] or count).." "
                 else
                     frame._count = count.." "
                 end

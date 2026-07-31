@@ -1861,10 +1861,17 @@ function F.GetSpellTooltipInfo(spellId)
     if not name then return end
 
     local data = C_TooltipInfo.GetSpellByID(spellId)
+    if not data or not data.lines then
+        return name, icon, ""
+    end
+
     for i, line in ipairs(data.lines) do
-        TooltipUtil.SurfaceArgs(line)
-        -- line.leftText
-        -- line.rightText
+        if type(line) == "table" then
+            TooltipUtil.SurfaceArgs(line)
+            if line.leftText and #line.leftText > 0 then
+                tinsert(lines, line.leftText)
+            end
+        end
     end
 
     return name, icon, table.concat(lines, "\n")
@@ -1989,6 +1996,13 @@ end
 
 function F.IsSpellReady(spellId)
     local start, duration = F.GetSpellCooldown(spellId)
+    -- Midnight 12.0.0+: cooldown values may be secret; nil/missing data must not be misjudged as ready
+    if (F.IsSecretValue and F.IsSecretValue(start)) or (F.IsSecretValue and F.IsSecretValue(duration)) then
+        return false, 0 -- secret 值无法可靠判断，安全失败（视为不可用）
+    end
+    if not start or not duration then
+        return false, 0
+    end
     if start == 0 or duration == 0 then
         return true
     else

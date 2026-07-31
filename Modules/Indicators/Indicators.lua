@@ -1405,11 +1405,16 @@ local function CreateListPane()
             local indicatorType, indicatorAuraType = self.dropdown1:GetSelected(), self.dropdown2:GetSelected()
 
             local last = #currentLayoutTable["indicators"]
-            local index = currentLayoutTable["indicators"][last]["indicatorName"]:match("%d+")
-            index = index and tonumber(index) or 0
-            index = index + 1
+            -- 取现有指示器名字的最大数字后缀，保证新名字唯一（避免与已有重名互相覆盖）
+            local maxIndex = 0
+            for _, ind in ipairs(currentLayoutTable["indicators"]) do
+                local num = ind["indicatorName"] and ind["indicatorName"]:match("%d+")
+                if num then
+                    maxIndex = max(maxIndex, tonumber(num))
+                end
+            end
 
-            local indicatorName = "indicator" .. index
+            local indicatorName = "indicator" .. (maxIndex + 1)
             last = last + 1
 
             tinsert(currentLayoutTable["indicators"], I.GetDefaultCustomIndicatorTable(name, indicatorName, indicatorType, indicatorAuraType))
