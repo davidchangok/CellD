@@ -205,7 +205,7 @@ local function HideSpellRequest(button)
 end
 
 --! glow on addon message
-Comm:RegisterComm("CELL_REQ_S", function(prefix, message, channel, sender)
+Comm:RegisterComm("CELLD_REQ_S", function(prefix, message, channel, sender)
     if srEnabled and srResponseType ~= "whisper" then
         local spellId, target = strsplit(":", message)
         spellId = tonumber(spellId)
@@ -372,7 +372,7 @@ DR:SetScript("OnEvent", function(self, event)
 end)
 
 -- glow on addon message
-Comm:RegisterComm("CELL_REQ_D", function(prefix, message, channel, sender)
+Comm:RegisterComm("CELLD_REQ_D", function(prefix, message, channel, sender)
     if drEnabled then
         local unit = Cell.vars.names[sender]
         if not unit or not UnitIsVisible(unit) then return end

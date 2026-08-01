@@ -79,10 +79,10 @@ local function CheckNicknames()
                 UpdateSendChannel()
                 -- Addon comms blocked during encounters/M+/PvP on Midnight 12.0.0+
                 if Cell.isMidnight and F.IsCommRestricted and F.IsCommRestricted() then
-                    F.Debug("Cell: Comm suppressed - restricted context (CELL_CNIC)")
+                    F.Debug("Cell: Comm suppressed - restricted context (CELLD_CNIC)")
                     return
                 end
-                Comm:SendCommMessage("CELL_CNIC", "chk", sendChannel, nil, "ALERT")
+                Comm:SendCommMessage("CELLD_CNIC", "chk", sendChannel, nil, "ALERT")
             end)
         end
     end
@@ -171,9 +171,9 @@ local function UpdateNicknames(which, value1, value2)
             UpdateSendChannel()
             -- Addon comms blocked during encounters/M+/PvP on Midnight 12.0.0+
             if Cell.isMidnight and F.IsCommRestricted and F.IsCommRestricted() then
-                F.Debug("Cell: Comm suppressed - restricted context (CELL_NIC sync-off)")
+                F.Debug("Cell: Comm suppressed - restricted context (CELLD_NIC sync-off)")
             else
-                Comm:SendCommMessage("CELL_NIC", "CELL_NONE", sendChannel)
+                Comm:SendCommMessage("CELLD_NIC", "CELLD_NONE", sendChannel)
             end
 
             -- update all
@@ -194,9 +194,9 @@ local function UpdateNicknames(which, value1, value2)
             UpdateSendChannel()
             -- Addon comms blocked during encounters/M+/PvP on Midnight 12.0.0+
             if Cell.isMidnight and F.IsCommRestricted and F.IsCommRestricted() then
-                F.Debug("Cell: Comm suppressed - restricted context (CELL_NIC mine)")
+                F.Debug("Cell: Comm suppressed - restricted context (CELLD_NIC mine)")
             else
-                Comm:SendCommMessage("CELL_NIC", Cell.vars.playerNickname or "CELL_NONE", sendChannel)
+                Comm:SendCommMessage("CELLD_NIC", Cell.vars.playerNickname or "CELLD_NONE", sendChannel)
             end
         end
 
@@ -230,7 +230,7 @@ end
 Cell.RegisterCallback("UpdateNicknames", "UpdateNicknames", UpdateNicknames)
 
 -- check nickname received
-Comm:RegisterComm("CELL_CNIC", function(prefix, message, channel, sender)
+Comm:RegisterComm("CELLD_CNIC", function(prefix, message, channel, sender)
     -- others send chk before you, no need to send chk again
     if nic_check then nic_check:Cancel() end
 
@@ -239,19 +239,19 @@ Comm:RegisterComm("CELL_CNIC", function(prefix, message, channel, sender)
         UpdateSendChannel()
         -- Addon comms blocked during encounters/M+/PvP on Midnight 12.0.0+
         if Cell.isMidnight and F.IsCommRestricted and F.IsCommRestricted() then
-            F.Debug("Cell: Comm suppressed - restricted context (CELL_NIC nic_send)")
+            F.Debug("Cell: Comm suppressed - restricted context (CELLD_NIC nic_send)")
             return
         end
         if CellDB["nicknames"]["sync"] then
-            Comm:SendCommMessage("CELL_NIC", Cell.vars.playerNickname or "CELL_NONE", sendChannel)
+            Comm:SendCommMessage("CELLD_NIC", Cell.vars.playerNickname or "CELLD_NONE", sendChannel)
         else
-            Comm:SendCommMessage("CELL_NIC", "CELL_NONE", sendChannel)
+            Comm:SendCommMessage("CELLD_NIC", "CELLD_NONE", sendChannel)
         end
     end)
 end)
 
 -- nickname received
-Comm:RegisterComm("CELL_NIC", function(prefix, message, channel, sender)
+Comm:RegisterComm("CELLD_NIC", function(prefix, message, channel, sender)
     if sender == Cell.vars.playerNameShort then return end
 
     if CellDB["nicknames"]["sync"] then
@@ -259,7 +259,7 @@ Comm:RegisterComm("CELL_NIC", function(prefix, message, channel, sender)
             sender = sender .. "-" .. GetNormalizedRealmName()
         end
 
-        if message == "CELL_NONE" or Cell.vars.nicknameBlacklist[sender] or LBW.ContainsBadWords(message) then
+        if message == "CELLD_NONE" or Cell.vars.nicknameBlacklist[sender] or LBW.ContainsBadWords(message) then
             Cell.vars.nicknames[sender] = nil
         else
             Cell.vars.nicknames[sender] = message

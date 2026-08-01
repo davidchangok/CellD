@@ -110,10 +110,10 @@ function eventFrame:GROUP_ROSTER_UPDATE()
         UpdateSendChannel()
         -- Addon comms blocked during encounters/M+/PvP on Midnight 12.0.0+
         if IsCommRestricted() then
-            F.Debug("Cell: Comm suppressed - restricted context (CELL_VERSION group)")
+            F.Debug("Cell: Comm suppressed - restricted context (CELLD_VERSION group)")
             return
         end
-        Comm:SendCommMessage("CELL_VERSION", Cell.version, sendChannel, nil, "NORMAL")
+        Comm:SendCommMessage("CELLD_VERSION", Cell.version, sendChannel, nil, "NORMAL")
     end
 end
 
@@ -122,10 +122,10 @@ function eventFrame:PLAYER_LOGIN()
     if IsInGuild() then
         -- Addon comms blocked during encounters/M+/PvP on Midnight 12.0.0+
         if IsCommRestricted() then
-            F.Debug("Cell: Comm suppressed - restricted context (CELL_VERSION guild)")
+            F.Debug("Cell: Comm suppressed - restricted context (CELLD_VERSION guild)")
             return
         end
-        Comm:SendCommMessage("CELL_VERSION", Cell.version, "GUILD", nil, "NORMAL")
+        Comm:SendCommMessage("CELLD_VERSION", Cell.version, "GUILD", nil, "NORMAL")
     end
 end
 
@@ -142,7 +142,7 @@ local function IsVersionNewer(remote, mine)
     return false
 end
 
-Comm:RegisterComm("CELL_VERSION", function(prefix, message, channel, sender)
+Comm:RegisterComm("CELLD_VERSION", function(prefix, message, channel, sender)
     -- Midnight 12.0.0+: UnitName may return secret string; skip self-check when secret
     local playerName = UnitName("player")
     if playerName and not F.IsSecretValue(playerName) and sender == playerName then return end
@@ -161,7 +161,7 @@ end)
 -----------------------------------------
 -- Notify Marks
 -----------------------------------------
-Comm:RegisterComm("CELL_MARKS", function(prefix, message, channel, sender)
+Comm:RegisterComm("CELLD_MARKS", function(prefix, message, channel, sender)
     -- Midnight 12.0.0+: UnitName may return secret string; skip self-check when secret
     local playerName = UnitName("player")
     if playerName and not F.IsSecretValue(playerName) and sender == playerName then return end
@@ -190,10 +190,10 @@ function F.NotifyMarkLock(mark, name, class)
     UpdateSendChannel()
     -- Addon comms blocked during encounters/M+/PvP on Midnight 12.0.0+
     if IsCommRestricted() then
-        F.Debug("Cell: Comm suppressed - restricted context (CELL_MARKS lock)")
+        F.Debug("Cell: Comm suppressed - restricted context (CELLD_MARKS lock)")
         return
     end
-    Comm:SendCommMessage("CELL_MARKS", Serialize({true, mark, name}), sendChannel, nil, "ALERT")
+    Comm:SendCommMessage("CELLD_MARKS", Serialize({true, mark, name}), sendChannel, nil, "ALERT")
 end
 
 function F.NotifyMarkUnlock(mark, name, class)
@@ -203,10 +203,10 @@ function F.NotifyMarkUnlock(mark, name, class)
     UpdateSendChannel()
     -- Addon comms blocked during encounters/M+/PvP on Midnight 12.0.0+
     if IsCommRestricted() then
-        F.Debug("Cell: Comm suppressed - restricted context (CELL_MARKS unlock)")
+        F.Debug("Cell: Comm suppressed - restricted context (CELLD_MARKS unlock)")
         return
     end
-    Comm:SendCommMessage("CELL_MARKS", Serialize({false, mark, name}), sendChannel, nil, "ALERT")
+    Comm:SendCommMessage("CELLD_MARKS", Serialize({false, mark, name}), sendChannel, nil, "ALERT")
 end
 
 -----------------------------------------
@@ -260,20 +260,20 @@ function F.CheckPriority()
         UpdateSendChannel()
         -- Addon comms blocked during encounters/M+/PvP on Midnight 12.0.0+
         if IsCommRestricted() then
-            F.Debug("Cell: Comm suppressed - restricted context (CELL_CPRIO chk)")
+            F.Debug("Cell: Comm suppressed - restricted context (CELLD_CPRIO chk)")
             return
         end
-        Comm:SendCommMessage("CELL_CPRIO", "chk", sendChannel, nil, "ALERT")
+        Comm:SendCommMessage("CELLD_CPRIO", "chk", sendChannel, nil, "ALERT")
     end)
     -- if t_check then t_check:Cancel() end
     -- t_check = C_Timer.NewTimer(2, function()
     --     UpdateSendChannel()
-    --     Comm:SendCommMessage("CELL_CPRIO", "chk", sendChannel, nil, "BULK")
+    --     Comm:SendCommMessage("CELLD_CPRIO", "chk", sendChannel, nil, "BULK")
     -- end)
 end
 
-Comm:RegisterComm("CELL_CPRIO", function(prefix, message, channel, sender)
-    if not myPriority then return end -- receive CELL_CPRIO just after GOURP_JOINED
+Comm:RegisterComm("CELLD_CPRIO", function(prefix, message, channel, sender)
+    if not myPriority then return end -- receive CELLD_CPRIO just after GOURP_JOINED
     highestPriority = 99
 
     -- NOTE: wait for check requests
@@ -282,15 +282,15 @@ Comm:RegisterComm("CELL_CPRIO", function(prefix, message, channel, sender)
         UpdateSendChannel()
         -- Addon comms blocked during encounters/M+/PvP on Midnight 12.0.0+
         if IsCommRestricted() then
-            F.Debug("Cell: Comm suppressed - restricted context (CELL_PRIO)")
+            F.Debug("Cell: Comm suppressed - restricted context (CELLD_PRIO)")
             return
         end
-        Comm:SendCommMessage("CELL_PRIO", tostring(myPriority), sendChannel, nil, "ALERT")
+        Comm:SendCommMessage("CELLD_PRIO", tostring(myPriority), sendChannel, nil, "ALERT")
     end)
 end)
 
-Comm:RegisterComm("CELL_PRIO", function(prefix, message, channel, sender)
-    if not myPriority then return end -- receive CELL_PRIO just after GOURP_JOINED
+Comm:RegisterComm("CELLD_PRIO", function(prefix, message, channel, sender)
+    if not myPriority then return end -- receive CELLD_PRIO just after GOURP_JOINED
 
     local p = tonumber(message)
     if p then
@@ -378,7 +378,7 @@ ChatFrame_AddMessageEventFilter("CHAT_MSG_INSTANCE_CHAT_LEADER", filterFunc)
 local isRequesting
 
 -- NOTE: received
-Comm:RegisterComm("CELL_SEND", function(prefix, message, channel, sender)
+Comm:RegisterComm("CELLD_SEND", function(prefix, message, channel, sender)
     -- Midnight 12.0.0+: 受限环境（战斗/M+/PvP）忽略导入数据
     if IsCommRestricted() then return end
     if not isRequesting then return end
@@ -406,7 +406,7 @@ Comm:RegisterComm("CELL_SEND", function(prefix, message, channel, sender)
 end)
 
 -- NOTE: progress received
-Comm:RegisterComm("CELL_SEND_PROG", function(prefix, message, channel, sender)
+Comm:RegisterComm("CELLD_SEND_PROG", function(prefix, message, channel, sender)
     -- Midnight 12.0.0+: 受限环境（战斗/M+/PvP）忽略导入进度
     if IsCommRestricted() then return end
     if not isRequesting then return end
@@ -427,7 +427,7 @@ Comm:RegisterComm("CELL_SEND_PROG", function(prefix, message, channel, sender)
 end)
 
 -- NOTE: request received
-Comm:RegisterComm("CELL_REQ", function(prefix, message, channel, requester)
+Comm:RegisterComm("CELLD_REQ", function(prefix, message, channel, requester)
     -- Midnight 12.0.0+: 受限环境（战斗/M+/PvP）忽略数据请求
     if IsCommRestricted() then return end
     if channel ~= "WHISPER" then
@@ -482,9 +482,9 @@ Comm:RegisterComm("CELL_REQ", function(prefix, message, channel, requester)
     -- texplore(requestData)
 
     if not requestData then return end
-    CrossRealmSendCommMessage("CELL_SEND", Serialize(requestData), requester, "BULK", function(arg, done, total)
+    CrossRealmSendCommMessage("CELLD_SEND", Serialize(requestData), requester, "BULK", function(arg, done, total)
         -- send progress
-        CrossRealmSendCommMessage("CELL_SEND_PROG", done.."|"..total, requester, "ALERT")
+        CrossRealmSendCommMessage("CELLD_SEND_PROG", done.."|"..total, requester, "ALERT")
     end)
 end)
 
@@ -499,7 +499,7 @@ local function ShowReceivingFrame(type, playerName, name1, name2)
     Cell.frames.receivingFrame:SetOnRequest(function(b)
         isRequesting = true
         --! send request
-        CrossRealmSendCommMessage("CELL_REQ", type..":"..name1..":"..(name2 or ""), playerName, "ALERT")
+        CrossRealmSendCommMessage("CELLD_REQ", type..":"..name1..":"..(name2 or ""), playerName, "ALERT")
     end)
 
     Cell.frames.receivingFrame:ShowFrame(type, playerName, name1, name2)
