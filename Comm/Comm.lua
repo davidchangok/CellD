@@ -129,15 +129,32 @@ function eventFrame:PLAYER_LOGIN()
     end
 end
 
+-- 语义化版本 (x.y.z) 逐级比较；无法解析时返回 false（不误报）
+local function IsVersionNewer(remote, mine)
+    local r1s, r2s, r3s = strsplit(".", remote)
+    local m1s, m2s, m3s = strsplit(".", mine)
+    local r1, r2, r3 = tonumber(r1s), tonumber(r2s), tonumber(r3s)
+    local m1, m2, m3 = tonumber(m1s), tonumber(m2s), tonumber(m3s)
+    if not (r1 and m1) then return false end
+    if r1 ~= m1 then return r1 > m1 end
+    if r2 and m2 and r2 ~= m2 then return r2 > m2 end
+    if r3 and m3 and r3 ~= m3 then return r3 > m3 end
+    return false
+end
+
 Comm:RegisterComm("CELL_VERSION", function(prefix, message, channel, sender)
     -- Midnight 12.0.0+: UnitName may return secret string; skip self-check when secret
     local playerName = UnitName("player")
     if playerName and not F.IsSecretValue(playerName) and sender == playerName then return end
-    local version = tonumber(string.match(message, "%d+"))
-    local myVersion = tonumber(string.match(Cell.version, "%d+"))
-    if (not CellDB["lastVersionCheck"] or time()-CellDB["lastVersionCheck"]>=25200) and version and myVersion and myVersion < version then
+
+    -- 仅与 CellD 自身的语义化版本 (x.y.z) 比较；原版 Cell 的 "r275.10-beta" 格式不属于 CellD 版本体系，直接忽略，避免误报
+    if type(message) ~= "string" or not message:match("^%d+%.%d+%.%d+") then return end
+    local myVersion = Cell.version:match("^%d+%.%d+%.%d+")
+    if not myVersion then return end
+
+    if (not CellDB["lastVersionCheck"] or time()-CellDB["lastVersionCheck"]>=25200) and IsVersionNewer(message, myVersion) then
         CellDB["lastVersionCheck"] = time()
-        F.Print(L["New version found (%s). Please visit %s to get the latest version."]:format(message, "|cFF00CCFFhttps://www.curseforge.com/wow/addons/cell|r"))
+        F.Print(L["New version found (%s). Please visit %s to get the latest version."]:format(message, "|cFF00CCFFhttps://github.com/davidchangok/CellD/releases|r"))
     end
 end)
 
