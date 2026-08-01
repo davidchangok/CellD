@@ -1,5 +1,43 @@
 # CellD 发布说明 / Release Notes
 
+## v1.0.4 — 2026-08-01
+
+### 中文
+
+本轮为 **全量代码审计 + 三轮修复**（54 个文件），核心围绕 Midnight 12.0 Secret Value 受限环境防护与历史遗留缺陷清扫。
+
+主要内容：
+
+- **版本检查误报修复** — 原版 Cell（`r275.10-beta`）与 CellD（`1.0.3`）共用 `CELL_VERSION` 通讯前缀且版本号格式不同，`%d+` 提取导致误报"发现新版本"；现仅比较 CellD 语义化版本（`x.y.z` 逐级比较），并修正下载链接指向 CellD 仓库
+- **Comm 接收端受限环境防护** — `CELL_SEND`/`CELL_SEND_PROG`/`CELL_REQ` 增加 `IsCommRestricted` 前置检查（战斗 / 大秘境 / PvP 时忽略）
+- **BuffTracker 语法恢复** — `local fl function` 语法错误修正，团队 Buff 检查从分叉起失效后恢复
+- **导入导出安全强化** — 5 个 ImportExport 模块反序列化统一加 `type(data)=="table"` 校验，DoImport 加缺键防御
+- **CellD 媒体路径全库修正** — `AddOns\Cell\Media` → `AddOns\CellD\Media`（29 文件），修复 perl 误替换丢失反斜杠的 12 处
+- **Comm/Marks 类型防护** — `CELL_MARKS` 接收端加数字/字符串类型校验，防恶意 payload 报错轰炸
+- **Secret Value 防护补充** — NPCFrame secret GUID 比较、`IsSpellReady` secret/nil 安全失败、`GetSpellTooltipInfo` nil 保护、TargetCounter `GetPoint` nil/secret 防护
+- **拖拽/越界/索引缺陷** — RaidDebuffs 拖拽 `GetParent()` nil、ColorPicker alpha 手柄父级、BlockColors 索引、circled 表越界、RaidDebuffs 拖拽 nil 防护
+- **行为修复** — DeathReport `limit=0`（全部报告）、Revise 无条件覆盖改 `== nil` 条件、soulstone 检测（活着时不再清 flag）、新指示器命名取最大数字后缀+1、`allCooldowns` 去重
+- **Midnight 适配** — SR/DR 与 DeathReport 的 CLEU 注册在 Midnight 加条件跳过（12.0 已移除该事件）、全局泄漏清扫、zhCN 补 7 个缺失键
+
+### English
+
+This release is a **full audit + three rounds of fixes** (54 files), focused on Midnight 12.0 Secret Value restricted-context hardening and legacy defect cleanup.
+
+Highlights:
+
+- **Version-check false-positive fix** — original Cell (`r275.10-beta`) and CellD (`1.0.3`) share the `CELL_VERSION` comm prefix with incompatible version formats; `%d+` extraction caused a false "new version" alert. Now only CellD semantic versions (`x.y.z`, compared level-by-level) are checked, and the download link points to the CellD repo
+- **Comm receive-side restricted-context guard** — `CELL_SEND`/`CELL_SEND_PROG`/`CELL_REQ` now gated by `IsCommRestricted` (combat / Mythic+ / PvP)
+- **BuffTracker syntax restored** — `local fl function` syntax error fixed; raid buff checking works again
+- **Import/Export hardening** — 5 ImportExport modules validate `type(data)=="table"` on deserialize; DoImport guards missing keys
+- **CellD media paths fixed** — `AddOns\Cell\Media` → `AddOns\CellD\Media` (29 files), including 12 perl-rewrites that lost backslashes
+- **Comm/Marks type guards** — `CELL_MARKS` receive-side validates numeric/string payloads
+- **Secret Value guards added** — NPCFrame secret GUID compare, `IsSpellReady` secret/nil safe-fail, `GetSpellTooltipInfo` nil protection, TargetCounter `GetPoint` nil/secret guard
+- **Drag/index/out-of-range fixes** — RaidDebuffs drag `GetParent()` nil, ColorPicker alpha parent, BlockColors index, circled out-of-range, indicator rename collision
+- **Behavior fixes** — DeathReport `limit=0` (report all), Revise no unconditional override, soulstone detection, `allCooldowns` dedup
+- **Midnight adaptation** — SR/DR & DeathReport skip CLEU registration on Midnight (event removed in 12.0), global leak sweep, zhCN 7 missing keys
+
+---
+
 ## v1.0.3 — 2026-06-29
 
 ### 中文
