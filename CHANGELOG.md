@@ -1,5 +1,33 @@
 # CellD 发布说明 / Release Notes
 
+## v1.0.5 — 2026-08-01
+
+### 中文
+
+**Comm 通讯前缀与原版 Cell 完全隔离**，CellD 不再与原版 Cell 共享任何 AddOn 通讯频道。
+
+主要内容：
+
+- **11 个 comm 前缀 `CELL_` → `CELLD_`** — 版本广播（`CELLD_VERSION`）、标记同步（`CELLD_MARKS`）、优先级（`CELLD_CPRIO`/`CELLD_PRIO`）、配置传输（`CELLD_SEND`/`CELLD_SEND_PROG`/`CELLD_REQ`）、技能/驱散请求（`CELLD_REQ_S`/`CELLD_REQ_D`）、昵称（`CELLD_NIC`/`CELLD_CNIC`）全面换名
+- **游戏内宏文本同步** — 技能/驱散请求宏更新为 `CELLD_REQ_S`/`CELLD_REQ_D`，请在选项面板重新复制宏
+- **保留不变** — `CELL_NOTIFY`（WeakAuras 事件名）与 `CELL_NICKTAG_ENABLED`（代码片段常量）不受影响
+
+**注意**：隔离后 CellD 与原版 Cell、以及新旧 CellD 版本之间不再互通（标记/昵称/请求等自动同步仅在同版本 CellD 之间生效）。
+
+### English
+
+**AddOn comm prefixes are now fully isolated from the original Cell**, so CellD no longer shares any addon communication channel with it.
+
+Highlights:
+
+- **11 comm prefixes renamed `CELL_` → `CELLD_`** — version (`CELLD_VERSION`), marks (`CELLD_MARKS`), priority (`CELLD_CPRIO`/`CELLD_PRIO`), config transfer (`CELLD_SEND`/`CELLD_SEND_PROG`/`CELLD_REQ`), spell/dispel request (`CELLD_REQ_S`/`CELLD_REQ_D`), nicknames (`CELLD_NIC`/`CELLD_CNIC`)
+- **In-game macro text updated** — spell/dispel request macros now use `CELLD_REQ_S`/`CELLD_REQ_D`; re-copy them from the options panel
+- **Unchanged** — `CELL_NOTIFY` (WeakAuras event name) and `CELL_NICKTAG_ENABLED` (code snippet constant)
+
+**Note**: after isolation, CellD no longer interoperates with the original Cell or with older CellD versions (marks/nicknames/requests auto-sync only works between matching CellD versions).
+
+---
+
 ## v1.0.4 — 2026-08-01
 
 ### 中文

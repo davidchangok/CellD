@@ -1,18 +1,15 @@
-## CellD v1.0.4
+## CellD v1.0.5
 
-本轮为**全量代码审计 + 三轮修复**（54 个文件），核心围绕 Midnight 12.0 Secret Value 受限环境防护与历史遗留缺陷清扫。
+**Comm 通讯前缀与原版 Cell 完全隔离**——CellD 不再与原版 Cell 共享任何 AddOn 通讯频道。
 
-### 主要修复
+### 主要变更
 
-- **版本检查误报修复** — 原版 Cell（`r275.10-beta`）与 CellD（`1.0.3`）共用 `CELL_VERSION` 通讯前缀且版本号格式不同，`%d+` 提取导致误报"发现新版本"；现仅比较 CellD 语义化版本（`x.y.z` 逐级比较），下载链接修正指向 CellD 仓库
-- **Comm 接收端受限环境防护** — `CELL_SEND`/`CELL_SEND_PROG`/`CELL_REQ` 增加 `IsCommRestricted` 前置检查（战斗 / 大秘境 / PvP 时忽略）
-- **BuffTracker 语法恢复** — `local fl function` 语法错误修正，团队 Buff 检查恢复
-- **导入导出安全强化** — 5 个 ImportExport 模块反序列化统一加 `type(data)=="table"` 校验
-- **CellD 媒体路径全库修正** — `AddOns\Cell\Media` → `AddOns\CellD\Media`（29 文件）
-- **Secret Value 防护补充** — NPCFrame secret GUID、`IsSpellReady`、`GetSpellTooltipInfo`、TargetCounter `GetPoint`
-- **行为修复** — DeathReport `limit=0`、soulstone 检测、`allCooldowns` 去重、指示器重名
-- **Midnight 适配** — SR/DR 与 DeathReport 跳过已移除的 CLEU 事件注册、全局泄漏清扫、zhCN 补键
+- **11 个 comm 前缀 `CELL_` → `CELLD_`** — 版本广播（`CELLD_VERSION`）、标记同步（`CELLD_MARKS`）、优先级（`CELLD_CPRIO`/`CELLD_PRIO`）、配置传输（`CELLD_SEND`/`CELLD_SEND_PROG`/`CELLD_REQ`）、技能/驱散请求（`CELLD_REQ_S`/`CELLD_REQ_D`）、昵称（`CELLD_NIC`/`CELLD_CNIC`）
+- **游戏内宏文本同步** — 技能/驱散请求宏更新为 `CELLD_REQ_S`/`CELLD_REQ_D`，请在选项面板重新复制宏
+- **保留不变** — `CELL_NOTIFY`（WeakAuras 事件名）与 `CELL_NICKTAG_ENABLED`（代码片段常量）不受影响
 
-### 说明
+### 注意
+
+隔离后 CellD 与原版 Cell、以及新旧 CellD 版本之间不再互通（标记/昵称/请求等自动同步仅在同版本 CellD 之间生效）。
 
 仅支持 WoW 12.0 Midnight 正式服。下载：[https://github.com/davidchangok/CellD/releases](https://github.com/davidchangok/CellD/releases)
