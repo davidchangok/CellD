@@ -234,7 +234,7 @@ local function QuickAssist_UpdateAuras(self, updateInfo)
 
     local buffsChanged
 
-    if not updateInfo or updateInfo.isFullUpdate then
+    if not updateInfo or F.IsSecretValue(updateInfo.isFullUpdate) or updateInfo.isFullUpdate then
         wipe(self._buffs_cache)
         wipe(self._buffs_count_cache)
         buffsChanged = true

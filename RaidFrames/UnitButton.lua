@@ -1687,7 +1687,7 @@ UnitButton_UpdateAuras = function(self, updateInfo)
     local unit = self.states.displayedUnit
     if not unit then return end
 
-    local isFullUpdate = not updateInfo or updateInfo.isFullUpdate
+    local isFullUpdate = not updateInfo or F.IsSecretValue(updateInfo.isFullUpdate) or updateInfo.isFullUpdate
 
     if isFullUpdate then
         -- full update
