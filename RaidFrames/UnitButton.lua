@@ -1071,7 +1071,19 @@ Cell.RegisterCallback("UpdateIndicators", "UnitButton_UpdateIndicators", UpdateI
 -- "self.aura_func(unit, self.aura_filter, ...)" where aura_func = C_UnitAuras.GetUnitAuras
 -------------------------------------------------
 local function ForEachAura(button, filter, func)
-    local auras = GetUnitAuras(button.states.displayedUnit, filter)
+    local unit = button.states.displayedUnit
+    local auras
+    if Cell.isMidnight then
+        -- Midnight 12.0.0+: 受限环境下该单位 aura 数据为 secret，GetUnitAuras() 对第三方(t)插件
+        -- 直接抛 "Auras cannot be accessed when secret" 而非返回 secret 值。
+        -- IsAuraRestricted() 前置跳过（与 F.FindDebuffByIds 一致）；pcall 兜底其漏报的
+        -- 按单位 secret 场景，保证任何情况下都不刷屏。
+        if F.IsAuraRestricted() then return end
+        local ok = pcall(function() auras = GetUnitAuras(unit, filter) end)
+        if not ok then return end
+    else
+        auras = GetUnitAuras(unit, filter)
+    end
     if auras then
         for _, auraInfo in ipairs(auras) do
             func(button, auraInfo)
