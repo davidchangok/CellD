@@ -167,3 +167,42 @@ BigDebuffs 的法术字典支持 `parent = spellId` 继承。CellD 在外部队�
 3. **驱散透明度可配置** — 将 alpha 值加入选项面板
 4. ~~**`GetAuraDispelTypeColor` 回归监控**~~ ✅ 已通过 dsCurve 方案重新启用 C API 路径
 5. **性能优化** — `OnTick` 高频更新中 GUID 比较可进一步优化
+
+---
+
+## 七、12.1 (Curse of Ula'tek) 适配记录 (2026-08)
+
+### 背景：12.1 再次收紧插件光环读取
+暴雪蓝贴《Addons and Auras in Curse of Ula'tek》：
+- 战斗中（受限环境）友方单位光环对插件**完全不可读**（不再是 secret 值包装，而是查询直接失败）
+- 论坛确认：Friendly Cooldown Tracking Disabled with 12.1；Grid2 #1437 "Buffs disappear when entering combat" 同样中招
+- 官方替代方案：新增"过滤光环集 / custom aura tracker" API（插件需注册要追踪的光环）
+
+### 用户实测结论（奶骑美德道标 200025）
+| 测试 | 结果 |
+|------|------|
+| `ShouldSpellAuraBeSecret(200025)` | 脱战 false / **战斗中 true** |
+| `GetUnitAuraBySpellID("party1", 200025)` 战斗中 | **nil**（精确查询也被屏蔽） |
+| `GetHiddenGroupBuffs()` | 无参调用**报错**（参数未知） |
+| `SetHiddenGroupBuffs({200025})` | 调用成功（`SET: true`），但查询仍 nil（未证实是名单机制无效还是 party1 未被点名） |
+| `UNIT_SPELLCAST_SUCCEEDED` 自己施放 spellId | **非 secret**（方案基石，可用） |
+| 12.1 新增 `C_UnitAuras` API（10 个） | `AddAuraSound` `AddBlockedAura` `CancelAuraByInstanceID` `ClearBlockedAuras` `GetGroupBuffVisualAlerts` `GetHiddenGroupBuffs` `RemoveAuraSound` `ResetAuraDataProvider` `SetGroupBuffVisualAlerts` `SetHiddenGroupBuffs` `SwitchAuraDataProvider` |
+
+### 修复：SecretAuraTracker（v1.0.6 应急，commit 5c969ab）
+新文件 `Utilities/SecretAuraTracker.lua`（LoadUtilities.xml 注册）：
+- **原理**：施放事件确认 + 2 秒窗口内 `GetUnitAuraInstanceIDs` diff 匹配新 secret 光环（最多 3 目标）
+- **显示**：目标框架/自己框架（兜底）右上角 18×18 图标 + Cooldown 扫光；**隐藏数字**（数字过大挡图标）
+- **时长**：美德道标 9 秒（用户实测 12.1 数值；`tracked` 表可配）
+- **图标**：12.1 战斗中 `C_Spell.GetSpellTexture` 返回 nil/secret → 改为脱战缓存 fileID（`RefreshIconCache`：模块加载 + PLAYER_ENTERING_WORLD + PLAYER_REGEN_ENABLED），失败时问号占位
+- **清理**：到期 / 脱战（PLAYER_REGEN_ENABLED）自动清理，交还正常指示器
+
+### 已知限制（用户已知情）
+- **目标匹配失败**：战斗中队友框架未显示（`GetUnitAuraInstanceIDs` 在受限环境行为未确认，可能被屏蔽）；仅自己框架兜底显示。待研究：`GetAuraDataByIndex` 遍历（BigDebuffs 模式）是否可用作备选
+- 战斗中无法读取真实剩余时间，9 秒为固定近似
+- `GetHiddenGroupBuffs` / `SwitchAuraDataProvider` 语义未明（网络受限无法查蓝贴全文），若确认是"可见名单"机制可升级为精确追踪
+- toc 已更新 `Interface: 120100`
+
+### 待办
+1. 队友目标匹配增强（验证 `GetUnitAuraInstanceIDs`/`GetAuraDataByIndex` 12.1 战斗行为）
+2. 查 `SwitchAuraDataProvider` / `GetHiddenGroupBuffs` 官方语义，评估精确追踪升级
+3. 社区反馈（[暴雪论坛 Friendly Cooldown Tracking Disabled with 12.1](https://us.forums.blizzard.com/en/wow/t/friendly-cooldown-tracking-disabled-with-121/2335400/3)）
