@@ -46,6 +46,25 @@ local pending -- { spellId, duration, start, windowUntil, targets, count }
 local knownIDs = {} -- [unit] = {[auraInstanceID] = true} 匹配基线
 
 -------------------------------------------------
+-- 图标缓存
+-- 12.1 战斗中 C_Spell.GetSpellInfo/GetSpellTexture 可能返回
+-- nil 或 secret 值, 无法用于 SetTexture。因此在脱战(加载/进出
+-- 场景)时预查询并缓存 fileID, 战斗中直接使用缓存值。
+-------------------------------------------------
+local iconCache = {} -- [spellId] = fileID
+
+local function RefreshIconCache()
+    for spellId in pairs(tracked) do
+        if not iconCache[spellId] then
+            local _, icon = F.GetSpellInfo(spellId)
+            if icon and not (F.IsSecretValue and F.IsSecretValue(icon)) then
+                iconCache[spellId] = icon
+            end
+        end
+    end
+end
+
+-------------------------------------------------
 -- 图标(懒创建, 挂在单位按钮上)
 -------------------------------------------------
 local function GetIcon(button)
@@ -67,15 +86,23 @@ end
 
 local function ShowOnButton(button, spellId, start, duration)
     local f = GetIcon(button)
-    local icon
-    if C_Spell and C_Spell.GetSpellTexture then
-        icon = C_Spell.GetSpellTexture(spellId)
-    end
+    -- 图标优先用脱战缓存(fileID), 其次运行时查询, 最后问号占位
+    local icon = iconCache[spellId]
     if not icon then
-        icon = select(2, GetSpellInfo(spellId))
+        if C_Spell and C_Spell.GetSpellTexture then
+            icon = C_Spell.GetSpellTexture(spellId)
+        end
+        if not icon then
+            icon = select(2, GetSpellInfo(spellId))
+        end
+        if icon and not (F.IsSecretValue and F.IsSecretValue(icon)) then
+            iconCache[spellId] = icon
+        end
     end
     if icon then
         f.tex:SetTexture(icon)
+    else
+        f.tex:SetTexture([[Interface\Icons\INV_Misc_QuestionMark]])
     end
     f.cd:SetCooldown(start, duration)
     f:Show()
@@ -199,6 +226,10 @@ end
 -------------------------------------------------
 eventFrame:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
 eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED") -- 脱战: 光环恢复可读, 清理追踪
+eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD") -- 进出场景: 脱战环境, 刷新图标缓存
+
+-- 模块加载时立即预缓存(此时处于 loading screen, 查询安全)
+RefreshIconCache()
 
 eventFrame:SetScript("OnEvent", function(self, event, unit, castGUID, spellId)
     if event == "UNIT_AURA" then
@@ -206,6 +237,9 @@ eventFrame:SetScript("OnEvent", function(self, event, unit, castGUID, spellId)
     elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
         OnSpellCastSucceeded(unit, spellId)
     elseif event == "PLAYER_REGEN_ENABLED" then
+        RefreshIconCache()
         FinishPending()
+    elseif event == "PLAYER_ENTERING_WORLD" then
+        RefreshIconCache()
     end
 end)
