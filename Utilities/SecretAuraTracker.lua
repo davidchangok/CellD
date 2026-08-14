@@ -5,17 +5,20 @@
 -- 背景:
 --   12.1 起, 副本战斗(受限环境)中友方单位光环对插件不可读:
 --   - GetUnitAuraBySpellID / GetUnitAuras 返回 nil
---   - spellId/duration/expirationTime 全部 secret
+--   - spellId/duration/expirationTime 全部 secret 或缺失
 --   导致美德道标(200025)等自己施放的增益无法在团队框架显示。
 --   (暴雪设计: 防 MDI 竞技作弊, 见蓝贴 "Addons and Auras in Curse of Ula'tek")
 --
--- 方案(双保险, 纯本地, 不依赖 12.1 新 API):
+-- 方案(纯本地, 不依赖 12.1 新 API):
 --   1. 施放事件: UNIT_SPELLCAST_SUCCEEDED(player) 确认施放(spellId 非 secret)
---   2. 目标匹配: 施放后 2 秒窗口内, 对收到 UNIT_AURA 的单位做
---      GetUnitAuraInstanceIDs 前后 diff, 新出现且 spellId 为 secret 的
---      光环判定为疑似目标(最多 3 个, 符合美德道标机制)
---   3. 显示: 疑似目标框架上显示图标 + 倒计时; 匹配失败时降级为
---      玩家自己框架显示"激活中"(此时正常指示器同样无法工作)
+--   2. 目标匹配(四通道, 常驻基线 + 施放窗口轮询):
+--      通道0: GetUnitAuraBySpellID 精确查询(若 12.1 未被屏蔽则直接命中)
+--      通道1: GetUnitAuraInstanceIDs 前后 diff, 新增光环实例 = 候选
+--      通道2: GetAuraDataByIndex 索引遍历(通道1 失败时的备选)
+--      匹配条件: 新增实例的 spellId 为 nil 或 secret 均视为"不可识别"→ 候选
+--      约束: 2 秒窗口 + 最多 3 个目标(符合美德道标机制)
+--   3. 显示: 匹配目标框架上显示图标; 匹配失败时降级为
+--      玩家自己框架显示"激活中"
 --   4. 脱战(PLAYER_REGEN_ENABLED)立即清理, 交还正常光环读取
 -------------------------------------------------
 
@@ -36,14 +39,17 @@ local MATCH_WINDOW = 2 -- 目标匹配窗口(秒)
 local MAX_TARGETS = 3  -- 美德道标最多点 3 人
 local ICON_SIZE = 18
 local ICON_POINT = "TOPRIGHT" -- 图标锚点(贴近原 Healers 指示器位置)
+local BASELINE_INTERVAL = 1  -- 常驻基线轮询间隔(秒)
+local MATCH_INTERVAL = 0.2   -- 施放窗口匹配轮询间隔(秒)
 
 -------------------------------------------------
 -- 状态
 -------------------------------------------------
 local eventFrame = CreateFrame("Frame")
-local listening = false -- 是否监听 UNIT_AURA
 local pending -- { spellId, duration, start, windowUntil, targets, count }
 local knownIDs = {} -- [unit] = {[auraInstanceID] = true} 匹配基线
+local baselineTicker -- 常驻基线维护
+local matchTicker -- 施放窗口匹配轮询
 
 -------------------------------------------------
 -- 图标缓存
@@ -128,29 +134,98 @@ local function FinishPending()
     F.HandleUnitButton("unit", "player", HideOnButton)
 
     pending = nil
-    knownIDs = {}
 
-    if listening then
-        eventFrame:UnregisterEvent("UNIT_AURA")
-        listening = false
+    if matchTicker then
+        matchTicker:Cancel()
+        matchTicker = nil
     end
+end
+
+-------------------------------------------------
+-- 单位遍历 & 光环实例获取
+-------------------------------------------------
+local function IterateGroupUnits(callback)
+    if IsInRaid() then
+        for i = 1, GetNumGroupMembers() do
+            callback("raid"..i)
+        end
+    else
+        for i = 1, 4 do
+            callback("party"..i)
+        end
+    end
+end
+
+-- 多通道获取单位 HELPULF 光环实例 ID 列表
+local function GetUnitAuraIDs(unit)
+    -- 通道1: 批量实例 ID
+    local ok, ids = pcall(C_UnitAuras.GetUnitAuraInstanceIDs, unit, "HELPFUL")
+    if ok and ids and #ids > 0 then return ids end
+    -- 通道2: 按索引单取(受限环境批量 API 可能失败/抛错)
+    local result = {}
+    for i = 1, 60 do
+        local ok2, d = pcall(C_UnitAuras.GetAuraDataByIndex, unit, i, "HELPFUL")
+        if not ok2 or not d then break end
+        if d.auraInstanceID then
+            result[#result + 1] = d.auraInstanceID
+        end
+    end
+    if #result > 0 then return result end
+end
+
+-------------------------------------------------
+-- 基线维护(常驻轮询, 施放前快照供 diff 使用)
+-------------------------------------------------
+local function UpdateBaseline(unit)
+    local ids = GetUnitAuraIDs(unit)
+    if not ids then return end
+    local base = knownIDs[unit]
+    if not base then
+        base = {}
+        knownIDs[unit] = base
+    end
+    for _, id in ipairs(ids) do
+        base[id] = true
+    end
+end
+
+local function EnsureBaselineLoop()
+    if baselineTicker then return end
+    baselineTicker = C_Timer.NewTicker(BASELINE_INTERVAL, function()
+        if pending then return end -- 追踪期间冻结基线, 保证 diff 有效
+        IterateGroupUnits(UpdateBaseline)
+    end)
 end
 
 -------------------------------------------------
 -- 目标匹配
 -------------------------------------------------
-local function OnUnitAura(unit)
+local function ShowTarget(unit)
+    pending.targets[unit] = true
+    pending.count = pending.count + 1
+    F.HandleUnitButton("unit", unit, ShowOnButton, pending.spellId, pending.start, pending.duration)
+end
+
+local function MatchUnit(unit)
     if not pending then return end
     if GetTime() > pending.windowUntil then return end
     if pending.targets[unit] then return end
     if pending.count >= MAX_TARGETS then return end
 
-    local ok, ids = pcall(C_UnitAuras.GetUnitAuraInstanceIDs, unit, "HELPFUL")
-    if not ok or not ids then return end
+    -- 通道0: 精确查询(若 12.1 未被屏蔽则直接命中, 最可靠)
+    local ok0, d0 = pcall(C_UnitAuras.GetUnitAuraBySpellID, unit, pending.spellId, "HELPFUL")
+    if ok0 and d0 and d0.auraInstanceID then
+        ShowTarget(unit)
+        return
+    end
+
+    -- 通道1/2: 光环实例 diff
+    local ids = GetUnitAuraIDs(unit)
+    if not ids then return end
 
     local base = knownIDs[unit]
     if not base then
-        -- 首次看到该单位: 记录基线, 排除已有光环
+        -- 无基线: 记录当前快照, 本次不匹配(下一轮起生效)
         base = {}
         for _, id in ipairs(ids) do
             base[id] = true
@@ -162,21 +237,39 @@ local function OnUnitAura(unit)
     local matched
     for _, id in ipairs(ids) do
         if not base[id] then
-            base[id] = true
+            base[id] = true -- 无论是否匹配都标记, 防止重复判定
             local ok2, d = pcall(C_UnitAuras.GetAuraDataByAuraInstanceID, unit, id)
-            -- 新光环且 spellId 为 secret → 疑似受限目标(无法识别身份, 只能靠时间窗)
-            if ok2 and d and F.IsSecretValue and F.IsSecretValue(d.spellId) then
-                matched = true
+            -- 新增且身份不可识别(nil 或 secret) → 疑似受限目标
+            if ok2 and d then
+                local sid = d.spellId
+                if sid == nil or (F.IsSecretValue and F.IsSecretValue(sid)) then
+                    matched = true
+                end
             end
         end
     end
 
     if matched then
-        pending.targets[unit] = true
-        pending.count = pending.count + 1
-        F.HandleUnitButton("unit", unit, ShowOnButton, pending.spellId, pending.start, pending.duration)
+        ShowTarget(unit)
     end
 end
+
+-- 施放窗口内的主动轮询(不依赖 UNIT_AURA 事件是否触发)
+local function StartMatchPolling()
+    if matchTicker then matchTicker:Cancel() end
+    matchTicker = C_Timer.NewTicker(MATCH_INTERVAL, function()
+        if not pending then
+            if matchTicker then matchTicker:Cancel() matchTicker = nil end
+            return
+        end
+        if GetTime() > pending.windowUntil then
+            if matchTicker then matchTicker:Cancel() matchTicker = nil end
+            return
+        end
+        IterateGroupUnits(MatchUnit)
+    end)
+end
+
 -------------------------------------------------
 -- 施放事件
 -------------------------------------------------
@@ -204,12 +297,11 @@ local function OnSpellCastSucceeded(unit, spellId)
         targets = {},
         count = 0,
     }
-    knownIDs = {}
 
-    if not listening then
-        eventFrame:RegisterEvent("UNIT_AURA")
-        listening = true
-    end
+    -- 基线维护常驻(无追踪时每秒快照, 保证施放时 diff 基线有效)
+    EnsureBaselineLoop()
+    -- 启动窗口匹配轮询
+    StartMatchPolling()
 
     -- 兜底: 玩家自己框架显示"激活中"
     F.HandleUnitButton("unit", "player", ShowOnButton, spellId, start, duration)
@@ -231,11 +323,11 @@ eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD") -- 进出场景: 脱战环境,
 
 -- 模块加载时立即预缓存(此时处于 loading screen, 查询安全)
 RefreshIconCache()
+-- 常驻基线轮询(保证任意时刻施放都有可用的 diff 基线)
+EnsureBaselineLoop()
 
 eventFrame:SetScript("OnEvent", function(self, event, unit, castGUID, spellId)
-    if event == "UNIT_AURA" then
-        OnUnitAura(unit)
-    elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
+    if event == "UNIT_SPELLCAST_SUCCEEDED" then
         OnSpellCastSucceeded(unit, spellId)
     elseif event == "PLAYER_REGEN_ENABLED" then
         RefreshIconCache()
