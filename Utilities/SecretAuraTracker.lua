@@ -27,9 +27,9 @@ local F = Cell.funcs
 -------------------------------------------------
 -- spellId → 持续时间(秒)
 -- 战斗中无法读取光环剩余时间, 使用固定时长近似
--- (美德道标 12 秒; 若 12.1 数值有变, 修改此表)
+-- (美德道标 9 秒, 用户实测 12.1 实际数值)
 local tracked = {
-    [200025] = 12, -- 美德道标 - Beacon of Virtue
+    [200025] = 9, -- 美德道标 - Beacon of Virtue
 }
 
 local MATCH_WINDOW = 2 -- 目标匹配窗口(秒)
@@ -78,6 +78,7 @@ local function GetIcon(button)
         f.cd = CreateFrame("Cooldown", nil, f)
         f.cd:SetAllPoints(f)
         f.cd:SetDrawEdge(false)
+        f.cd:SetHideCountdownNumbers(true) -- 18x18 小图标上数字过大挡图标, 隐藏数字
         f:Hide()
         button._SecretAuraTrackerIcon = f
     end
