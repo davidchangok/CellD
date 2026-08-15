@@ -11,7 +11,8 @@
 --
 -- 方案(纯本地, 不依赖 12.1 新 API):
 --   1. 施放事件: UNIT_SPELLCAST_SUCCEEDED(player) — spellId 非 secret(已验证)
---   2. 目标识别: 有目标技能用施放瞬间 UnitTarget("player") 快照(unit token 非 secret);
+--   2. 目标识别: 有目标技能用施放瞬间目标名字匹配队伍成员
+--      (12.1 已移除 UnitTarget; UnitName 不再返回 secret, 名字可读)
 --      无目标技能(美德道标)用光环实例 diff 轮询(受限环境不可用则仅自己框架兜底)
 --   3. 时长: 脱战施放时从目标光环自学习缓存; 战斗中直接用缓存
 --   4. 显示: 目标框架右上角最多 3 个图标槽(图标 + Cooldown 扫光, 无数字)
@@ -419,6 +420,30 @@ local function StartBeaconTracking(spellId, duration)
     end)
 end
 
+-- 获取施放目标(unit token)
+-- 12.1 中 UnitTarget 已被移除(nil), 改用目标名字匹配队伍成员:
+-- UnitName 在 12.1 中不再返回 secret(官方 API 变更记录), 名字可读
+local function GetCastTargetToken()
+    local targetName = UnitName("target")
+    if not targetName or targetName == UNKNOWN or (F.IsSecretValue and F.IsSecretValue(targetName)) then
+        return nil
+    end
+
+    local matched
+    IterateGroupUnits(function(unit)
+        if not matched then
+            local name = UnitName(unit)
+            if name and name == targetName then
+                matched = unit
+            end
+        end
+    end)
+    if not matched and UnitName("player") == targetName then
+        matched = "player"
+    end
+    return matched
+end
+
 -------------------------------------------------
 -- 施放事件(主入口)
 -------------------------------------------------
@@ -432,7 +457,7 @@ local function OnSpellCastSucceeded(unit, spellId)
     local restricted = F.IsAuraRestricted and F.IsAuraRestricted()
     local spellSecret = C_Secrets and C_Secrets.ShouldSpellAuraBeSecret and C_Secrets.ShouldSpellAuraBeSecret(spellId)
 
-    local target = UnitTarget("player") -- 施放瞬间目标快照(unit token 非 secret)
+    local target = GetCastTargetToken() -- 施放瞬间目标快照(名字匹配)
     local duration = tracked[spellId].duration
 
     if not restricted and not spellSecret then
