@@ -1129,10 +1129,11 @@ function I.CreateCombatBuffTracker(parent)
         icons:SetSize(size[1], size[2])
         icons:SetNumPerLine(config["numPerLine"] or 5)
         icons:SetSpacing(config["spacing"] or {0, 0})
-        if config["font"] then
-            icons:SetFont(config["font"][1], config["font"][2])
+        if config["font"] and config["font"][1] then
+            icons:SetFont(config["font"][1], config["font"][2] or config["font"][1])
         end
-        icons:ShowStack(config["showStack"] == true)
+        -- 战斗中层数无法得知(施放追踪只知道施放了几次), 固定不显示层数避免误导
+        icons:ShowStack(false)
         icons:ShowDuration(config["showDuration"] == true)
         icons:ShowAnimation(config["showAnimation"] ~= false)
 

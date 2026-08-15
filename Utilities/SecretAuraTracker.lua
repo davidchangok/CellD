@@ -135,9 +135,16 @@ local function BuildTrackedList()
         end
     end
 
+    -- 重建时保留已缓存的时长(脱战自学习结果), 避免每次重建丢失
+    local cachedDurations = {}
+    for id, entry in pairs(tracked) do
+        if entry and entry.duration then
+            cachedDurations[id] = entry.duration
+        end
+    end
     wipe(tracked)
     for id in pairs(ids) do
-        tracked[id] = { duration = defaultDurations[id] }
+        tracked[id] = { duration = cachedDurations[id] or defaultDurations[id] }
     end
 end
 
@@ -247,12 +254,10 @@ local function CombatBuffs_Add(button, spellId, start, duration)
 end
 
 local function CombatBuffs_Remove(button, spellId)
-    local icons = button.widgets and button.widgets.combatBuffs
     local slots = button._combatBuffSlots
     if not slots then return end
-    for i = 1, icons and icons.maxNum or MAX_COMBAT_BUFFS do
-        local e = slots[i]
-        if e and e.spellId == spellId then
+    for i, e in pairs(slots) do
+        if e.spellId == spellId then
             if e.timer then e.timer:Cancel() end
             slots[i] = nil
         end
@@ -273,17 +278,6 @@ local function CombatBuffs_Clear(button)
             end
         end
         wipe(slots)
-    end
-    -- 旧版自绘图标兼容清理
-    if button._SecretAuraTrackerIcon then
-        button._SecretAuraTrackerIcon:Hide()
-    end
-    if button._CastAuraTrackerIcons then
-        for i = 1, 3 do
-            if button._CastAuraTrackerIcons[i] then
-                button._CastAuraTrackerIcons[i]:Hide()
-            end
-        end
     end
 end
 
