@@ -43,7 +43,6 @@ local defaultDurations = {
 -------------------------------------------------
 local eventFrame = CreateFrame("Frame")
 local tracked = {} -- [spellId] = { duration = number|nil }
-local trackedReady = false
 local iconCache = {} -- [spellId] = fileID
 local active = {} -- [unit] = { [spellId] = { slot = n, timer = 句柄 } }
 local knownIDs = {} -- 美德道标 diff 基线 [unit] = {[auraInstanceID] = true}
@@ -53,43 +52,53 @@ local pending -- 美德道标专用 { spellId, duration, start, windowUntil, tar
 -------------------------------------------------
 -- 追踪列表构建
 -------------------------------------------------
-local function AddTracked(id)
-    if type(id) == "number" and not tracked[id] then
-        tracked[id] = { duration = defaultDurations[id] }
-    end
-end
-
+-- 每次施放时重建(布局/指示器可能在模块加载后才初始化,
+-- 缓存会导致 200025 等关键法术永久缺失)
 local function BuildTrackedList()
-    -- 用户自定义指示器(Healers 等)的光环列表
-    local customs = Cell.snippetVars and Cell.snippetVars.customIndicators
-    if customs and customs["buff"] then
-        for _, indicatorTable in pairs(customs["buff"]) do
-            local auras = indicatorTable and indicatorTable["_auras"]
-            if auras then
+    local ids = {}
+
+    -- 1. 硬编码兜底(关键法术永远追踪, 不受布局/时序影响)
+    for id in pairs(defaultDurations) do
+        ids[id] = true
+    end
+
+    -- 2. 当前布局中自定义指示器(Healers 等)的 buff 列表
+    local layoutTable = Cell.vars and Cell.vars.currentLayoutTable
+    if layoutTable and layoutTable.indicators then
+        for _, ind in ipairs(layoutTable.indicators) do
+            local auras = ind and ind["auras"]
+            if auras and ind["auraType"] == "buff" then
                 for k, v in pairs(auras) do
-                    if type(k) == "number" then AddTracked(k) end
-                    if type(v) == "number" then AddTracked(v) end
+                    -- 数组形式 {8936, 774, ...}: 值是法术 ID
+                    if type(k) == "number" and type(v) == "number" then
+                        ids[v] = true
+                    end
                 end
             end
         end
     end
-    -- 内置 externals(施加于他人的增益)
+
+    -- 3. 内置 externals(施加于他人的增益)
     if I and I.GetExternals then
         local externals = I.GetExternals()
         if externals then
             for _, spells in pairs(externals) do
                 for id, v in pairs(spells) do
-                    if type(id) == "number" then AddTracked(id) end
+                    if type(id) == "number" then ids[id] = true end
                     if type(v) == "table" then
                         for subId in pairs(v) do
-                            AddTracked(subId)
+                            ids[subId] = true
                         end
                     end
                 end
             end
         end
     end
-    trackedReady = true
+
+    wipe(tracked)
+    for id in pairs(ids) do
+        tracked[id] = { duration = defaultDurations[id] }
+    end
 end
 
 -------------------------------------------------
@@ -415,7 +424,7 @@ end
 -------------------------------------------------
 local function OnSpellCastSucceeded(unit, spellId)
     if unit ~= "player" then return end
-    if not trackedReady then BuildTrackedList() end
+    BuildTrackedList() -- 每次施放重建(布局时序无关)
     if not tracked[spellId] then return end
     -- 12.1 若连施放事件 spellId 都 secret, 静默放弃
     if F.IsSecretValue and F.IsSecretValue(spellId) then return end
@@ -463,12 +472,12 @@ eventFrame:SetScript("OnEvent", function(self, event, unit, castGUID, spellId)
         FinishPending()
         RefreshAllIcons()
     elseif event == "PLAYER_ENTERING_WORLD" then
-        if not trackedReady then BuildTrackedList() end
+        BuildTrackedList()
         RefreshAllIcons()
     end
 end)
 
 -- 模块加载: 预构建追踪列表 + 预缓存图标 + 常驻基线
-if not trackedReady then BuildTrackedList() end
+BuildTrackedList()
 RefreshAllIcons()
 EnsureBaselineLoop()
