@@ -203,6 +203,23 @@ BigDebuffs 的法术字典支持 `parent = spellId` 继承。CellD 在外部队�
 - toc 已更新 `Interface: 120100`
 
 ### 待办
-1. 队友目标匹配增强（验证 `GetUnitAuraInstanceIDs`/`GetAuraDataByIndex` 12.1 战斗行为）
-2. 查 `SwitchAuraDataProvider` / `GetHiddenGroupBuffs` 官方语义，评估精确追踪升级
+1. ~~队友目标匹配增强~~ ✅ v1.0.8 已实现 UnitTarget 快照方案（待用户战斗测试确认）
+2. ~~查 `SwitchAuraDataProvider` / `GetHiddenGroupBuffs` 官方语义~~ ✅ 已查明（见下）
 3. 社区反馈（[暴雪论坛 Friendly Cooldown Tracking Disabled with 12.1](https://us.forums.blizzard.com/en/wow/t/friendly-cooldown-tracking-disabled-with-121/2335400/3)）
+
+### 12.1 新 API 语义研究结论（蓝贴全文 + FrameXML 12.1.0 源码确认，2026-08-15）
+
+| API / 机制 | 语义 | 对 CellD 的意义 |
+|------------|------|----------------|
+| `GetHiddenGroupBuffs` / `SetHiddenGroupBuffs` / `Get/SetGroupBuffVisualAlerts` | **CooldownManagerLayout（12.1 冷却管理器 UI）** 的内部配置函数（`CooldownManagerLayout_*`），供玩家设置界面配置冷却管理器显示哪些团队 buff/提醒 | ❌ 不是光环读取通道，排除 |
+| **AuraContainer / AuraButton**（新原生对象类型） | 官方"过滤集显示"通道：插件创建容器 + `AddAuraGroup(filterString, {candidateFilters={includeSpellIDs=...}, maxFrameCount, sortMethod, layout, initializeFrame})`，游戏引擎内部完成光环跟踪/过滤/渲染（`SetIcon`/`SetDurationText` 由游戏自动更新） | ⚠️ **战斗中不显示 secret 光环**！容器公共数据源 = `C_UnitAuras.GetUnitAuraInstanceIDs`/`GetAuraDataByAuraInstanceID`（`Blizzard_AuraContainerSources.lua`），与普通插件 API 同样受限 → 容器只是 non-secret 光环的安全自定义显示方案，**不是绕过 secret 的通道** |
+| 12.1 移出 "never secret" 名单 | 蓝贴明确："we have removed the following healer buffs and HoTs from the 'never secret' list" | **美德道标/HoT 战斗中 secret 的根因**（暴雪有意为之） |
+| `UNIT_AURA` 事件 | 战斗中负载 fully secret，AuraData 结构永远 fully secret | CellD 增量路径依赖的 addedAuras 在战斗中不可用 |
+| `GetUnitAuras` / `GetUnitAuraInstanceIDs` | 战斗中返回 secret vector / 抛 "Auras cannot be accessed when secret"（用户实测） | 全部光环枚举通道失效 |
+| `GetUnitAuraBySpellID`（按 ID 查询） | 战斗中返回 nil（用户实测全 party 遍历） | 精确查询失效 |
+| 12.1 新增 10 个 C_UnitAuras 函数 | AddAuraSound/CancelAuraByInstanceID/Get·SetHiddenGroupBuffs/Get·SetGroupBuffVisualAlerts/RemoveAuraSound/AddBlockedAura/ClearBlockedAuras/Reset·SwitchAuraDataProvider | 均非光环读取通道 |
+
+**最终结论**：12.1 战斗中显示被 secret 化的友方 buff（美德道标/HoT）在暴雪设计上**不可能**——官方 AuraContainer 也不行。**施放事件追踪（v1.0.8 的 UnitTarget 方案）是唯一合法可行方案**（第一方施放信息）。v1.1.0 AuraContainer 集成已 revert（commit c3976d2）。
+
+### 小队遍历修正
+`IterateGroupUnits` 用 `GetNumGroupMembers()` 动态计算（5 人小队 = 自己 + party1-4），不再硬编码 4。

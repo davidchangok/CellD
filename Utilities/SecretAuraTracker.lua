@@ -234,12 +234,14 @@ local function FinishPending()
 end
 
 local function IterateGroupUnits(callback)
+    local n = GetNumGroupMembers() -- 总人数(含自己): 5 人小队 = 5
     if IsInRaid() then
-        for i = 1, GetNumGroupMembers() do
+        for i = 1, n do
             callback("raid"..i)
         end
     else
-        for i = 1, 4 do
+        -- 小队: 队友为 party1..party(n-1) (5 人队 = 自己 + party1-4)
+        for i = 1, n - 1 do
             callback("party"..i)
         end
     end
