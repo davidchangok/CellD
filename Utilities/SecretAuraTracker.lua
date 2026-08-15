@@ -40,6 +40,30 @@ local defaultDurations = {
 }
 
 -------------------------------------------------
+-- 官方 secret 名单 (12.1 "never secret" 移除清单)
+-- 来源: warcraft.wiki.gg Patch 12.1.0/API_changes "Aura Classifications"
+-- 这些法术战斗中光环数据对插件完全不可读, 需施放追踪
+-------------------------------------------------
+local officialSecretSpells = {
+    -- Preservation Evoker
+    355941, 363502, 364343, 366155, 367364, 373267, 376788, 409895,
+    -- Augmentation Evoker
+    360827, 395152, 395296, 410089, 410263, 410686, 413984,
+    -- Resto Druid
+    774, 8936, 33763, 48438, 155777, 439530,
+    -- Disc Priest
+    17, 194384, 1253593, 1300008, 1300009,
+    -- Holy Priest
+    139, 41635, 77489,
+    -- Mistweaver Monk
+    115175, 119611, 124682, 450769, 1292922,
+    -- Restoration Shaman
+    974, 383648, 61295, 382024, 207400, 444490,
+    -- Holy Paladin
+    53563, 156322, 156910, 1244893, 200025, 431381,
+}
+
+-------------------------------------------------
 -- 状态
 -------------------------------------------------
 local eventFrame = CreateFrame("Frame")
@@ -58,7 +82,12 @@ local pending -- 美德道标专用 { spellId, duration, start, windowUntil, tar
 local function BuildTrackedList()
     local ids = {}
 
-    -- 1. 硬编码兜底(关键法术永远追踪, 不受布局/时序影响)
+    -- 1. 官方 secret 名单(12.1 战斗中不可读的治疗 HoT/buff, 全职业)
+    for _, id in ipairs(officialSecretSpells) do
+        ids[id] = true
+    end
+
+    -- 2. 硬编码兜底(关键法术永远追踪, 不受布局/时序影响)
     for id in pairs(defaultDurations) do
         ids[id] = true
     end
@@ -489,11 +518,30 @@ local function OnSpellCastSucceeded(unit, spellId)
     -- 其他无目标技能: 不显示(避免错误位置)
 end
 
+-- 脱战扫描学习: 遍历队伍成员身上的 tracked 光环, 缓存真实时长
+-- (天赋不同导致同技能时长不同, 真实光环数据最准确, 无需手工维护)
+local function LearnDurationsFromGroup()
+    IterateGroupUnits(function(unit)
+        local ok, ids = pcall(C_UnitAuras.GetUnitAuraInstanceIDs, unit, "HELPFUL")
+        if ok and ids then
+            for _, id in ipairs(ids) do
+                local ok2, d = pcall(C_UnitAuras.GetAuraDataByAuraInstanceID, unit, id)
+                if ok2 and d and d.spellId and not (F.IsSecretValue and F.IsSecretValue(d.spellId)) then
+                    local entry = tracked[d.spellId]
+                    if entry and d.duration and not (F.IsSecretValue and F.IsSecretValue(d.duration)) then
+                        entry.duration = d.duration
+                    end
+                end
+            end
+        end
+    end)
+end
+
 -------------------------------------------------
 -- 事件注册
 -------------------------------------------------
 eventFrame:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
-eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED") -- 脱战: 清理追踪, 交还正常指示器
+eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED") -- 脱战: 清理追踪 + 学习时长, 交还正常指示器
 eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD") -- 进出场景: 刷新追踪列表与图标缓存
 
 eventFrame:SetScript("OnEvent", function(self, event, unit, castGUID, spellId)
@@ -503,6 +551,8 @@ eventFrame:SetScript("OnEvent", function(self, event, unit, castGUID, spellId)
         ClearAllIcons()
         FinishPending()
         RefreshAllIcons()
+        BuildTrackedList()
+        LearnDurationsFromGroup()
     elseif event == "PLAYER_ENTERING_WORLD" then
         BuildTrackedList()
         RefreshAllIcons()
