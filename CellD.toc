@@ -1,6 +1,6 @@
 ## Interface: 120100
 ## Title: CellD
-## Version: 1.0.5
+## Version: 1.2.0
 ## Author: David W Zhang
 ## X-Flavor: Mainline
 ## SavedVariables: CellDB, CellDBBackup

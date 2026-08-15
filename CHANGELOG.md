@@ -1,5 +1,51 @@
 # CellD 发布说明 / Release Notes
 
+## v1.2.0 — 2026-08-15
+
+### 中文
+
+**12.1 (Curse of Ula'tek) 受限环境全面适配**——战斗中友方单位光环对插件完全不可读，新增施放事件追踪，使奶骑美德道标等增益在战斗中与脱战显示完全一致。
+
+主要变更：
+
+- **Interface 升级至 120100** — 仅支持 12.1 正式服
+- **新增 SecretAuraTracker（`Utilities/SecretAuraTracker.lua`）** — 12.1 战斗中唯一合法通道：监听 `UNIT_SPELLCAST_SUCCEEDED` 施放事件，在自己施放增益后于目标框架显示图标（技能/驱散/Externals 全覆盖）
+- **战斗显示与脱战完全一致（v1.2.0）** — 复用 `I.CreateAura_Icons` 渲染（同 Healers 配置：大小/位置/字体/布局），槽管理支持多增益并存与到期清理
+- **追踪列表智能过滤** — 官方 secret 名单（12.1 never-secret 移除清单）+ `IsSpellKnown` 过滤（自动读取当前角色技能表，职业/天赋切换自动适配）+ Healers 布局 + externals
+- **目标识别** — OnEnter/OnLeave 悬停记录 + GetMouseFocus（点击/悬停施法场景精确显示目标框架）；键盘施法（鼠标不悬停）无法识别目标（12.1 硬限制）
+- **时长自学习** — 脱战扫描队伍成员光环缓存真实 duration（天赋差异自动适配）；BuildTrackedList 重建保留时长缓存，自学习不丢失；战斗中无缓存时显示图标但无扫光，避免错误时长误导
+- **层数不显示** — 战斗中 stack 不可知，固定不显示，避免误导
+- **UNIT_AURA secret 修复** — `updateInfo.isFullUpdate` secret boolean 前置判定（4183364）；`ForEachAura` 加 `IsAuraRestricted` 前置跳过 + pcall 兜底，杜绝 "Auras cannot be accessed when secret" 刷屏（93a34cb）
+- **稳定性加固** — 追踪列表每次施放重建（修复布局初始化时序导致的法术永久缺失）、SetFont nil 保护、死代码清理
+
+### 已知限制（12.1 暴雪设计，无法绕过）
+
+- 键盘施法（鼠标不悬停）无法识别目标；队友施放的增益不可见；无法感知驱散/提前结束
+- 战斗中无法读取真实剩余时间（时长来自脱战自学习缓存或硬编码兜底）
+
+### English
+
+**Full 12.1 (Curse of Ula'tek) restricted-context adaptation** — friendly unit auras are completely unreadable by addons in combat. Added spell-cast tracking so healer buffs (e.g. Beacon of Light) display identically in and out of combat.
+
+Highlights:
+
+- **Interface 120100** — 12.1 mainline only
+- **New SecretAuraTracker module** — the only legal channel in 12.1 combat: listens to `UNIT_SPELLCAST_SUCCEEDED` and shows your own cast buffs on target frames (spells/dispels/externals)
+- **Combat display identical to out-of-combat (v1.2.0)** — reuses `I.CreateAura_Icons` (same Healers config: size/position/font/layout); slot management supports multiple concurrent buffs with expiry cleanup
+- **Smart tracked list** — official secret list + `IsSpellKnown` filter (auto-adapts to class/spec) + Healers layout + externals
+- **Target identification** — OnEnter/OnLeave hover tracking + GetMouseFocus (hover/click casting); keyboard casting can't identify targets (12.1 hard limit)
+- **Duration self-learning** — scans party auras out of combat to cache real durations (adapts to talent differences); cache preserved on rebuild; no misleading sweep when no cache
+- **No stack display** — stack is unknowable in combat, hidden to avoid confusion
+- **UNIT_AURA secret fixes** — `isFullUpdate` secret boolean guard (4183364); `ForEachAura` `IsAuraRestricted` pre-check + pcall (93a34cb), eliminating "Auras cannot be accessed when secret" spam
+- **Stability** — tracked list rebuilt on each cast (fixes permanent spell loss from layout init timing), SetFont nil guard, dead-code cleanup
+
+### Known limitations (Blizzard design, unavoidable)
+
+- Keyboard casting can't identify targets; teammate-cast buffs invisible; dispels/premature ends undetectable
+- Real remaining time unreadable in combat (duration comes from out-of-combat learned cache or hardcoded fallback)
+
+---
+
 ## v1.0.5 — 2026-08-01
 
 ### 中文
