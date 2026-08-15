@@ -425,16 +425,24 @@ end
 --   ❌ UnitTarget / UNIT_SPELLCAST_TARGETED: 已移除
 --   ❌ UnitName: 返回 secret string (身份保护)
 --   ❌ UnitIsUnit: 返回 secret boolean (比较保护)
---   ✅ GetMouseFocus: 鼠标悬停的 CellD 按钮(点击/悬停施法场景)
+--   ✅ OnEnter/OnLeave hook 记录当前悬停的单位(点击/悬停施法场景)
+--   ✅ GetMouseFocus: 兜底
 -- 返回 nil 时由调用方决定兜底(无目标技能走 StartBeaconTracking)。
 local function GetCastTargetToken()
-    if not GetMouseFocus then return nil end
-    local f = GetMouseFocus()
-    while f do
-        if f.states and f.states.unit and type(f.states.unit) == "string" then
-            return f.states.unit
+    -- 优先: 当前悬停的 CellD 按钮(OnEnter/OnLeave 维护, 比 GetMouseFocus 可靠)
+    local unit = Cell.vars.secretAuraHoveredUnit
+    if type(unit) == "string" then
+        return unit
+    end
+    -- 兜底: GetMouseFocus 向上找 CellD 按钮
+    if GetMouseFocus then
+        local f = GetMouseFocus()
+        while f do
+            if f.states and f.states.unit and type(f.states.unit) == "string" then
+                return f.states.unit
+            end
+            f = f:GetParent()
         end
-        f = f:GetParent()
     end
     return nil
 end
@@ -449,14 +457,18 @@ local function OnSpellCastSucceeded(unit, spellId)
     -- 12.1 若连施放事件 spellId 都 secret, 静默放弃
     if F.IsSecretValue and F.IsSecretValue(spellId) then return end
 
-    local restricted = F.IsAuraRestricted and F.IsAuraRestricted()
+    -- 受限环境判定: 战斗中或法术被 secret 化 → 接管显示
+    -- 12.1 中 GetRestrictedActionStatus 失效(恒 false), 改用 UnitAffectingCombat
+    -- (战斗状态事件, 12.1 仍可用); ShouldSpellAuraBeSecret 名单可能不全, 仅作补充
+    local inCombat = UnitAffectingCombat and UnitAffectingCombat("player")
     local spellSecret = C_Secrets and C_Secrets.ShouldSpellAuraBeSecret and C_Secrets.ShouldSpellAuraBeSecret(spellId)
+    local restricted = inCombat or spellSecret
 
-    local target = GetCastTargetToken() -- 施放瞬间目标快照(名字匹配)
+    local target = GetCastTargetToken() -- 施放瞬间目标(悬停/鼠标)
     local duration = tracked[spellId].duration
 
-    if not restricted and not spellSecret then
-        -- 非受限环境: 现有指示器正常显示, 不干预; 仅自学习缓存真实时长
+    if not restricted then
+        -- 非受限环境(脱战): 现有指示器正常显示, 不干预; 仅自学习缓存真实时长
         if target then
             local ok, d = pcall(C_UnitAuras.GetUnitAuraBySpellID, target, spellId, "HELPFUL")
             if ok and d and d.duration and not (F.IsSecretValue and F.IsSecretValue(d.duration)) then

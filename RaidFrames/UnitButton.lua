@@ -4492,6 +4492,17 @@ function CellUnitButton_OnLoad(button)
     button:HookScript("OnHide", UnitButton_OnHide) -- use _onhide for click-castings
     button:HookScript("OnEnter", UnitButton_OnEnter) -- SecureHandlerEnterLeaveTemplate
     button:HookScript("OnLeave", UnitButton_OnLeave) -- SecureHandlerEnterLeaveTemplate
+    -- 12.1 受限环境目标识别: 记录当前悬停的单位(SecretAuraTracker 施放追踪用)
+    button:HookScript("OnEnter", function(self)
+        if self.states and self.states.unit then
+            Cell.vars.secretAuraHoveredUnit = self.states.unit
+        end
+    end)
+    button:HookScript("OnLeave", function(self)
+        if Cell.vars.secretAuraHoveredUnit == self.states.unit then
+            Cell.vars.secretAuraHoveredUnit = nil
+        end
+    end)
     button:SetScript("OnUpdate", UnitButton_OnUpdate)
     button:SetScript("OnEvent", UnitButton_OnEvent)
     button:RegisterForClicks("AnyDown")
