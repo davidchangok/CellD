@@ -421,27 +421,22 @@ local function StartBeaconTracking(spellId, duration)
 end
 
 -- 获取施放目标(unit token)
--- 12.1 中 UnitTarget 已被移除(nil), 改用目标名字匹配队伍成员:
--- UnitName 在 12.1 中不再返回 secret(官方 API 变更记录), 名字可读
+-- 12.1 战斗中目标识别通道盘点:
+--   ❌ UnitTarget / UNIT_SPELLCAST_TARGETED: 已移除
+--   ❌ UnitName: 返回 secret string (身份保护)
+--   ❌ UnitIsUnit: 返回 secret boolean (比较保护)
+--   ✅ GetMouseFocus: 鼠标悬停的 CellD 按钮(点击/悬停施法场景)
+-- 返回 nil 时由调用方决定兜底(无目标技能走 StartBeaconTracking)。
 local function GetCastTargetToken()
-    local targetName = UnitName("target")
-    if not targetName or targetName == UNKNOWN or (F.IsSecretValue and F.IsSecretValue(targetName)) then
-        return nil
-    end
-
-    local matched
-    IterateGroupUnits(function(unit)
-        if not matched then
-            local name = UnitName(unit)
-            if name and name == targetName then
-                matched = unit
-            end
+    if not GetMouseFocus then return nil end
+    local f = GetMouseFocus()
+    while f do
+        if f.states and f.states.unit and type(f.states.unit) == "string" then
+            return f.states.unit
         end
-    end)
-    if not matched and UnitName("player") == targetName then
-        matched = "player"
+        f = f:GetParent()
     end
-    return matched
+    return nil
 end
 
 -------------------------------------------------
