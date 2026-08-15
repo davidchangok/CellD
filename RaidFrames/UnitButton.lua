@@ -3242,9 +3242,6 @@ local function UnitButton_OnAttributeChanged(self, name, value)
         if type(value) == "string" then
             self.states.unit = value
             self.states.displayedUnit = value
-            if self.widgets.aurac then
-                self.widgets.aurac:SetUnit(value)
-            end
             if string.find(value, "^raid%d+$") then Cell.unitButtons.raid.units[value] = self end
 
             -- range
@@ -4478,7 +4475,6 @@ function CellUnitButton_OnLoad(button)
     I.CreateDispels(button)
     I.CreateRaidDebuffs(button)
     I.CreatePrivateAuras(button)
-    I.CreateAuraContainer(button)
     I.CreateTargetedSpells(button)
     I.CreateTargetCounter(button)
     I.CreateCrowdControls(button)

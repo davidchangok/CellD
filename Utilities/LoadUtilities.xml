@@ -18,6 +18,5 @@
     <Script file="QuickAssist_Config.lua"/>
     <Script file="QuickAssist_ImportExport.lua"/>
     <Script file="QuickCast.lua"/>
-    <!-- v1.1.0: AuraContainer 官方通道测试中, 施放追踪暂时停用避免双重显示 -->
-    <!-- <Script file="SecretAuraTracker.lua"/> -->
+    <Script file="SecretAuraTracker.lua"/>
 </Ui>
