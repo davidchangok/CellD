@@ -1,6 +1,6 @@
 # CellD 开发状态
 
-**日期**: 2026-06-15 | **版本**: 1.0.0 | **作者**: David W Zhang
+**日期**: 2026-08-15 | **版本**: 1.2.0（已发布，GitHub Release） | **作者**: David W Zhang
 
 ---
 
@@ -232,8 +232,10 @@ BigDebuffs 的法术字典支持 `parent = spellId` 继承。CellD 在外部队�
 1. ~~队友目标匹配增强~~ ✅ v1.0.8 悬停/点击施法方案（键盘施法受限）
 2. ~~`SwitchAuraDataProvider` / `GetHiddenGroupBuffs` 语义~~ ✅ 冷却管理器 UI 配置，非光环通道
 3. ~~AuraContainer 官方通道~~ ✅ 已验证战斗中不显示 secret 光环，已 revert
-4. 社区反馈（[暴雪论坛 Friendly Cooldown Tracking Disabled with 12.1](https://us.forums.blizzard.com/en/wow/t/friendly-cooldown-tracking-disabled-with-121/2335400/3)）
-5. 全职业实测（用户玩所有治疗职业：换职业验证 IsSpellKnown 过滤 + 时长学习）
+4. ~~战斗显示与脱战一致~~ ✅ v1.2.0（复用 `I.CreateAura_Icons` 渲染，槽管理多增益并存）
+5. 社区反馈（[暴雪论坛 Friendly Cooldown Tracking Disabled with 12.1](https://us.forums.blizzard.com/en/wow/t/friendly-cooldown-tracking-disabled-with-121/2335400/3)）
+6. 全职业实测（用户玩所有治疗职业：换职业验证 IsSpellKnown 过滤 + 时长学习）
+7. 发布 v1.2.0 ✅（2026-08-15，GitHub Release + tag v1.2.0）
 
 ### 12.1 新 API 语义研究结论（蓝贴全文 + FrameXML 12.1.0 源码确认，2026-08-15）
 
@@ -251,3 +253,52 @@ BigDebuffs 的法术字典支持 `parent = spellId` 继承。CellD 在外部队�
 
 ### 小队遍历修正
 `IterateGroupUnits` 用 `GetNumGroupMembers()` 动态计算（5 人小队 = 自己 + party1-4），不再硬编码 4。
+
+---
+
+## 八、v1.2.0 发布（2026-08-15）
+
+**版本 1.2.0 已发布**（commit 1a0faaa + tag v1.2.0 + GitHub Release）。12.1 受限环境适配进入稳定阶段。
+
+### 从 v1.0.5 → v1.2.0 的完整演进
+
+| 阶段 | 提交 | 内容 |
+|------|------|------|
+| v1.0.5 基线 | 4c58687 | Comm 前缀隔离，正式发布 |
+| UNIT_AURA secret 修复 | 4183364 / 93a34cb | `isFullUpdate` secret boolean 判定 + `ForEachAura` IsAuraRestricted 前置跳过 |
+| 12.1 Interface | ed0e33e | Interface 120100，SecretAuraTracker 初版（v1.0.6 应急） |
+| 图标/时长修 | c159cea / 5c969ab | 脱战缓存 fileID、9 秒实测值 |
+| v1.0.8 通用化 | 1ac7076 | 所有自己施放的增益，UnitTarget 快照识别，脱战自学习时长 |
+| AuraContainer 实验 | cc36155 → c3976d2 | v1.1.0 集成后 revert（战斗中不显示 secret 光环，非绕过通道） |
+| 追踪列表重建 | 7b1442a | 每次施放重建，修复布局初始化时序导致法术永久缺失 |
+| 目标识别路径 | 3536cb7 → d2cdde4 | UnitTarget 移除 → GetMouseFocus → OnEnter/OnLeave 悬停 + UnitAffectingCombat |
+| 追踪名单 | e732a28 / 38bf685 | 官方 secret 名单 + IsSpellKnown 过滤（职业/天赋切换自动适配） |
+| **v1.2.0 定稿** | 72a456f | 战斗显示与脱战完全一致（复用 `I.CreateAura_Icons`，槽管理多增益并存与到期清理） |
+| 审阅修复 | 75851f1 | BuildTrackedList 保留时长缓存、战斗层数固定不显示、SetFont nil 保护、死代码清理 |
+| 文档 | 92fc83e / 39a20bb | CLAUDE.md 记忆入口、STATUS.md 12.1 最终方案与 API 研究结论 |
+
+### 最终架构（v1.2.0）
+
+```text
+施放事件 (UNIT_SPELLCAST_SUCCEEDED)
+  → 追踪列表（官方 secret 名单 + IsSpellKnown + Healers 布局 + externals，每次施放重建）
+  → 目标识别（Cell.vars.secretAuraHoveredUnit OnEnter/OnLeave + GetMouseFocus）
+  → 渲染：I.CreateAura_Icons（与脱战 Healers 指示器同配置：大小/位置/字体/布局）
+  → 槽管理：多增益并存、到期清理
+时长：脱战扫描自学习（天赋差异自动适配）+ 硬编码兜底；战斗无缓存时不显示扫光
+层数：战斗 stack 不可知，固定不显示
+```
+
+### 已知边界（暴雪设计，无法绕过）
+
+- 键盘施法（鼠标不悬停）无法识别目标
+- 无法感知驱散/提前结束；队友施放的增益不可见
+- 战斗中无法读取真实剩余时间与层数
+
+### 待办（当前）
+
+1. 社区反馈跟进（[暴雪论坛 Friendly Cooldown Tracking Disabled with 12.1](https://us.forums.blizzard.com/en/wow/t/friendly-cooldown-tracking-disabled-with-121/2335400/3)）
+2. 全职业实测（换职业验证 IsSpellKnown 过滤 + 时长学习）
+3. 版本误报修复游戏内回归（v1.0.4 已含修复，待实战确认）
+4. BigDebuffs Midnight 实测（保留兼容代码）
+5. 性能优化（OnTick 高频 GUID 比较，需游戏内 profiler）
