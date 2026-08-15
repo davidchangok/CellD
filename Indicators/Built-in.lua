@@ -1104,6 +1104,64 @@ function I.CreatePrivateAuras(parent)
 end
 
 -------------------------------------------------
+-- combat buff tracker (12.1 战斗施放追踪显示)
+-- 战斗中复刻用户"icons"指示器(如 Healers)的视觉配置,
+-- 由 SecretAuraTracker 施放事件驱动, 脱战隐藏交还现有指示器。
+-- 视觉与脱战完全一致(同渲染代码 I.CreateAura_Icons)。
+-------------------------------------------------
+function I.CreateCombatBuffTracker(parent)
+    -- 从当前布局读取 icons 类型 buff 指示器(Healers)的配置
+    local layoutTable = Cell.vars and Cell.vars.currentLayoutTable
+    local config
+    if layoutTable and layoutTable.indicators then
+        for _, ind in ipairs(layoutTable.indicators) do
+            if ind["type"] == "icons" and ind["auraType"] == "buff" then
+                config = ind
+                break
+            end
+        end
+    end
+
+    local icons = I.CreateAura_Icons(nil, parent.widgets.indicatorFrame, 5)
+
+    if config then
+        local size = config["size"] or {13, 13}
+        icons:SetSize(size[1], size[2])
+        icons:SetNumPerLine(config["numPerLine"] or 5)
+        icons:SetSpacing(config["spacing"] or {0, 0})
+        if config["font"] then
+            icons:SetFont(config["font"][1], config["font"][2])
+        end
+        icons:ShowStack(config["showStack"] == true)
+        icons:ShowDuration(config["showDuration"] == true)
+        icons:ShowAnimation(config["showAnimation"] ~= false)
+
+        local pos = config["position"]
+        if pos and pos[1] then
+            local rel = pos[2] == "button" and parent or pos[2]
+            icons:SetPoint(pos[1], rel, pos[3], pos[4] or 0, pos[5] or 0)
+        else
+            icons:SetPoint("TOPRIGHT", parent, "TOPRIGHT", 0, 3)
+        end
+        -- SetOrientation 必须在 SetPoint 之后
+        icons:SetOrientation(config["orientation"] or "right-to-left")
+    else
+        icons:SetSize(13, 13)
+        icons:SetNumPerLine(5)
+        icons:SetSpacing({0, 0})
+        icons:ShowStack(false)
+        icons:ShowDuration(false)
+        icons:ShowAnimation(true)
+        icons:SetPoint("TOPRIGHT", parent, "TOPRIGHT", 0, 3)
+        icons:SetOrientation("right-to-left")
+    end
+
+    icons:Hide(true)
+    parent.widgets.combatBuffs = icons
+    return icons
+end
+
+-------------------------------------------------
 -- player raid icon
 -------------------------------------------------
 function I.CreatePlayerRaidIcon(parent)

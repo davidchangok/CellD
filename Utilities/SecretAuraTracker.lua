@@ -1,22 +1,25 @@
 -------------------------------------------------
--- CastAuraTracker (v1.0.8)
+-- CastAuraTracker (SecretAuraTracker v1.2.0)
 -- 12.1 (Curse of Ula'tek) 受限环境自己施放增益的近似显示
 --
 -- 背景:
 --   12.1 起, 副本战斗(受限环境)中友方单位光环对插件完全不可读
 --   (GetUnitAuraBySpellID 返回 nil, GetUnitAuraInstanceIDs/
 --   GetAuraDataByIndex 直接抛 "Auras cannot be accessed when secret"),
---   导致自己施放的增益(回春术/美德道标/保护祝福等)无法在团队框架显示。
+--   官方 AuraContainer 数据源同样受限(已验证), 导致自己施放的增益
+--   (回春术/道标/保护祝福等)无法在团队框架显示。
 --   (暴雪设计: 防 MDI 竞技作弊, 见蓝贴 "Addons and Auras in Curse of Ula'tek")
 --
--- 方案(纯本地, 不依赖 12.1 新 API):
+-- 方案(纯本地, 唯一合法通道 = 第一方施放事件):
 --   1. 施放事件: UNIT_SPELLCAST_SUCCEEDED(player) — spellId 非 secret(已验证)
---   2. 目标识别: 有目标技能用施放瞬间目标名字匹配队伍成员
---      (12.1 已移除 UnitTarget; UnitName 不再返回 secret, 名字可读)
---      无目标技能(美德道标)用光环实例 diff 轮询(受限环境不可用则仅自己框架兜底)
---   3. 时长: 脱战施放时从目标光环自学习缓存; 战斗中直接用缓存
---   4. 显示: 目标框架右上角最多 3 个图标槽(图标 + Cooldown 扫光, 无数字)
---   5. 脱战(PLAYER_REGEN_ENABLED)清理全部, 交还正常指示器
+--   2. 目标识别: OnEnter/OnLeave 悬停记录 + GetMouseFocus 兜底
+--      (UnitTarget/UNIT_SPELLCAST_TARGETED 已移除, UnitName/UnitIsUnit secret)
+--   3. 显示: 复用 CellD 的 icons 指示器渲染(I.CreateCombatBuffTracker),
+--      视觉与脱战 Healers 指示器完全一致
+--   4. 时长: 脱战扫描队友光环自学习(天赋差异自动适配) + 硬编码兜底
+--   5. 追踪列表: 官方 secret 名单(never-secret 移除清单) + IsSpellKnown
+--      过滤(自动读取当前角色技能表) + Healers 布局列表 + externals
+--   6. 脱战(PLAYER_REGEN_ENABLED)清理全部, 交还正常指示器
 -------------------------------------------------
 
 local _, Cell = ...
@@ -26,9 +29,7 @@ local I = Cell.iFuncs
 -------------------------------------------------
 -- 配置
 -------------------------------------------------
-local ICON_SIZE = 18
-local ICON_SLOTS = 3 -- 每个按钮的图标槽数(同一目标最多同时显示 3 个增益)
-local ICON_POINT = "TOPRIGHT"
+local MAX_COMBAT_BUFFS = 5 -- 战斗追踪图标槽数(与 Healers 指示器 num 一致)
 local MATCH_WINDOW = 2 -- 美德道标目标匹配窗口(秒)
 local MAX_TARGETS = 3  -- 美德道标最多点 3 人
 local BASELINE_INTERVAL = 1 -- 常驻基线轮询间隔(秒)
@@ -69,7 +70,6 @@ local officialSecretSpells = {
 local eventFrame = CreateFrame("Frame")
 local tracked = {} -- [spellId] = { duration = number|nil }
 local iconCache = {} -- [spellId] = fileID
-local active = {} -- [unit] = { [spellId] = { slot = n, timer = 句柄 } }
 local knownIDs = {} -- 美德道标 diff 基线 [unit] = {[auraInstanceID] = true}
 local baselineTicker, matchTicker
 local pending -- 美德道标专用 { spellId, duration, start, windowUntil, targets, count }
@@ -102,7 +102,7 @@ local function BuildTrackedList()
         ids[id] = true
     end
 
-    -- 2. 当前布局中自定义指示器(Healers 等)的 buff 列表
+    -- 3. 当前布局中自定义指示器(Healers 等)的 buff 列表
     local layoutTable = Cell.vars and Cell.vars.currentLayoutTable
     if layoutTable and layoutTable.indicators then
         for _, ind in ipairs(layoutTable.indicators) do
@@ -118,7 +118,7 @@ local function BuildTrackedList()
         end
     end
 
-    -- 3. 内置 externals(施加于他人的增益)
+    -- 4. 内置 externals(施加于他人的增益)
     if I and I.GetExternals then
         local externals = I.GetExternals()
         if externals then
@@ -162,27 +162,129 @@ local function RefreshAllIcons()
     end
 end
 
--- 每个按钮 3 个图标槽(懒创建, 横向排列)
-local function GetIconSlots(button)
-    local slots = button._CastAuraTrackerIcons
+-------------------------------------------------
+-- 战斗图标驱动(复用 CellD icons 指示器渲染)
+-------------------------------------------------
+local function CombatBuffs_Update(button)
+    local icons = button.widgets and button.widgets.combatBuffs
+    if not icons then return end
+    local slots = button._combatBuffSlots
+    local count = 0
+    if slots then
+        for i = 1, icons.maxNum do
+            if slots[i] then
+                count = count + 1
+            end
+        end
+    end
+    if count == 0 then
+        icons:Hide(true)
+    else
+        icons:Show()
+        icons:UpdateSize(count)
+    end
+end
+
+local function CombatBuffs_Add(button, spellId, start, duration)
+    local icons = button.widgets and button.widgets.combatBuffs
+    if not icons then return end
+    local slots = button._combatBuffSlots
     if not slots then
         slots = {}
-        for i = 1, ICON_SLOTS do
-            local f = CreateFrame("Frame", nil, button)
-            f:SetSize(ICON_SIZE, ICON_SIZE)
-            f:SetPoint(ICON_POINT, button, ICON_POINT, -(i - 1) * (ICON_SIZE + 2), 2)
-            f.tex = f:CreateTexture(nil, "ARTWORK")
-            f.tex:SetAllPoints(f)
-            f.cd = CreateFrame("Cooldown", nil, f)
-            f.cd:SetAllPoints(f)
-            f.cd:SetDrawEdge(false)
-            f.cd:SetHideCountdownNumbers(true) -- 小图标上数字过大挡图标, 隐藏数字
-            f:Hide()
-            slots[i] = f
-        end
-        button._CastAuraTrackerIcons = slots
+        button._combatBuffSlots = slots
     end
-    return slots
+
+    -- 复用同法术槽(重置计时)
+    local slot
+    for i = 1, icons.maxNum do
+        local e = slots[i]
+        if e and e.spellId == spellId then
+            slot = i
+            break
+        end
+    end
+    if not slot then
+        -- 空槽
+        for i = 1, icons.maxNum do
+            if not slots[i] then
+                slot = i
+                break
+            end
+        end
+    end
+    if not slot then
+        -- 全满: 覆盖最早施放的槽
+        local oldest, oldestStart = 1, math.huge
+        for i = 1, icons.maxNum do
+            local e = slots[i]
+            if e and e.start < oldestStart then
+                oldest, oldestStart = i, e.start
+            end
+        end
+        slot = oldest
+    end
+
+    local old = slots[slot]
+    if old and old.timer then
+        old.timer:Cancel()
+    end
+
+    local icon = GetIconFileID(spellId)
+    icons[slot]:SetCooldown(start, duration or 0, nil, icon, 1, false)
+
+    local timer
+    if duration and duration > 0 then
+        timer = C_Timer.After(duration + 0.5, function()
+            local e = button._combatBuffSlots and button._combatBuffSlots[slot]
+            if e and e.spellId == spellId then
+                button._combatBuffSlots[slot] = nil
+                CombatBuffs_Update(button)
+            end
+        end)
+    end
+    slots[slot] = { spellId = spellId, start = start, timer = timer }
+    CombatBuffs_Update(button)
+end
+
+local function CombatBuffs_Remove(button, spellId)
+    local icons = button.widgets and button.widgets.combatBuffs
+    local slots = button._combatBuffSlots
+    if not slots then return end
+    for i = 1, icons and icons.maxNum or MAX_COMBAT_BUFFS do
+        local e = slots[i]
+        if e and e.spellId == spellId then
+            if e.timer then e.timer:Cancel() end
+            slots[i] = nil
+        end
+    end
+    CombatBuffs_Update(button)
+end
+
+local function CombatBuffs_Clear(button)
+    local icons = button.widgets and button.widgets.combatBuffs
+    if icons then
+        icons:Hide(true)
+    end
+    local slots = button._combatBuffSlots
+    if slots then
+        for _, e in pairs(slots) do
+            if e and e.timer then
+                e.timer:Cancel()
+            end
+        end
+        wipe(slots)
+    end
+    -- 旧版自绘图标兼容清理
+    if button._SecretAuraTrackerIcon then
+        button._SecretAuraTrackerIcon:Hide()
+    end
+    if button._CastAuraTrackerIcons then
+        for i = 1, 3 do
+            if button._CastAuraTrackerIcons[i] then
+                button._CastAuraTrackerIcons[i]:Hide()
+            end
+        end
+    end
 end
 
 -------------------------------------------------
@@ -190,47 +292,7 @@ end
 -------------------------------------------------
 local function HandleCast(spellId, target, start, duration)
     F.HandleUnitButton("unit", target, function(button)
-        local slots = GetIconSlots(button)
-        local entry = active[target] and active[target][spellId]
-        local used
-        if entry and entry.slot then
-            used = entry.slot -- 同法术复用槽位(重置计时)
-            if entry.timer then entry.timer:Cancel() end
-        else
-            for i = 1, ICON_SLOTS do
-                if not slots[i]:IsShown() then
-                    used = i
-                    break
-                end
-            end
-            used = used or ICON_SLOTS -- 全满时覆盖最后一个槽
-        end
-
-        local f = slots[used]
-        local icon = GetIconFileID(spellId)
-        if icon then
-            f.tex:SetTexture(icon)
-        else
-            f.tex:SetTexture([[Interface\Icons\INV_Misc_QuestionMark]])
-        end
-        f.cd:SetCooldown(start, duration or 0)
-        f:Show()
-
-        if not active[target] then active[target] = {} end
-        if active[target][spellId] and active[target][spellId].timer then
-            active[target][spellId].timer:Cancel()
-        end
-        local timer
-        if duration and duration > 0 then
-            timer = C_Timer.After(duration + 0.5, function()
-                local e = active[target] and active[target][spellId]
-                if e and e.slot == used then
-                    slots[used]:Hide()
-                    active[target][spellId] = nil
-                end
-            end)
-        end
-        active[target][spellId] = { slot = used, timer = timer }
+        CombatBuffs_Add(button, spellId, start, duration)
     end)
 end
 
@@ -238,24 +300,7 @@ end
 -- 清理
 -------------------------------------------------
 local function ClearAllIcons()
-    for unit, spells in pairs(active) do
-        F.HandleUnitButton("unit", unit, function(button)
-            local slots = button._CastAuraTrackerIcons
-            if slots then
-                for i = 1, ICON_SLOTS do
-                    slots[i]:Hide()
-                end
-            end
-            -- 兼容旧版单图标字段
-            if button._SecretAuraTrackerIcon then
-                button._SecretAuraTrackerIcon:Hide()
-            end
-        end)
-        for _, e in pairs(spells) do
-            if e.timer then e.timer:Cancel() end
-        end
-    end
-    wipe(active)
+    F.IterateAllUnitButtons(CombatBuffs_Clear, true)
 end
 
 -------------------------------------------------
@@ -263,17 +308,14 @@ end
 -------------------------------------------------
 local function FinishPending()
     if not pending then return end
+    local spellId = pending.spellId
     for unit in pairs(pending.targets) do
         F.HandleUnitButton("unit", unit, function(button)
-            if button._SecretAuraTrackerIcon then
-                button._SecretAuraTrackerIcon:Hide()
-            end
+            CombatBuffs_Remove(button, spellId)
         end)
     end
     F.HandleUnitButton("unit", "player", function(button)
-        if button._SecretAuraTrackerIcon then
-            button._SecretAuraTrackerIcon:Hide()
-        end
+        CombatBuffs_Remove(button, spellId)
     end)
     pending = nil
     if matchTicker then
@@ -345,11 +387,7 @@ local function MatchUnit(unit)
         pending.targets[unit] = true
         pending.count = pending.count + 1
         F.HandleUnitButton("unit", unit, function(button)
-            local f = GetIcon(button)
-            local icon = GetIconFileID(pending.spellId)
-            f.tex:SetTexture(icon or [[Interface\Icons\INV_Misc_QuestionMark]])
-            f.cd:SetCooldown(pending.start, pending.duration or 0)
-            f:Show()
+            CombatBuffs_Add(button, pending.spellId, pending.start, pending.duration)
         end)
         return
     end
@@ -386,11 +424,7 @@ local function MatchUnit(unit)
         pending.targets[unit] = true
         pending.count = pending.count + 1
         F.HandleUnitButton("unit", unit, function(button)
-            local f = GetIcon(button)
-            local icon = GetIconFileID(pending.spellId)
-            f.tex:SetTexture(icon or [[Interface\Icons\INV_Misc_QuestionMark]])
-            f.cd:SetCooldown(pending.start, pending.duration or 0)
-            f:Show()
+            CombatBuffs_Add(button, pending.spellId, pending.start, pending.duration)
         end)
     end
 end
@@ -410,25 +444,6 @@ local function StartMatchPolling()
     end)
 end
 
-local function GetIcon(button)
-    -- 美德道标兜底用单图标(与多槽图标并存)
-    local f = button._SecretAuraTrackerIcon
-    if not f then
-        f = CreateFrame("Frame", nil, button)
-        f:SetSize(ICON_SIZE, ICON_SIZE)
-        f:SetPoint(ICON_POINT, button, ICON_POINT, 0, 2)
-        f.tex = f:CreateTexture(nil, "ARTWORK")
-        f.tex:SetAllPoints(f)
-        f.cd = CreateFrame("Cooldown", nil, f)
-        f.cd:SetAllPoints(f)
-        f.cd:SetDrawEdge(false)
-        f.cd:SetHideCountdownNumbers(true)
-        f:Hide()
-        button._SecretAuraTrackerIcon = f
-    end
-    return f
-end
-
 local function StartBeaconTracking(spellId, duration)
     FinishPending()
     local start = GetTime()
@@ -445,11 +460,7 @@ local function StartBeaconTracking(spellId, duration)
 
     -- 兜底: 玩家自己框架显示"激活中"
     F.HandleUnitButton("unit", "player", function(button)
-        local f = GetIcon(button)
-        local icon = GetIconFileID(spellId)
-        f.tex:SetTexture(icon or [[Interface\Icons\INV_Misc_QuestionMark]])
-        f.cd:SetCooldown(start, duration or 0)
-        f:Show()
+        CombatBuffs_Add(button, spellId, start, duration)
     end)
 
     C_Timer.After((duration or 9) + 1, function()
@@ -459,6 +470,7 @@ local function StartBeaconTracking(spellId, duration)
     end)
 end
 
+-------------------------------------------------
 -- 获取施放目标(unit token)
 -- 12.1 战斗中目标识别通道盘点:
 --   ❌ UnitTarget / UNIT_SPELLCAST_TARGETED: 已移除
@@ -484,6 +496,27 @@ local function GetCastTargetToken()
         end
     end
     return nil
+end
+
+-------------------------------------------------
+-- 脱战扫描学习: 遍历队伍成员身上的 tracked 光环, 缓存真实时长
+-- (天赋不同导致同技能时长不同, 真实光环数据最准确, 无需手工维护)
+-------------------------------------------------
+local function LearnDurationsFromGroup()
+    IterateGroupUnits(function(unit)
+        local ok, ids = pcall(C_UnitAuras.GetUnitAuraInstanceIDs, unit, "HELPFUL")
+        if ok and ids then
+            for _, id in ipairs(ids) do
+                local ok2, d = pcall(C_UnitAuras.GetAuraDataByAuraInstanceID, unit, id)
+                if ok2 and d and d.spellId and not (F.IsSecretValue and F.IsSecretValue(d.spellId)) then
+                    local entry = tracked[d.spellId]
+                    if entry and d.duration and not (F.IsSecretValue and F.IsSecretValue(d.duration)) then
+                        entry.duration = d.duration
+                    end
+                end
+            end
+        end
+    end)
 end
 
 -------------------------------------------------
@@ -526,25 +559,6 @@ local function OnSpellCastSucceeded(unit, spellId)
         StartBeaconTracking(spellId, duration)
     end
     -- 其他无目标技能: 不显示(避免错误位置)
-end
-
--- 脱战扫描学习: 遍历队伍成员身上的 tracked 光环, 缓存真实时长
--- (天赋不同导致同技能时长不同, 真实光环数据最准确, 无需手工维护)
-local function LearnDurationsFromGroup()
-    IterateGroupUnits(function(unit)
-        local ok, ids = pcall(C_UnitAuras.GetUnitAuraInstanceIDs, unit, "HELPFUL")
-        if ok and ids then
-            for _, id in ipairs(ids) do
-                local ok2, d = pcall(C_UnitAuras.GetAuraDataByAuraInstanceID, unit, id)
-                if ok2 and d and d.spellId and not (F.IsSecretValue and F.IsSecretValue(d.spellId)) then
-                    local entry = tracked[d.spellId]
-                    if entry and d.duration and not (F.IsSecretValue and F.IsSecretValue(d.duration)) then
-                        entry.duration = d.duration
-                    end
-                end
-            end
-        end
-    end)
 end
 
 -------------------------------------------------
