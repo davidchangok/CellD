@@ -202,10 +202,38 @@ BigDebuffs 的法术字典支持 `parent = spellId` 继承。CellD 在外部队�
 - `GetHiddenGroupBuffs` / `SwitchAuraDataProvider` 语义未明（网络受限无法查蓝贴全文），若确认是"可见名单"机制可升级为精确追踪
 - toc 已更新 `Interface: 120100`
 
+### 最终方案（v1.0.8+ 施放追踪，commit 38bf685）
+
+**追踪列表**（每次施放重建，跨职业自动适配）：
+1. **官方 secret 名单**（warcraft.wiki.gg Patch 12.1.0 "Aura Classifications" 的 never-secret 移除清单，全职业 50+ 法术：奶骑 53563/156322/156910/1244893/200025/431381、奶德 774/8936/33763/48438/155777/439530、戒律 17/194384/1253593、神牧 139/41635/77489、奶僧、奶萨、奶龙全系）→ 用 **IsSpellKnown 过滤**（只追踪当前角色已学会的，天赋/职业切换自动适配）
+2. Healers 指示器列表 + externals（布局读取）
+3. 硬编码兜底（200025=9 秒实测值）
+
+**持续时间**（天赋差异自动适配，无需手工维护）：
+- **脱战扫描学习**（PLAYER_REGEN_ENABLED）：遍历队伍成员光环，缓存 tracked 法术的真实 duration
+- 脱战施放时从目标光环直接读取
+- 战斗中无 duration 缓存时显示图标但无扫光（避免错误时长误导）
+
+**目标识别**（12.1 全通道封死的可行路径）：
+- ❌ UnitTarget / UNIT_SPELLCAST_TARGETED：12.1 已移除
+- ❌ UnitName / UnitIsUnit：secret 值
+- ✅ **OnEnter/OnLeave hook 维护当前悬停单位**（`Cell.vars.secretAuraHoveredUnit`）+ GetMouseFocus 兜底 → 悬停/点击施法场景精确显示目标框架；键盘施法（鼠标不悬停）无法识别目标（12.1 硬限制）
+
+**受限环境判定**：
+- ❌ GetRestrictedActionStatus（12.1 失效，恒 false）
+- ✅ `UnitAffectingCombat("player")` + `ShouldSpellAuraBeSecret` 补充
+
+**12.1 API 研究结论存档**：
+- 法术书：`GetNumSpellBookItems` 已移除，`C_Spell.GetSpellDuration` 不存在，`SpellInfo` 无 duration 字段，`FindSpellBookSlotForSpell` 只对当前职业法术有效
+- AuraContainer 公共数据源 = 受限 API（战斗中不显示 secret 光环），已 revert
+- `UnitName` PvP 中不再 secret（其他环境仍 secret）
+
 ### 待办
-1. ~~队友目标匹配增强~~ ✅ v1.0.8 已实现 UnitTarget 快照方案（待用户战斗测试确认）
-2. ~~查 `SwitchAuraDataProvider` / `GetHiddenGroupBuffs` 官方语义~~ ✅ 已查明（见下）
-3. 社区反馈（[暴雪论坛 Friendly Cooldown Tracking Disabled with 12.1](https://us.forums.blizzard.com/en/wow/t/friendly-cooldown-tracking-disabled-with-121/2335400/3)）
+1. ~~队友目标匹配增强~~ ✅ v1.0.8 悬停/点击施法方案（键盘施法受限）
+2. ~~`SwitchAuraDataProvider` / `GetHiddenGroupBuffs` 语义~~ ✅ 冷却管理器 UI 配置，非光环通道
+3. ~~AuraContainer 官方通道~~ ✅ 已验证战斗中不显示 secret 光环，已 revert
+4. 社区反馈（[暴雪论坛 Friendly Cooldown Tracking Disabled with 12.1](https://us.forums.blizzard.com/en/wow/t/friendly-cooldown-tracking-disabled-with-121/2335400/3)）
+5. 全职业实测（用户玩所有治疗职业：换职业验证 IsSpellKnown 过滤 + 时长学习）
 
 ### 12.1 新 API 语义研究结论（蓝贴全文 + FrameXML 12.1.0 源码确认，2026-08-15）
 
