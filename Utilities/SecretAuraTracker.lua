@@ -83,8 +83,18 @@ local function BuildTrackedList()
     local ids = {}
 
     -- 1. 官方 secret 名单(12.1 战斗中不可读的治疗 HoT/buff, 全职业)
-    for _, id in ipairs(officialSecretSpells) do
-        ids[id] = true
+    --    用 IsSpellKnown 过滤: 只追踪当前角色已学会的技能
+    --    (天赋不同 → 学会的技能不同 → 追踪列表自动适配)
+    if IsSpellKnown then
+        for _, id in ipairs(officialSecretSpells) do
+            if IsSpellKnown(id) then
+                ids[id] = true
+            end
+        end
+    else
+        for _, id in ipairs(officialSecretSpells) do
+            ids[id] = true
+        end
     end
 
     -- 2. 硬编码兜底(关键法术永远追踪, 不受布局/时序影响)
