@@ -19,10 +19,10 @@ CellD 是从 [enderneko/Cell](https://github.com/enderneko/Cell) 分叉的魔兽
 1. 12.1 战斗中友方单位光环对插件**完全不可读**（蓝贴 *"Addons and Auras in Curse of Ula'tek"*）
    - `GetUnitAuraBySpellID` → nil；`GetUnitAuraInstanceIDs`/`GetAuraDataByIndex` → 抛错
    - 治疗 HoT/buff 被移出 "never secret" 名单（官方名单见 `Utilities/SecretAuraTracker.lua` 的 `officialSecretSpells`）
-   - 官方 `AuraContainer` 数据源同样受限（已验证，v1.1.0 已 revert）
+   - 官方 `AuraContainer` 引擎**能渲染**战斗 secret 光环（2026-08-18 实测：`HELPFUL` filter + includeSpellIDs 战斗中显示激流/大地之盾），但**无法集成到 CellD secure 按钮**（鼠标/显隐被引擎 C++ 侧控制，三次尝试 v1.3.0/1.3.1/1.3.2 全部回滚）
    - `UnitTarget`/`UNIT_SPELLCAST_TARGETED` 已移除；`UnitName`/`UnitIsUnit` 战斗中返回 secret
    - `GetRestrictedActionStatus` 12.1 失效（恒 false），改用 `UnitAffectingCombat`
-2. **唯一合法通道 = 施放事件追踪**（`UNIT_SPELLCAST_SUCCEEDED`，第一方信息）
+2. **CellD 采用通道 = 施放事件追踪**（`UNIT_SPELLCAST_SUCCEEDED`，第一方信息；AuraContainer 引擎虽能显示 secret 光环但架构不兼容无法集成，施放追踪是 CellD 可用方案）
    - 实现：`Utilities/SecretAuraTracker.lua`（v1.2.0）
    - 目标识别：`Cell.vars.secretAuraHoveredUnit`（UnitButton.lua 的 OnEnter/OnLeave hook）+ GetMouseFocus
    - 显示：复用 `I.CreateAura_Icons` 渲染（Built-in.lua 的 `I.CreateCombatBuffTracker`），视觉与脱战 Healers 指示器一致
@@ -44,6 +44,7 @@ CellD 是从 [enderneko/Cell](https://github.com/enderneko/Cell) 分叉的魔兽
 - 12.1 战斗中不要在事件回调里比较 `UnitName`/`UnitIsUnit` 的返回值（secret 值比较直接 Lua error，且 `IsSecretValue` 检查必须放在 `==` 比较**之前**）
 - 追踪列表不要用一次性构建 + 缓存标记（布局初始化时序会导致列表永久缺失）；每次施放重建 + 保留时长缓存
 - 战斗中层数（stack）不可知——不要显示层数，避免误导
+- **AuraContainer 禁止集成到 CellD 单位按钮**（2026-08-18 三次尝试全部回滚）：引擎托管对象与 SecureUnitButtonTemplate 架构级冲突，鼠标/悬停/点击施法失效、显隐不受 Lua 控制；仅独立容器（挂 UIParent 非按钮 child）能显示 secret 光环
 
 ## 📦 发布流程
 
