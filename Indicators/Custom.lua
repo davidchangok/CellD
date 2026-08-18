@@ -74,12 +74,6 @@ function I.UpdateIndicatorTable(indicatorTable)
 end
 
 function I.CreateIndicator(parent, indicatorTable)
-    -- v1.3.0: AuraContainer 接管 buff icons 指示器(Healers)显示,
-    -- 不再创建自绘 icons(避免与引擎容器双重显示), 布局循环已对其跳过
-    if indicatorTable["type"] == "icons" and indicatorTable["auraType"] == "buff" then
-        return nil
-    end
-
     local indicatorName = indicatorTable["indicatorName"]
     local indicator
     if indicatorTable["type"] == "icon" then
