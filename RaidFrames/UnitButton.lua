@@ -3242,6 +3242,10 @@ local function UnitButton_OnAttributeChanged(self, name, value)
         if type(value) == "string" then
             self.states.unit = value
             self.states.displayedUnit = value
+            -- v1.3.2: 独立层 AuraContainer 绑定单位(引擎跟踪光环)
+            if self.auracContainer then
+                self.auracContainer:SetUnit(value)
+            end
             if string.find(value, "^raid%d+$") then Cell.unitButtons.raid.units[value] = self end
 
             -- range
@@ -4475,7 +4479,8 @@ function CellUnitButton_OnLoad(button)
     I.CreateDispels(button)
     I.CreateRaidDebuffs(button)
     I.CreatePrivateAuras(button)
-    I.CreateCombatBuffTracker(button)
+    -- v1.3.2: 战斗 secret 光环由 AuraContainer 引擎显示(独立层对齐按钮, 替代 SecretAuraTracker 施放追踪)
+    I.CreateAuraContainer(button)
     I.CreateTargetedSpells(button)
     I.CreateTargetCounter(button)
     I.CreateCrowdControls(button)
