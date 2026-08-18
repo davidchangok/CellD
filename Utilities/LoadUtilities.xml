@@ -19,4 +19,5 @@
     <Script file="QuickAssist_ImportExport.lua"/>
     <Script file="QuickCast.lua"/>
     <Script file="SecretAuraTracker.lua"/>
+    <Script file="TestAuraContainer.lua"/>
 </Ui>

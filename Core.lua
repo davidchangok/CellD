@@ -67,6 +67,7 @@ Cell.animations = {}
 ---@class CellFuncs
 local F = Cell.funcs
 local I = Cell.iFuncs
+local U = Cell.uFuncs
 ---@type PixelPerfectFuncs
 local P = Cell.pixelPerfectFuncs
 local L = Cell.L
@@ -1092,11 +1093,20 @@ function SlashCmdList.CELL(msg, editbox)
     --         F.Print(L["A positive integer is required."])
     --     end
 
+    -- 测试: 12.1 战斗中 AuraContainer filter 可用性对比(RAID_IN_COMBAT 验证)
+    elseif command == "testaura" then
+        if U.TestAuraContainer then
+            U.TestAuraContainer(rest)
+        else
+            F.Print("TestAuraContainer 模块未加载(检查 LoadUtilities.xml 注册)")
+        end
+
     else
         F.Print(L["Available slash commands"]..":\n"..
             "|cFFFFB5C5/celld options|r: "..L["show Cell options frame"]..".\n"..
             "|cFFFFB5C5/celld healers|r: "..L["create a \"Healers\" indicator"]..".\n"..
             "|cFFFFB5C5/celld rescale|r: "..strlower(L["Apply Recommended Scale"])..".\n"..
+            "|cFFFFB5C5/celld testaura [unit]|r: ".."12.1 AuraContainer filter 对比测试(RAID_IN_COMBAT 验证).\n"..
             "|cFFFF7777"..L["These \"reset\" commands below affect all your characters in this account"]..".|r\n"..
             "|cFFFFB5C5/celld reset position|r: "..L["reset Cell position"]..".\n"..
             "|cFFFFB5C5/celld reset layouts|r: "..L["reset all Layouts and Indicators"]..".\n"..
