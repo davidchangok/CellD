@@ -18,7 +18,6 @@
     <Script file="QuickAssist_Config.lua"/>
     <Script file="QuickAssist_ImportExport.lua"/>
     <Script file="QuickCast.lua"/>
-    <!-- v1.3.2: 战斗 secret 光环由 AuraContainer 引擎显示(独立层), SecretAuraTracker 施放追踪停用(保留文件便于回退) -->
-    <!-- <Script file="SecretAuraTracker.lua"/> -->
+    <Script file="SecretAuraTracker.lua"/>
     <Script file="TestAuraContainer.lua"/>
 </Ui>
