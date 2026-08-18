@@ -234,6 +234,8 @@ local function HandleIndicators(b)
 
     for _, t in next, b._config do
         local indicator = b.indicators[t["indicatorName"]] or I.CreateIndicator(b, t)
+        -- v1.3.0: AuraContainer 接管的 buff icons 指示器(Healers) 由 I.CreateIndicator 返回 nil, 整段布局配置跳过
+        if indicator then
         indicator.configs = t
 
         -- update position
@@ -431,6 +433,7 @@ local function HandleIndicators(b)
         --         indicator:UpdatePixelPerfect()
         --     end
         -- end
+        end -- if indicator (v1.3.0 AuraContainer 接管跳过)
     end
 
     --! update pixel perfect for widgets
@@ -3242,6 +3245,10 @@ local function UnitButton_OnAttributeChanged(self, name, value)
         if type(value) == "string" then
             self.states.unit = value
             self.states.displayedUnit = value
+            -- v1.3.0: AuraContainer 绑定单位(引擎跟踪光环)
+            if self.widgets.aurac then
+                self.widgets.aurac:SetUnit(value)
+            end
             if string.find(value, "^raid%d+$") then Cell.unitButtons.raid.units[value] = self end
 
             -- range
@@ -4475,7 +4482,8 @@ function CellUnitButton_OnLoad(button)
     I.CreateDispels(button)
     I.CreateRaidDebuffs(button)
     I.CreatePrivateAuras(button)
-    I.CreateCombatBuffTracker(button)
+    -- v1.3.0: AuraContainer 统一光环显示(替代 SecretAuraTracker 施放追踪的战斗显示)
+    I.CreateAuraContainer(button)
     I.CreateTargetedSpells(button)
     I.CreateTargetCounter(button)
     I.CreateCrowdControls(button)
