@@ -249,7 +249,7 @@ BigDebuffs 的法术字典支持 `parent = spellId` 继承。CellD 在外部队�
 | `GetUnitAuraBySpellID`（按 ID 查询） | 战斗中返回 nil（用户实测全 party 遍历） | 精确查询失效 |
 | 12.1 新增 10 个 C_UnitAuras 函数 | AddAuraSound/CancelAuraByInstanceID/Get·SetHiddenGroupBuffs/Get·SetGroupBuffVisualAlerts/RemoveAuraSound/AddBlockedAura/ClearBlockedAuras/Reset·SwitchAuraDataProvider | 均非光环读取通道 |
 
-**最终结论**：12.1 战斗中显示被 secret 化的友方 buff（美德道标/HoT）在暴雪设计上**不可能**——官方 AuraContainer 也不行。**施放事件追踪（v1.0.8 的 UnitTarget 方案）是唯一合法可行方案**（第一方施放信息）。v1.1.0 AuraContainer 集成已 revert（commit c3976d2）。
+**最终结论**：12.1 战斗中显示被 secret 化的友方 buff（美德道标/HoT）**可以做到**——官方 **AuraContainer 引擎实测能显示 secret 光环**（2026-08-18 游戏内实测，治疗萨满：`filter="HELPFUL"` + `includeSpellIDs` 战斗中显示激流/大地之盾，推翻了本节 v1.1.0 revert 时"容器数据源同样受限"的**源码推断**——引擎 C++ 侧独立渲染，插件读不到数据不影响引擎显示）。`RAID_IN_COMBAT` 非必需且有脱战过滤副作用（实测 `HELPFUL|RAID_IN_COMBAT` 脱战只剩激流）。**v1.3.0 已集成 AuraContainer 统一光环显示**（commit 5ef6486），替代施放追踪（SecretAuraTracker 停用）。
 
 ### 小队遍历修正
 `IterateGroupUnits` 用 `GetNumGroupMembers()` 动态计算（5 人小队 = 自己 + party1-4），不再硬编码 4。
@@ -302,3 +302,34 @@ BigDebuffs 的法术字典支持 `parent = spellId` 继承。CellD 在外部队�
 3. 版本误报修复游戏内回归（v1.0.4 已含修复，待实战确认）
 4. BigDebuffs Midnight 实测（保留兼容代码）
 5. 性能优化（OnTick 高频 GUID 比较，需游戏内 profiler）
+
+---
+
+## 九、v1.3.0 AuraContainer 统一光环显示（2026-08-18）
+
+**版本 1.3.0 开发中**（commit 5ef6486 已推送 main，待游戏内测试通过后发布）。
+
+### 背景：推翻"容器受限"结论
+- 用户游戏内实测（治疗萨满，12.1 正式服）：AuraContainer + `filter="HELPFUL"` + `includeSpellIDs`（官方 secret 名单）**战斗中能显示** secret 光环（激流/大地之盾）
+- 推翻 v1.1.0 revert 依据（"容器数据源 = GetUnitAuraInstanceIDs 等受限 API → 必然不显示"的**源码推断**）——引擎 C++ 侧独立渲染，插件读不到数据不影响引擎显示
+- `RAID_IN_COMBAT` filter 实测：非必需（纯 HELPFUL 就能战斗显示），且脱战有过滤副作用（只剩激流）→ **不用它**
+- 当年 v1.1.0 实验（cc36155）已含 SetUnit，失败源于未充分游戏内实测即 revert
+
+### 集成内容（commit 5ef6486，5 文件 +253）
+| 文件 | 改动 |
+|------|------|
+| RaidFrames/UnitButton.xml | 新增 CellDAuraContainerTemplate + CellDAuraButtonTemplate（继承暴雪模板，含 IconTexture/TimerText/CountText/DurationCooldown）|
+| Indicators/Built-in.lua | 新增 I.CreateAuraContainer：读 Healers icons 配置（位置/大小/方向/字体），filter 纯 HELPFUL + includeSpellIDs（secret 名单+IsSpellKnown+Healers 列表+externals），常驻显示，frameLevel+10 |
+| RaidFrames/UnitButton.lua | OnLoad 创建容器；OnAttributeChanged SetUnit；布局循环对 nil 指示器跳过 |
+| Indicators/Custom.lua | I.CreateIndicator 对 buff icons 返回 nil（Healers 由 AuraContainer 接管，避免双重显示）|
+| Utilities/LoadUtilities.xml | SecretAuraTracker 停用（保留文件便于回退）|
+
+### 效果
+- 脱战/战斗统一引擎渲染：战斗中 HoT/道标/层数/倒计时全由引擎驱动，无键盘施法限制、无悬停识别需求
+- SecretAuraTracker 施放追踪退役（解决其键盘施法无法识别目标/无法感知驱散/战斗中无倒计时等边界）
+
+### 待办
+1. 游戏内实测 v1.3.0（按钮图标样式/位置/战斗表现）
+2. 测试通过后发布 v1.3.0（toc 版本号 + CHANGELOG + release）
+3. 删除 TestAuraContainer.lua 临时测试模块（commit 26c93fa/b26a9fa）
+4. 全职业实测（引擎渲染各职业 HoT/道标）
