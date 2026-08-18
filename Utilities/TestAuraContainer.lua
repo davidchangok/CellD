@@ -22,16 +22,19 @@ local F = Cell.funcs
 local U = Cell.uFuncs
 
 -------------------------------------------------
--- 测试追踪法术(各治疗职业战斗中被 secret 化的代表 HoT/道标)
+-- 测试追踪法术 = 官方 12.1 secret 名单(never-secret 移除清单)全职业完整列表
+-- 与 SecretAuraTracker.officialSecretSpells 一致, 任何治疗职业均可测试
+-- 来源: warcraft.wiki.gg Patch 12.1.0 "Aura Classifications"
 -------------------------------------------------
 local testSpellIDs = {
-    [200025] = true, [53563] = true, [156322] = true, [156910] = true, [1244893] = true, [431381] = true, -- Holy Paladin
-    [774] = true, [8936] = true, [33763] = true, [48438] = true, [155777] = true,                          -- Resto Druid
-    [17] = true, [194384] = true, [1253593] = true,                                                        -- Disc Priest
-    [139] = true, [41635] = true, [77489] = true,                                                          -- Holy Priest
-    [115175] = true, [119611] = true, [124682] = true, [450769] = true,                                    -- Mistweaver Monk
-    [974] = true, [61295] = true, [383648] = true, [207400] = true,                                        -- Resto Shaman
-    [355941] = true, [364343] = true, [373267] = true, [409895] = true,                                    -- Preservation Evoker
+    [355941] = true, [363502] = true, [364343] = true, [366155] = true, [367364] = true, [373267] = true, [376788] = true, [409895] = true, -- Preservation Evoker
+    [360827] = true, [395152] = true, [395296] = true, [410089] = true, [410263] = true, [410686] = true, [413984] = true,                   -- Augmentation Evoker
+    [774] = true, [8936] = true, [33763] = true, [48438] = true, [155777] = true, [439530] = true,                                          -- Resto Druid
+    [17] = true, [194384] = true, [1253593] = true, [1300008] = true, [1300009] = true,                                                      -- Disc Priest
+    [139] = true, [41635] = true, [77489] = true,                                                                                            -- Holy Priest
+    [115175] = true, [119611] = true, [124682] = true, [450769] = true, [1292922] = true,                                                    -- Mistweaver Monk
+    [974] = true, [383648] = true, [61295] = true, [382024] = true, [207400] = true, [444490] = true,                                        -- Restoration Shaman
+    [53563] = true, [156322] = true, [156910] = true, [1244893] = true, [200025] = true, [431381] = true,                                    -- Holy Paladin
 }
 
 -------------------------------------------------
