@@ -23,4 +23,32 @@
             </OnLoad>
         </Scripts>
     </Button>
+
+    <!-- 12.1 战斗 secret 光环引擎显示 (v1.3.1)
+         仅战斗中显示 AuraContainer(引擎能渲染被 secret 化的光环),
+         脱战隐藏交还现有 Healers 指示器。按钮样式复刻 CellD 自绘图标:
+         黑色方形背景 + 图标内缩 1px, 字体/位置跟随 Healers 配置。 -->
+    <ScopedModifier useForbiddenObjectTable="true">
+        <AuraContainer name="CellDAuraContainerTemplate" inherits="CustomAuraContainerTemplate" virtual="true" />
+
+        <AuraButton name="CellDAuraButtonTemplate" inherits="CustomAuraButtonTemplate" virtual="true">
+            <Layers>
+                <Layer level="BORDER">
+                    <Texture parentKey="IconTexture">
+                        <Anchors>
+                            <Anchor point="TOPLEFT" x="1" y="-1" />
+                            <Anchor point="BOTTOMRIGHT" x="-1" y="1" />
+                        </Anchors>
+                    </Texture>
+                </Layer>
+                <Layer level="OVERLAY">
+                    <FontString parentKey="TimerText" />
+                    <FontString parentKey="CountText" />
+                </Layer>
+            </Layers>
+            <Frames>
+                <Cooldown parentKey="DurationCooldown" inherits="CooldownFrameTemplate" setAllPoints="true" reverse="true" hideCountdownNumbers="true" drawSwipe="true" drawEdge="true" drawBling="false" />
+            </Frames>
+        </AuraButton>
+    </ScopedModifier>
 </Ui>
