@@ -332,6 +332,57 @@ local function IterateGroupUnits(callback)
     end
 end
 
+-------------------------------------------------
+-- 脱战重检(12.1: 战斗结束清空后长效光环如道标会消失)
+-- 脱战真实光环数据可读: 验证追踪法术是否仍在目标身上,
+-- 仍在 → 重新挂图标(真实剩余时长), 已消失 → 清理
+-- 注意: 必须定义在 IterateGroupUnits 之后(local 词法作用域)!
+-------------------------------------------------
+local function RecheckActiveAuras()
+    local active = {} -- [unit] = { [spellId] = remaining }
+
+    local function CheckUnit(unit)
+        local ok, ids = pcall(C_UnitAuras.GetUnitAuraInstanceIDs, unit, "HELPFUL")
+        if not ok or not ids then return end
+        for _, id in ipairs(ids) do
+            local ok2, d = pcall(C_UnitAuras.GetAuraDataByAuraInstanceID, unit, id)
+            if ok2 and d and d.spellId and not (F.IsSecretValue and F.IsSecretValue(d.spellId)) then
+                local entry = tracked[d.spellId]
+                if entry then
+                    local remaining
+                    if d.expirationTime and d.duration
+                        and F.IsValueNonSecret(d.expirationTime) and F.IsValueNonSecret(d.duration) then
+                        remaining = d.expirationTime - GetTime()
+                        if not (remaining and remaining > 0 and remaining <= d.duration) then
+                            remaining = d.duration -- 兜底: 完整时长
+                        end
+                    else
+                        remaining = entry.duration
+                    end
+                    active[unit] = active[unit] or {}
+                    active[unit][d.spellId] = remaining
+                end
+            end
+        end
+    end
+
+    CheckUnit("player")
+    IterateGroupUnits(CheckUnit)
+
+    -- 全量清理后按仍活跃的光环重挂
+    ClearAllIcons()
+    local added = 0
+    for unit, spells in pairs(active) do
+        for spellId, remaining in pairs(spells) do
+            added = added + 1
+            F.HandleUnitButton("unit", unit, function(button)
+                CombatBuffs_Add(button, spellId, GetTime(), remaining)
+            end)
+        end
+    end
+    return added
+end
+
 local function GetUnitAuraIDs(unit)
     -- 通道1: 批量实例 ID(受限环境会抛错, pcall 兜底)
     local ok, ids = pcall(C_UnitAuras.GetUnitAuraInstanceIDs, unit, "HELPFUL")
@@ -546,6 +597,11 @@ local function OnSpellCastSucceeded(unit, spellId)
     end
 
     -- 受限环境(战斗中): 接管显示
+    -- 若 AuraContainerOverlay 已启用, 由引擎直接显示 secret 光环, 不再手动渲染
+    if Cell.vars and Cell.vars.auraContainerOverlayActive then
+        return
+    end
+
     if target then
         HandleCast(spellId, target, GetTime(), duration)
     elseif spellId == 200025 then
@@ -566,7 +622,11 @@ eventFrame:SetScript("OnEvent", function(self, event, unit, castGUID, spellId)
     if event == "UNIT_SPELLCAST_SUCCEEDED" then
         OnSpellCastSucceeded(unit, spellId)
     elseif event == "PLAYER_REGEN_ENABLED" then
-        ClearAllIcons()
+        -- 先重检: 追踪法术(如 10 分钟道标)可能仍在目标身上, 真实数据脱战可读
+        -- 仍在 → 重挂图标(真实剩余时长); 已消失 → 清理
+        RecheckActiveAuras()
+        -- 延迟二次重检: 脱战瞬间数据可能仍处于 secret 尾巴(12.1), 稍后再试
+        C_Timer.After(1.5, RecheckActiveAuras)
         FinishPending()
         RefreshAllIcons()
         BuildTrackedList()

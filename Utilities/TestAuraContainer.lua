@@ -7,9 +7,10 @@
 --   用 filter "HELPFUL" 时战斗中不显示被 secret 化的光环, 故 revert。
 --   VuhDo 3.214 用 "HELPFUL|PLAYER|RAID_IN_COMBAT" 作为默认 HoT 组 filter,
 --   RAID_IN_COMBAT 疑似官方为"战斗中保留显示"预留的 C++ filter token。
---   本模块用双容器并排对比, 游戏内实测确认:
+--   本模块用三容器并排对比, 游戏内实测确认:
 --     A. "HELPFUL"                  (旧实验, 预期战斗中不显示)
 --     B. "HELPFUL|RAID_IN_COMBAT"   (VuhDo 方案, 预期战斗中显示)
+--     C. "HARMFUL"                  (debuff 显示测试)
 --   验证完成后删除本模块。
 --
 -- 用法:
@@ -106,7 +107,7 @@ function U.TestAuraContainer(cmd)
     cmd = cmd or ""
     cmd = strlower(strtrim(cmd))
 
-    -- off: 销毁全部测试容器
+    -- off: 隐藏测试容器
     if cmd == "off" or cmd == "hide" then
         if testFrame then
             testFrame:Hide()
@@ -128,13 +129,14 @@ function U.TestAuraContainer(cmd)
     end
 
     if not initialized then
-        -- 首次创建宿主 frame(含两个对比容器)
+        -- 首次创建宿主 frame(含三个对比容器)
         testFrame = CreateFrame("Frame", nil, UIParent)
-        testFrame:SetSize(400, 120)
+        testFrame:SetSize(400, 180)
         testFrame:SetPoint("CENTER", UIParent, "CENTER", 0, 200)
 
         CreateTestContainer(testFrame, "TOPLEFT", "TOPLEFT", 0,  "HELPFUL",                "A: HELPFUL")
         CreateTestContainer(testFrame, "TOPRIGHT", "TOPRIGHT", 0, "HELPFUL|RAID_IN_COMBAT", "B: HELPFUL|RAID_IN_COMBAT")
+        CreateTestContainer(testFrame, "BOTTOMLEFT", "BOTTOMLEFT", 0, "HARMFUL",            "C: HARMFUL")
 
         initialized = true
     end
@@ -144,6 +146,11 @@ function U.TestAuraContainer(cmd)
         entry.container:SetUnit(unit)
     end
     testFrame:Show()
+
+    -- 同时打印 CellD 框架上的 overlay 状态, 便于排查 debuff 不显示
+    if U.DebugAuraOverlay then
+        U.DebugAuraOverlay(unit)
+    end
 
     F.Print(string.format("CellD AuraContainer 测试: 目标 %s — 战斗中施放道标/HoT 后对比 A/B 是否显示图标", unit))
     F.Print("隐藏: /celld testaura off")

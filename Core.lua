@@ -1096,7 +1096,22 @@ function SlashCmdList.CELL(msg, editbox)
     -- 测试: 12.1 战斗中 AuraContainer filter 可用性对比(RAID_IN_COMBAT 验证)
     elseif command == "testaura" then
         if U.TestAuraContainer then
-            U.TestAuraContainer(rest)
+            local sub, unit = rest:match("^(%S*)%s*(.-)$")
+sub = strlower(sub or "")
+unit = unit or ""
+
+if sub == "info" or sub == "debug" then
+    -- 先强制同步(单位绑定/显隐)再输出, 脱战即可验证容器 unit 是否为真实单位
+    if U.DebugInfoSync then
+        U.DebugInfoSync(unit ~= "" and unit or "player")
+    elseif U.DebugAuraOverlay then
+        U.DebugAuraOverlay(unit ~= "" and unit or "player")
+    else
+        F.Print("AuraContainerOverlay 模块未加载(检查 LoadUtilities.xml 注册)")
+    end
+else
+    U.TestAuraContainer(rest)
+end
         else
             F.Print("TestAuraContainer 模块未加载(检查 LoadUtilities.xml 注册)")
         end
