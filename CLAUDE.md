@@ -29,6 +29,7 @@ CellD 是从 [enderneko/Cell](https://github.com/enderneko/Cell) 分叉的魔兽
    - 时长：脱战扫描自学习（天赋差异自动适配）+ 硬编码兜底
    - 追踪列表：官方 secret 名单 + `IsSpellKnown` 过滤（自动读取角色技能表）+ Healers 布局 + externals
 3. **已知边界**（暴雪设计，无法绕过）：键盘施法（鼠标不悬停）无法识别目标；无法感知驱散/提前结束；队友施放的增益不可见
+4. **2026-08 新学习（用户已实测）**：VuhDo 3.214 已用 AuraContainer + `includeSpellIDs` 作为 12.1 光环主通道；用户实测 `/celld testaura` 的 AuraContainer 战斗时全部显示，证明“非 secure 子 Frame 挂载 + 禁用鼠标”可避免 CellD 之前的集成冲突。**硬性约束：不得改变 grid 外观，鼠标/悬停施法必须保持可用。** 已新增 `Utilities/AuraContainerOverlay.lua`，包含 buff/debuff/驱散染色 overlay；**Debuff 图标已显示；驱散染色 v4 方案（2026-08-19）＝每类型 AuraSlot + `candidateFilters.includeDispelTypes={类型}`（引擎按驱散类型过滤 secret aura，不需法术 ID）+ 整格静态颜色纹理**。此前三条路已实测被引擎封死：SetAuraBorder 边框染色、slot+includeSpellIDs、icon:GetTexture 反查（引擎连图标 fileID 都做 secret 包装）——**引擎只可能泄露"类型"而绝不泄露"身份"**。待游戏内实测。退出前调试快照见 `STATUS.md` 第十节。
 
 ## 🛠 工作约定
 
@@ -44,7 +45,7 @@ CellD 是从 [enderneko/Cell](https://github.com/enderneko/Cell) 分叉的魔兽
 - 12.1 战斗中不要在事件回调里比较 `UnitName`/`UnitIsUnit` 的返回值（secret 值比较直接 Lua error，且 `IsSecretValue` 检查必须放在 `==` 比较**之前**）
 - 追踪列表不要用一次性构建 + 缓存标记（布局初始化时序会导致列表永久缺失）；每次施放重建 + 保留时长缓存
 - 战斗中层数（stack）不可知——不要显示层数，避免误导
-- **AuraContainer 禁止集成到 CellD 单位按钮**（2026-08-18 三次尝试全部回滚）：引擎托管对象与 SecureUnitButtonTemplate 架构级冲突，鼠标/悬停/点击施法失效、显隐不受 Lua 控制；仅独立容器（挂 UIParent 非按钮 child）能显示 secret 光环
+- **AuraContainer 不要集成到 SecureUnitButton 本身**（2026-08-18 三次尝试全部回滚）：引擎托管对象与 SecureUnitButtonTemplate 架构级冲突，鼠标/悬停/点击施法失效、显隐不受 Lua 控制；但 VuhDo 3.214 证明：**作为普通子 Frame（如 `$parentOlHost`）或独立容器挂载、并禁用鼠标事件，是可以与 secure 按钮共存的**。详细分析见 `STATUS.md` 第九节
 
 ## 📦 发布流程
 

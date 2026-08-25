@@ -302,3 +302,144 @@ BigDebuffs 的法术字典支持 `parent = spellId` 继承。CellD 在外部队�
 3. 版本误报修复游戏内回归（v1.0.4 已含修复，待实战确认）
 4. BigDebuffs Midnight 实测（保留兼容代码）
 5. 性能优化（OnTick 高频 GUID 比较，需游戏内 profiler）
+
+
+---
+
+## 九、VuhDo 3.214 光环实现分析（2026-08 学习）
+
+> 来源：`E:\Game\World of Warcraft\_retail_\Interface\AddOns\VuhDo`（TOC 120100，当前 Version 3.215；3.214 分析基础，3.215 changelog 无实质条目、文件结构无变化）。
+
+### 实测结论（用户确认）
+
+- `/celld testaura` 的 AuraContainer **战斗时能全部显示**，AuraContainer 路线可用。
+- **硬性约束**：不得改变 CellD grid 外观；鼠标必须能正常使用；悬停 grid 施法是核心功能，AuraContainer 绝不能拦截鼠标/点击。
+
+### VuhDo 的 12.1 光环方案
+
+1. **能力探测**
+   - `VuhDoConst.lua` 用 `C_XMLUtil.GetTemplateInfo("CustomAuraContainerTemplate")` 判断是否存在 12.1 原生 AuraContainer 模板。
+   - 存在时 `VUHDO_AURA_MODE_CONTAINERS = true`，进入“容器模式”；可用 `/命令` 强制关闭或强制开启。
+
+2. **双轨架构**
+   - **容器模式（AuraContainer 主用）**：每个单位按钮的每个光环锚点创建一个 `AuraContainer`，同时为“指示器覆盖层”（血条染色、边框、圆点）也创建 overlay 容器。
+   - **旧手动光环系统保留**：仅用于非光环类 bouquet 条目（状态条、文字等）以及无 AuraContainer 能力/强制关闭时的回退。
+
+3. **AuraContainer 挂载方式（关键）**
+   - 普通光环图标容器：parent 仍是单位按钮（`aButton`），但容器本身不是 SecureUnitButton。
+   - overlay 容器：parent 指向按钮内的普通 Frame `$parentOlHost`（非 SecureUnitButton），或直接挂到目标血条。
+   - 所有 AuraContainer/AuraButton 均 `SetMouseClickEnabled(false)`，鼠标/点击仍由原 secure 按钮负责。
+   - 这正好对应 CellD 之前“不要集成到 SecureUnitButton 内”的教训：**不是不能用 AuraContainer，而是不能把它当作 secure 按钮的一部分来接管鼠标/显隐**。
+
+4. **核心 API 用法**
+   - `AuraContainer:AddAuraGroup(key, filterString, options)`：动态流式布局，适合“一组同类光环”；
+   - `AuraContainer:AddAuraSlot(key, filterString, options)`：固定槽位，适合“列表式法术每个固定位置”；
+   - options 中关键字段：
+     - `candidateFilters.includeSpellIDs`：让 C 引擎只追踪指定法术（对 secret 环境尤其重要）；
+     - `candidateFilters.excludeSpellIDs` / `includeDispelTypes` / `maxDuration`；
+     - `templateNames`：使用 VuhDo 自定义的 `CustomAuraButtonTemplate`；
+     - `initializeFrame`：初始化按钮外观（图标/文字/冷却/颜色/发光）。
+   - `AuraContainer:SetUnit(unit)`、`SetEnabled(true)`、`SetShown(true)`、`UpdateAllAuras()`。
+   - `AuraButton` 上使用 `SetIcon`、`SetDurationBar`、`AddDispelTypeTexture`、`SetDurationText` 等原生绑定，让 C 引擎处理 secret 时长/层数/图标。
+
+5. **过滤器翻译**
+   - 旧 VuhDo 光环组语法转成原生 filter string，如：
+     - `HELPFUL` / `HARMFUL`
+     - `PLAYER` / `!PLAYER`
+     - `RAID_PLAYER_DISPELLABLE` → 附加 `includeDispelTypes`
+     - `NOT_CANCELABLE` → `!CANCELABLE`
+   - 列表型光环组（明确 spellId 列表）自动生成 `includeSpellIDs`，这正是 12.1 受限环境下“告诉引擎我要看哪些 secret 光环”的关键。
+
+6. **生命周期管理**
+   - 模板按 panel/anchor 缓存；AuraContainer 有对象池，按外观配置生成 pool key。
+   - 战斗锁定期间不能创建/改父级时，进入 pending 队列，`CanBeAccessedInContext()` 允许后再补建。
+   - 每个单位同步时检查：unit/guid/restricted/assist/disconnected/phase 等门控，必要时 `SetAuraGroupMaxFrameCount(0)` 或清空 filter 来隐藏。
+   - `VUHDO_refreshAuraContainer` 调用 `UpdateAllAuras()` + `SetOnUpdateMode(RunWhenVisible)`。
+
+### 对 CellD 的启发 / 可学习点
+
+1. **重新评估 AuraContainer 可行性**：VuhDo 证明“独立 AuraContainer + 非 secure 子 Frame 挂载”可以作为 12.1 光环显示通道。CellD 之前三次回滚可能是因为直接挂在 SecureUnitButton 或试图让它处理鼠标/显隐，而不是因为 AuraContainer 本身不可用。
+2. **优先用 `includeSpellIDs` 让引擎追踪已知法术**：CellD 已有 SecretAuraTracker 的追踪列表（官方 secret 名单 + IsSpellKnown + Healers 布局），完全可以转换为 `candidateFilters.includeSpellIDs`，可能比施放事件追踪更完整（队友施放、驱散、提前结束等仍受暴雪限制，但至少自己施放的 HoT 可交给引擎）。
+3. **从 Healers 指示器做 POC**：先做一个独立 AuraContainer（挂 UIParent 或按钮的普通 overlay Frame），用 `HELPFUL|PLAYER` + `includeSpellIDs` 渲染奶骑/奶德/戒律常用 HoT；验证战斗内是否显示、是否与 CellD 点击施法共存。
+4. **保留 SecretAuraTracker 作为 fallback**：对 AuraContainer 无法表达/未验证的法术继续用施放追踪，两者可并存。
+5. **已新增 `Utilities/AuraContainerOverlay.lua`（进行中）**：
+   - 每个单位按钮在 `indicatorFrame` 下挂 AuraContainer，AuraContainer/AuraButton 全部禁用鼠标，脱战隐藏、战斗显示；
+   - buff/HoT：`HELPFUL` + 同一追踪名单；SecretAuraTracker 在 overlay 激活时跳过手动渲染；
+   - debuff 图标：`HARMFUL`，按布局中 debuffs 的 position/size/orientation/num 创建；
+   - 驱散染色：`HARMFUL|RAID_PLAYER_DISPELLABLE` + `AddDispelTypeTexture` 使用 `CellDB["debuffTypeColor"]` 染色；
+   - 战斗中隐藏旧版 debuffs/dispels 避免重复；
+   - 实时同步：`GROUP_ROSTER_UPDATE` 同步现有按钮，`UpdateLayout` 后脱战重建覆盖层；
+   - 用户实测通过：战斗显示正常、鼠标/点击施法不受影响、脱战隐藏且 grid 外观不变；已按要求去掉倒计时数字。
+
+### 待验证问题
+
+- VuhDo 在容器模式下始终 `SetEnabled(true)`，是否真的能显示 12.1 战斗 secret 光环？需要游戏内用 CellD 同款场景实测。
+- AuraContainer 对“队友施放增益”和“驱散/提前结束”的可见性是否优于施放追踪。
+- CellD 的 21 种指示器哪些能映射到 AuraGroup/AuraSlot，哪些仍需静态旧框架。
+
+
+---
+
+## 十、退出前调试快照（2026-08）
+
+### 当前代码状态
+- `Utilities/AuraContainerOverlay.lua`：已支持 buff / debuff / 驱散染色三类 AuraContainer overlay，禁用鼠标，脱战隐藏，战斗显示。
+- `Utilities/TestAuraContainer.lua`：已增加第三个测试容器 `C: HARMFUL`，用于确认 AuraContainer 能否直接显示 harmful debuff。
+- `RaidFrames/UnitButton.lua`：已修复 `UnitIsCharmed` secret boolean 报错。
+- `Indicators/Built-in.lua`：已修复 `nameText:SetSize` 收到 secret 宽高报错。
+
+### VuhDo 参考结论（已对齐）
+- 普通 Debuff 组：`filter = "HARMFUL"`，`candidateFilters = nil`
+- 驱散染色组：`filter = "HARMFUL|RAID_PLAYER_DISPELLABLE"`
+- 不需要 `RAID_IN_COMBAT`，不需要空 `candidateFilters`
+
+### 当前进度（退出前保存）
+1. **Debuff 图标已能在 CellD Grid 上显示**（用户确认）。
+2. **驱散染色尚未生效（2026-08-19 已按 Grid2/VuhDo 对照修复，待游戏内实测，见第 7 节）**：用户测试了中毒/定身/减速等多种可驱散 Debuff，Grid 上没有出现可驱散变色。
+3. 当前代码状态：
+   - `AuraContainerOverlay.lua` 已加载（注释掉了 RegisterCallback 和加载时自动 ShowAll 两个加载期执行块，避免模块加载失败）。
+   - `TestAuraContainer.lua` 保持简单版本，确保能加载。
+   - Debuff overlay：`filter = "HARMFUL"`，`candidateFilters = nil`，已生效。
+   - Dispel overlay：`filter = "HARMFUL|RAID_PLAYER_DISPELLABLE"`，`candidateFilters = nil`，尚未变色。
+4. 已修复的报错：
+   - `TestAuraContainer` 加载失败（由 OnUpdate/C_Timer 代码导致，已移除）。
+   - `AuraButton:CanBeAccessedInContext/IsShown` 返回 secret boolean 的报错。
+5. **Grid2 4.0.22 / VuhDo 3.215 对照结论（当前焦点：VuhDo 的 `includeDispelTypes`）**：
+   - Grid2: `SetAuraBorder` + `customDispelColorMap`；VuhDo: `AddDispelTypeTexture` + `customDispelColorMap`（filter = `HARMFUL|DISPELLABLE` / `HARMFUL|RAID_PLAYER_DISPELLABLE` + `candidateFilters.includeDispelTypes`）
+   - 参考文件：`Grid2/modules/StatusAuras.lua`、`Grid2/modules/IndicatorSquare.lua`、`Grid2/GridIndicatorAuras.lua`、`VuhDo/VuhDoAuraContainer.lua`、`VuhDo/VuhDoAuraContainerOverlays.lua`、`VuhDo/VuhDoBouquets.lua`、`VuhDo/VuhDoAuraContainerFilters.lua`
+6. **2026-08-19 四轮实测结论 + v4 方案（当前代码状态）**：
+   - **实测 1**：slot 按钮 `shown=secret`（已绑定 secret aura）但无边框变色 → **引擎对 secret 光环拒绝渲染驱散类型边框**（SetAuraBorder/customDispelColorMap 会泄露驱散类型，属受限信息）
+   - **实测 2**：v2（每类型槽 + includeSpellIDs）三个类型槽**同时绑定**（Disease 槽绑定了非疾病 debuff）→ **引擎对 slot 忽略 includeSpellIDs**；多染色层叠加 → 颜色永远是最上层 Magic 蓝、叠成实色
+   - **实测 3**：`icon:GetTexture()` 返回 **secret**（引擎对图标 fileID 也做 secret 包装）→ **图标身份读取通道也被封死**
+   - **v4 当前方案（每类型槽 + `includeDispelTypes` + 静态颜色，无需任何法术数据库）**：
+     - filter = `"HARMFUL"`（裸 HARMFUL 是唯一实测能绑定+渲染的过滤）
+     - `candidateFilters.includeDispelTypes = { [类型]=true }` ← **v4.2 关键修正：必须是键值集合，不是数组！** Grid2 `GridDefaults.lua`：`{ includeDispelTypes = { Magic=true, Curse=true, ... } }`；VuhDo 的 `sAllDispelTypeNames` 同为 set；**v4.0/4.1 传数组 `{"Magic"}` → 引擎解析为空集 → 槽永不绑定 → 完全不渲染（"没变色"的真正根因）**
+     - 每个槽 initializeFrame 建整格**静态颜色纹理**（该类型固定色，C 引擎不参与上色，alpha=0.30*1.5=0.45 半透明）
+     - 创建顺序 Bleed→Poison→Disease→Curse→Magic（同层级后创建者在上层 = Magic 最高优先级，与 legacy 一致）
+     - 无匹配 → 槽不绑定 → 不改变 grid 外观；鼠标全部禁用
+     - 附带修复：`SyncButton` 对 `unit=none`（SoloFrame 等未分配单位）跳过绑定
+   - 保留（诊断用）：`HandleDebuff` 学习钩子（spellId+icon→type，脱战才可记录）、`/celld testaura dispeldb`
+7. 待下次继续（游戏内实测）：
+   - **v4.2 已实测通过！**（用户 2026-08-19：裸 `HARMFUL` + `includeDispelTypes` set 格式，风行者之塔显示染色成功）
+   - **v4.3/v4.4 教训（均已回退）**：
+     - v4.3 `ClearIcon/ClearAuraBorder/...`、v4.4 自定义空模板（无默认部件）**都让槽变 `inaccessible`** → 12.1 受限环境中槽的 aura 分配**依赖 `CustomAuraButtonTemplate` 的默认部件绑定**，不能移除
+     - 模板文件 `AuraContainerTemplates.xml` 保留但未引用（LoadUtilities.xml 已移除 Include）
+   - **v5.1 用户实测：染色成功显示！**（整格按驱散类型上色，嘉里克船长粉/阿闵绿/修加蓝等）
+   - **v5.2 修复（已改，待实测）两个新问题**：
+     - **颜色难看** → `AddDispelTypeTexture` 增加 `customDispelColorMap = BuildDispelColorMap()`（CellDB 用户色；VuhDo 生产路径组合；若引擎忽略则回退引擎默认色）
+     - **脱战后道标消失**（重要）→ 道标 200025 在 Healers 列表 + SecretAuraTracker 追踪；12.1 脱战后 legacy 刷新不恢复 → `SecretAuraTracker.lua` 的 `PLAYER_REGEN_ENABLED` 改为 `RecheckActiveAuras()`：先清空再用**脱战可读的真实数据**重检（`GetUnitAuraInstanceIDs`+`GetAuraDataByAuraInstanceID`），追踪法术仍挂目标（如 10 分钟道标）→ 重挂图标（真实剩余时长），已消失 → 清理
+   - **v5.3 加固（已改）**：脱战防泄漏——`HideAll` 同时 `SetEnabled(false)`（12.1 引擎可能自行恢复容器显隐；Grid2 ReleaseAuraContainer 同款：enable+show 一起关），`SyncButton` 显示时重新 `SetEnabled(true)`
+   - **v5.4 严重问题修复（已改，待实测）—— 用户实测反馈两个危险场景**：
+     - **染色糊住血条**（治疗看不到低血量）：alpha 从 0.615（双层合成值）降到 **0.30**（legacy highlight 值）——血条可读性恢复
+     - **脱战清空后 debuff 无显示**（毒还在挂但 Grid 全空，治疗危险）：12.1 脱战后 legacy 指示器刷新不恢复（`HideLegacyIndicators` 隐藏后无人重新显示，截图实证）→ **驱散染色改为常驻**：`PLAYER_REGEN_ENABLED`/`GROUP_ROSTER_UPDATE`/`PLAYER_ENTERING_WORLD` 后调 `SyncDispelsOutOfCombat()`（引擎用真实数据继续显示/上色）+ `HideLegacyDispels()`（永久隐藏 legacy dispels 防叠加）
+   - **v5.6 染色形态终改（已改，待实测）—— 用户实测"60% 数字与血量条显示不一致"（整格染色压缩血量对比，治疗看错血量=危险）**：
+     - **边框式染色**：4 条 2px 边 + 底部 3px 信号条，全部 `AddDispelTypeTexture(PreserveAsset)` 引擎按类型着色（CellDB 色表）→ **血条 100% 零遮挡可读**，染色只在边缘/底条（BigWigs 边框思路 + 常驻显隐）
+     - 移除整格白色大纹理与 alpha 参数（glowAlpha/highlightAlpha 不再使用）
+     - 用户此前观察"远距离队友 = 染色+正常血条并存"即正确形态的标杆
+   - 验证协议：`/reload` → 战斗（染色=边框+底条）→ 低血量队友数字与血条**一致可读** → 脱战边框仍显示 → 道标保留
+ 8. **2026-08-20 血条+染色终改（已改，待游戏内实测）—— 推翻"secret 直喂满宽"误诊，对齐上游 r279**：
+    - **误诊链澄清**：此前"secret 直喂 → StatusBar 渲染满宽"的前提错误。真相：`_midnightPctCurve` 解码方案的输出在 Lua 侧仍是 secret（血条数字正确是因 string.format 是 C 通道），战斗中解码永远失败 → `healthPercent` 永远保留**进战前缓存的非 secret 值** → 0..100 分支触发 → **血条冻结在进战时的值**（用户截图铁证：阿间 CellD 90% vs 参照框 80% = 冻结；嘉里克进战 ~100% → 条满 → 染色整格粉）
+    - **上游证据**：Cell r279-beta（12.1 生产版）`UpdateHealth`/`UpdateHealthMax` 始终 secret 原值直喂 StatusBar（C++ 原生算比例），secret 时 `healthPercent=0` 哨兵，无解码。已克隆至 `.research/Cell-upstream` 备查
+    - **已回退**：删除 `_midnightPctCurve` 及 UpdateHealth/UpdateHealthMax 的 0..100 分支 → 恢复 secret 直喂；UpdateHealthStates secret → `healthPercent=0`（上游同款）；阈值守卫加 `>0` 哨兵判断（战斗中隐藏阈值线）
+    - **染色最终形态（用户拍板：两色均需可见）= 血量空缺区染色**：有血=职业色（血条原样零遮挡），空缺区=驱散色（`AddDispelTypeTexture` 引擎按真实类型上色，CellDB 色表，alpha 0.5）；锚点与 `healthBarLoss` 几何一致（纯锚点 C 侧跟随填充，secret 安全）；满血时退化为填充末端 4px 信号条（`DISPEL_MARKER_WIDTH`，否则满血+debuff 无提示）；`hooksecurefunc(Cell.bFuncs,"SetOrientation")` 处理水平/vertical_health 重锚
+    - 验证协议：`/reload` → 战斗中队友掉血**血条实时跟随**（不再冻结）→ 有 debuff 时**空缺区显示类型色、有血区职业色不变** → 满血+debuff = 末端 4px 色条 → 脱战行为不变、道标保留
