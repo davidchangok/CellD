@@ -72,6 +72,15 @@ local UnitClassBase = function(unit)
     return select(2, UnitClass(unit))
 end
 
+-- 12.1: UnitIsCharmed 可能返回 secret boolean, 统一安全取值
+local function IsUnitCharmed(unit)
+    local charmed = UnitIsCharmed(unit)
+    if F.IsSecretValue and F.IsSecretValue(charmed) then
+        return false
+    end
+    return charmed
+end
+
 local barAnimationType, highlightEnabled, predictionEnabled
 local shieldEnabled, overshieldEnabled, overshieldReverseFillEnabled
 local absorbEnabled, absorbInvertColor
@@ -1160,6 +1169,9 @@ end
 
 local function HandleDebuff(self, auraInfo)
     local auraInstanceID = auraInfo.auraInstanceID
+    -- 12.1 受限环境: auraInstanceID 为 secret 时无法做表键(_debuffs_cache/_debuffs_dispel...),
+    -- 直接跳过; 此类 secret 光环由 AuraContainerOverlay 引擎通道显示
+    if F.IsSecretValue and F.IsSecretValue(auraInstanceID) then return end
     local name = auraInfo.name
     -- auraInfo.icon may be a secret fileID on Midnight 12.0.0+
     -- SetTexture() accepts secret numbers, so this works as-is
@@ -1201,6 +1213,7 @@ local function HandleDebuff(self, auraInfo)
     -- check Bleed
     -- On Midnight in restricted context, spellId may be secret; I.CheckDebuffType guards internally
     debuffType = I.CheckDebuffType(debuffType, spellId)
+
 
     -- Store computed values on auraInfo so rendering loop can read them directly
     auraInfo._start = start
@@ -1508,6 +1521,9 @@ local function HandleBuff(self, auraInfo)
     local unit = self.states.displayedUnit
 
     local auraInstanceID = auraInfo.auraInstanceID
+    -- 12.1 受限环境: auraInstanceID 为 secret 时无法做表键(_buffs_cache[...]), 直接跳过;
+    -- 此类 secret 光环由 AuraContainerOverlay 引擎通道显示
+    if F.IsSecretValue and F.IsSecretValue(auraInstanceID) then return end
     local name = auraInfo.name
     -- auraInfo.icon may be a secret fileID on Midnight 12.0.0+
     -- SetTexture() accepts secret numbers, so this works as-is
@@ -1808,6 +1824,11 @@ local function UnitButton_UpdateCalculator(self)
     UnitGetDetailedHealPrediction(unit, "player", calc)
 end
 
+-- 12.1 血条 = StatusBar 直接喂 secret min/max/value, C++ 原生算比例渲染
+-- (上游 Cell r279-beta 生产验证)。不存在 Lua 侧"曲线解码": EvaluateCurrentHealthPercent
+-- 的输出仍是 secret, 只能被 C 通道(string.format/StatusBar/SetAlpha)消费。
+-- 旧版"解码+缓存"方案会在战斗中把血条冻结在进战时的缓存值(实测: 90% vs 实际 80%)。
+
 local function UnitButton_UpdateHealthStates(self, diff)
     local unit = self.states.displayedUnit
 
@@ -1821,12 +1842,10 @@ local function UnitButton_UpdateHealthStates(self, diff)
         if F.IsValueNonSecret(hpPct) then
             self.states.healthPercent = hpPct
         else
-            -- Secret: keep previous cached value so health bar color doesn't flash red.
-            -- class_color/class_color_dark modes don't use percent so are unaffected anyway;
-            -- threshold/gradient modes will show the last known color until secret clears.
-            if not self.states.healthPercent then
-                self.states.healthPercent = 1 -- initial default: full health
-            end
+            -- Secret: default to 0 so F.GetHealthBarColor won't trigger fullColor (which checks == 1).
+            -- class_color/class_color_dark modes don't use percent, so they still work.
+            -- (上游 r279 同款; 阈值/渐变色在战斗中用 sentinel 0, 见 UpdateHealth 守卫)
+            self.states.healthPercent = 0
         end
         -- Death detection uses non-secret boolean
         self.states.wasDead = self.states.isDead
@@ -2313,7 +2332,8 @@ local function UnitButton_UpdateHealthMax(self)
         -- Always use native SetMinMaxValues on Midnight since maxHealth may be secret.
         local maxHealth = self.widgets.healthCalculator:GetMaximumHealth()
         self.widgets.healthBar:SetMinMaxValues(0, maxHealth)
-        -- Also update overlay bar ranges
+        -- Also update overlay bar ranges (这些条 SetValue 直接喂 secret 原值,
+        -- C++ 端按量程原生计算比例, 与血条同机制)
         if self.widgets.incomingHeal then
             self.widgets.incomingHeal:SetMinMaxValues(0, maxHealth)
         end
@@ -2350,6 +2370,7 @@ local function UnitButton_UpdateHealth(self, diff, skipStateUpdates)
 
     if Cell.isMidnight and self.widgets.healthCalculator then
         -- MIDNIGHT PATH: pass secret values directly to status bar
+        -- (C++ 原生按 min/max 计算填充比例, 上游 r279 生产验证; 不要尝试 Lua 解码)
         local calc = self.widgets.healthCalculator
         local health = calc:GetCurrentHealth()
         -- Always use native SetValue on Midnight — SetSmoothedValue (SetBarValue in Smooth mode)
@@ -2365,8 +2386,9 @@ local function UnitButton_UpdateHealth(self, diff, skipStateUpdates)
         end
 
         -- Health thresholds: guard healthPercent for secret values on Midnight
+        -- (secret 时 healthPercent=0 哨兵, 0 会误触发最低阈值线 → 隐藏)
         if enabledIndicators["healthThresholds"] then
-            if not Cell.isMidnight or (self.states.healthPercent and F.IsValueNonSecret(self.states.healthPercent)) then
+            if not Cell.isMidnight or (self.states.healthPercent and F.IsValueNonSecret(self.states.healthPercent) and self.states.healthPercent > 0) then
                 self.indicators.healthThresholds:CheckThreshold(self.states.healthPercent or 1)
             else
                 self.indicators.healthThresholds:Hide()
@@ -2828,8 +2850,12 @@ UnitButton_UpdateNameTextColor = function(self)
     if not unit then return end
 
     if enabledIndicators["nameText"] then
+        local isCharmed = UnitIsCharmed(unit)
+        if F.IsSecretValue and F.IsSecretValue(isCharmed) then
+            isCharmed = false
+        end
         if indicatorColors["nameText"][1] == "class_color" or not UnitIsConnected(unit)
-        or ((UnitIsPlayer(unit) or UnitInPartyIsAI(unit)) and UnitIsCharmed(unit)) or self.states.inVehicle then
+        or ((UnitIsPlayer(unit) or UnitInPartyIsAI(unit)) and isCharmed) or self.states.inVehicle then
             self.indicators.nameText:SetColor(F.GetUnitClassColor(unit))
         else
             self.indicators.nameText:SetColor(unpack(indicatorColors["nameText"][2]))
@@ -2866,11 +2892,15 @@ UnitButton_UpdateHealthColor = function(self)
         lossA =  CellDB["appearance"]["lossAlpha"]
     end
 
+    local isCharmed = UnitIsCharmed(unit)
+    if F.IsSecretValue and F.IsSecretValue(isCharmed) then
+        isCharmed = false
+    end
     if UnitIsPlayer(unit) or UnitInPartyIsAI(unit) then -- player
         if not UnitIsConnected(unit) then
             barR, barG, barB = 0.4, 0.4, 0.4
             lossR, lossG, lossB = 0.4, 0.4, 0.4
-        elseif UnitIsCharmed(unit) then
+        elseif isCharmed then
             barR, barG, barB, barA = 0.5, 0, 1, 1
             lossR, lossG, lossB, lossA = barR*0.2, barG*0.2, barB*0.2, 1
         elseif self.states.inVehicle then

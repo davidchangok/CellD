@@ -1355,7 +1355,11 @@ function I.CreateNameText(parent)
         -- Midnight: GetWidth()/GetHeight() return secret when text is secret.
         -- Use parent button dimensions as fallback to keep name visible.
         if not F.IsSecretValue(parent.states.name) then
-            nameText:SetSize(nameText.name:GetWidth(), nameText.name:GetHeight())
+            local nameWidth = nameText.name:GetWidth()
+            local nameHeight = nameText.name:GetHeight()
+            if F.IsSecretValue(nameWidth) then nameWidth = parent:GetWidth() - 4 end
+            if F.IsSecretValue(nameHeight) then nameHeight = 18 end
+            nameText:SetSize(nameWidth, nameHeight)
         else
             nameText:SetSize(parent:GetWidth() - 4, 18)
         end
