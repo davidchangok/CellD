@@ -91,15 +91,16 @@ local function BuildTrackedList()
                 ids[id] = true
             end
         end
-    else
-        for _, id in ipairs(officialSecretSpells) do
-            ids[id] = true
-        end
+        -- ★ 注意: 不做"全量兜底"(IsSpellKnown 不可用时)——全量会导致奶德
+        --   追踪到圣骑道标 200025 等跨职业技能(用户实测异常)
     end
 
     -- 2. 硬编码兜底(关键法术永远追踪, 不受布局/时序影响)
+    --    ★ 必须按 IsSpellKnown 过滤: 奶德不得追踪 200025(仅测试过奶骑场景)
     for id in pairs(defaultDurations) do
-        ids[id] = true
+        if not IsSpellKnown or (IsSpellKnown and IsSpellKnown(id)) then
+            ids[id] = true
+        end
     end
 
     -- 3. 当前布局中自定义指示器(Healers 等)的 buff 列表

@@ -89,10 +89,8 @@ local function BuildTrackedIDs()
                 ids[id] = true
             end
         end
-    else
-        for _, id in ipairs(officialSecretSpells) do
-            ids[id] = true
-        end
+        -- ★ 注意: 不做"全量兜底"(IsSpellKnown 不可用时)"——
+        --   全量会导致奶德追踪到圣骑道标 200025 等跨职业技能(用户实测异常)
     end
 
     -- 当前布局中自定义 buff 指示器(Healers 等)的法术列表
@@ -856,6 +854,32 @@ local function SyncDispelsOutOfCombat()
         end
     end, true)
 end
+
+-------------------------------------------------
+-- 战斗期轻量刷新: 引擎自身 tick 有延迟, 新 debuff 落地后图标出现略慢;
+-- 每 0.5s 调一次 UpdateAllAuras 兜底(仅 shown 期间, 成本极低)
+-------------------------------------------------
+local _refreshTimer = 0
+local refreshFrame = CreateFrame("Frame")
+refreshFrame:SetScript("OnUpdate", function(self, elapsed)
+    if not shown then
+        _refreshTimer = 0
+        return
+    end
+    _refreshTimer = _refreshTimer + elapsed
+    if _refreshTimer < 0.5 then return end
+    _refreshTimer = 0
+    for button, overlays in pairs(containers) do
+        if overlays then
+            for _, key in ipairs(overlayKeys) do
+                local container = overlays[key]
+                if container and container.UpdateAllAuras then
+                    container:UpdateAllAuras()
+                end
+            end
+        end
+    end
+end)
 
 -------------------------------------------------
 -- 事件
