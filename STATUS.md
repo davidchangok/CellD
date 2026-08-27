@@ -380,6 +380,29 @@ BigDebuffs 的法术字典支持 `parent = spellId` 继承。CellD 在外部队�
 
 ---
 
+## 十一、2026-08-20 最终状态（功能线收尾，已提交推送）
+
+**已提交**（GitHub 已推送）：
+- `547a4e6 feat` 12.1 受限环境引擎通道光环显示（驱散染色/防御技能/道标常驻）
+- `b7f1c2f fix` secret 安全防护（HandleBuff/HandleDebuff 表键守卫）
+- `555f44d docs` STATUS/CLAUDE 更新
+- `a6e65cf fix` 职业化追踪列表 + debuff 检测刷新
+
+**最终方案要点**（用户拍板/实测）：
+1. 驱散染色 = 单槽 `AddAuraSlot("HARMFUL")` + **DF 同款渐变载体**（`Media/Gradients/DF_Gradient_V` 上实下透 + dim host 帧承载 opacity + BLEND）+ **`customDispelColorCurve`**（DB2 类型 ID：None=0/Magic=1/Curse=2/Disease=3/Poison=4/Enrage=9/Bleed=11，secret 安全——**customDispelColorMap 按 secret dispelName 查表战斗中永远 no-op，是往年全部"颜色不对"的根因**）+ 锚定血条**填充纹理**（自动跟随真实血量，空区不罩）+ **alpha=1.0**
+2. 血条 = 上游 r279 secret 直喂（C++ 原生比例，**勿改**；"曲线解码"是冻结 bug——EvaluateCurrentHealthPercent 输出仍是 secret）
+3. 防御技能 = 独立 `AddAuraGroup("HELPFUL"+includeSpellIDs=I.GetDefensives 全职业)`，战斗接管/脱战交还 legacy
+4. 道标/HoT = buff overlay 引擎显示 + SecretAwareTracker **脱战重检**（长效光环保留；`RecheckActiveAuras` 词法作用域注意：定义必须在 IterateGroupUnits 之后！）
+5. **职业化追踪**（奶德不得显示圣骑道标）：移除 IsSpellKnown 不可用时的全量兜底（曾导致跨职业误显）；`defaultDurations` 硬编码兜底同样按 IsSpellKnown 过滤
+6. **流血可驱散**（保留 Bleed 染色）：奶龙（Evoker 恢复）净化术含流血（`Indicator_DefaultSpells.lua:601` [1468] 含 Bleed 93294）
+7. debuff 检测 ≤0.5s：战斗期 0.5s `UpdateAllAuras` 轻量兜底（引擎 tick 延迟补偿）
+8. 常驻显示 + `HideLegacyDispels`（hooksecurefunc 抑制 legacy glow/highlight，防双层）+ HideAll 双管 `SetEnabled(false)`
+9. 已知边界：`/reload` 恰逢战斗中 → 本场无 overlay（战斗锁禁创建，脱战后恢复）；多 debuff = 引擎取最先到期类型上色；会话中改 debuffTypeColor 需 `/reload`
+
+**参考实现**（均本地可查）：DandersFrames（`Features/Dispel.lua` + `Frames/Border.lua:843-920` 曲线/渐变载体/dim host）、BigWigs（`BigWigs_Plugins/Auras.lua`）、Grid2（`IndicatorBar.lua:32-53` 填充锚定 + `GridDefaults.lua:254` set 格式）、VuhDo（`VuhDoAuraContainer.xml` + `VuhDoAuraContainer.lua:845`）、原版 Cell（`Indicators/Built-in.lua:685-722` gradient-half）
+
+---
+
 ## 十、退出前调试快照（2026-08）
 
 ### 当前代码状态

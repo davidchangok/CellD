@@ -29,7 +29,7 @@ CellD 是从 [enderneko/Cell](https://github.com/enderneko/Cell) 分叉的魔兽
    - 时长：脱战扫描自学习（天赋差异自动适配）+ 硬编码兜底
    - 追踪列表：官方 secret 名单 + `IsSpellKnown` 过滤（自动读取角色技能表）+ Healers 布局 + externals
 3. **已知边界**（暴雪设计，无法绕过）：键盘施法（鼠标不悬停）无法识别目标；无法感知驱散/提前结束；队友施放的增益不可见
-4. **2026-08 新学习（用户已实测）**：VuhDo 3.214 已用 AuraContainer + `includeSpellIDs` 作为 12.1 光环主通道；用户实测 `/celld testaura` 的 AuraContainer 战斗时全部显示，证明“非 secure 子 Frame 挂载 + 禁用鼠标”可避免 CellD 之前的集成冲突。**硬性约束：不得改变 grid 外观，鼠标/悬停施法必须保持可用。** 已新增 `Utilities/AuraContainerOverlay.lua`，包含 buff/debuff/驱散染色 overlay；**Debuff 图标已显示；驱散染色 v4 方案（2026-08-19）＝每类型 AuraSlot + `candidateFilters.includeDispelTypes={类型}`（引擎按驱散类型过滤 secret aura，不需法术 ID）+ 整格静态颜色纹理**。此前三条路已实测被引擎封死：SetAuraBorder 边框染色、slot+includeSpellIDs、icon:GetTexture 反查（引擎连图标 fileID 都做 secret 包装）——**引擎只可能泄露"类型"而绝不泄露"身份"**。待游戏内实测。退出前调试快照见 `STATUS.md` 第十节。
+4. **2026-08 新学习（用户已实测）**：VuhDo 3.214 已用 AuraContainer + `includeSpellIDs` 作为 12.1 光环主通道；用户实测 `/celld testaura` 的 AuraContainer 战斗时全部显示，证明“非 secure 子 Frame 挂载 + 禁用鼠标”可避免 CellD 之前的集成冲突。**硬性约束：不得改变 grid 外观，鼠标/悬停施法必须保持可用。** 已新增 `Utilities/AuraContainerOverlay.lua`，包含 buff/debuff/驱散染色/防御技能四类 overlay；**2026-08-20 功能线收尾（已提交推送）**：驱散染色 = DF 同款渐变载体（`Media/Gradients/DF_Gradient_V` + dim host 帧 opacity）+ **`customDispelColorCurve`（DB2 类型 ID，secret 安全；`customDispelColorMap` 按 secret dispelName 查表战斗中永远 no-op，是历史"颜色不对"根因）** + 填充纹理锚定（跟随真实血量）；血条 = 上游 r279 secret 直喂勿改；追踪列表职业化（奶德不显示 200025，移除全量兜底）；**参考实现首选 DandersFrames `Features/Dispel.lua`/`Frames/Border.lua:843`（用户实测"很好"）**，其次 BigWigs/Grid2/VuhDo/原版 Cell（源码均本地）。调试快照见 `STATUS.md` 第十/十一节。
 
 ## 🛠 工作约定
 
