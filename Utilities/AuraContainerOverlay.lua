@@ -21,7 +21,8 @@ local _, Cell = ...
 local F = Cell.funcs
 local I = Cell.iFuncs
 local U = Cell.uFuncs
-local P = Cell.pixelPerfectFuncs
+-- 注: 本模块不使用 Cell.pixelPerfectFuncs —— 容器尺寸全部来自用户布局配置
+-- (已是像素对齐值), 再做 P.Scale 反而会二次缩放导致错位。
 
 Cell.vars = Cell.vars or {}
 
@@ -369,7 +370,8 @@ end
 --   BigWigs 证明引擎侧渲染(图标/边框/着色)在受限环境可用, 插件侧读取全部封死
 -------------------------------------------------
 local _dispelTypes = {"Magic", "Curse", "Disease", "Poison", "Bleed"}
-local _dispelTypeSet = {Magic = true, Curse = true, Disease = true, Poison = true, Bleed = true}
+-- 注: 旧 v4 的 _dispelTypeSet(键值集合)随 per-type 槽方案一并移除 ——
+-- 单槽方案(AddAuraSlot("HARMFUL"))不再需要类型集合。
 
 -- 构建 CellDB 用户色映射(AddDispelTypeTexture 的 customDispelColorMap;
 -- VuhDo 生产路径 = AddDispelTypeTexture + customDispelColorMap)
@@ -409,40 +411,67 @@ end
 --   参考: DandersFrames Frames/Border.lua:843-920 (GetDispelColorCurve)
 local _dispelDB2IDs = {None = 0, Magic = 1, Curse = 2, Disease = 3, Poison = 4, Enrage = 9, Bleed = 11}
 
-local function GetCellDispelRGB(dispelType)
-    local c = CellDB and CellDB["debuffTypeColor"] and CellDB["debuffTypeColor"][dispelType]
-    if c and c.r and c.g and c.b then
-        return c.r, c.g, c.b
-    end
-    local fallback = {
-        Magic = {0.2, 0.6, 1.0},
-        Curse = {0.6, 0.0, 1.0},
-        Disease = {0.6, 0.4, 0.0},
-        Poison = {0.0, 0.6, 0.0},
-        Bleed = {1.0, 0.2, 0.6},
-    }
-    local f = fallback[dispelType] or {1, 1, 1}
-    return f[1], f[2], f[3]
-end
-
+-- ★★ P0-A 修正(2026-08-27): 曲线与色表必须"二选一", 且曲线必须用 Blizzard
+--    ColorMixin(DEBUFF_TYPE_*_COLOR)而非 Lua CreateColor 构建。
+--
+--    依据链(全部读自本机源码, 非推测):
+--    1. Blizzard_CustomAuraButton.lua:410-412 —— 引擎**无条件**让 curve 覆盖 map:
+--         `if options.customDispelColorCurve then color = GetAuraDispelTypeColor(...) end`
+--       不检查 map 结果 → **曲线存在但无效 = 连本来对的 map 也被丢弃**
+--       (DandersFrames Frames/Border.lua:857-863 "曲线有洞比没曲线更糟")
+--    2. 本插件 Indicator_Defaults.lua:277-278 原注:
+--         "Blizzard native ColorMixin objects (DEBUFF_TYPE_*_COLOR) work correctly as
+--          dsCurve AddPoint arguments where Lua CreateColor() objects do not."
+--       DandersFrames 的权威 GoF 曲线(Frames/Border.lua:903-917)用的是 CreateColor...
+--       但那是**它自己的** df 侧曲线; 本插件已有实测可用的 ColorMixin 路径, 取后者。
+--    3. DandersFrames Frames/Border.lua:899-901 —— CreateColorCurve **不接构造参数**
+--       (传表被忽略 → 空曲线 → 求值为白), 必须 SetType + AddPoint 构建。
+--
+--    故: 优先用 ColorMixin 构建曲线(与 I.UpdateDispelColorCurve 同源);
+--    若任一环节不可用 → 返回 nil, 交由 map 兜底(而非留一条无效曲线顶掉 map)。
 local _dispelColorCurveCache
+local _dispelColorCurveTried = false
 local function BuildDispelColorCurve()
-    if _dispelColorCurveCache then return _dispelColorCurveCache end
+    if _dispelColorCurveTried then return _dispelColorCurveCache end
+    _dispelColorCurveTried = true
+
     if not (C_CurveUtil and C_CurveUtil.CreateColorCurve) then return nil end
+    -- ColorMixin 全局缺失(非 12.x 或加载顺序异常)时不做曲线, 走 map。
+    -- 全部六个必须齐全 —— 缺任何一个都会留下"有洞"的曲线, 比没有更糟。
+    if not (DEBUFF_TYPE_NONE_COLOR and DEBUFF_TYPE_MAGIC_COLOR and DEBUFF_TYPE_CURSE_COLOR
+        and DEBUFF_TYPE_DISEASE_COLOR and DEBUFF_TYPE_POISON_COLOR and DEBUFF_TYPE_BLEED_COLOR) then
+        return nil
+    end
+
     local curve = C_CurveUtil.CreateColorCurve()
     if not curve then return nil end
     if curve.SetType and Enum and Enum.LuaCurveType then
         curve:SetType(Enum.LuaCurveType.Linear)
     end
-    -- 锚定 0(None=透明, 无驱散类型不上色; 与 showWithoutDispelType=false 双保险)
-    curve:AddPoint(_dispelDB2IDs.None, CreateColor(0, 0, 0, 0))
-    for _, dispelType in ipairs(_dispelTypes) do
-        local r, g, b = GetCellDispelRGB(dispelType)
-        curve:AddPoint(_dispelDB2IDs[dispelType], CreateColor(r, g, b, 1))
+
+    -- 用户色优先(CellDB 可选), 否则用 Blizzard 原生 ColorMixin
+    -- ⚠ 用户色是 {r=,g=,b=} 裸表, **不能直接 AddPoint**(Indicator_Defaults.lua:277-278:
+    --   "Blizzard native ColorMixin objects work correctly as dsCurve AddPoint arguments
+    --    where Lua CreateColor() objects do not") → 用 CreateColor 转成 ColorMixin;
+    --   CreateColor 不可用时退回原生色(宁可显示默认色, 也不要无效曲线顶掉 map)
+    local function PickMixin(dispelType, nativeMixin)
+        local c = CellDB and CellDB["debuffTypeColor"] and CellDB["debuffTypeColor"][dispelType]
+        if c and c.r and c.g and c.b and CreateColor then
+            return CreateColor(c.r, c.g, c.b, 1)
+        end
+        return nativeMixin
     end
+
+    -- 锚定 0(None): 必须锚, 否则曲线在 0 处外推会顶替色表
+    curve:AddPoint(_dispelDB2IDs.None, DEBUFF_TYPE_NONE_COLOR)
+    curve:AddPoint(_dispelDB2IDs.Magic,   PickMixin("Magic",   DEBUFF_TYPE_MAGIC_COLOR))
+    curve:AddPoint(_dispelDB2IDs.Curse,   PickMixin("Curse",   DEBUFF_TYPE_CURSE_COLOR))
+    curve:AddPoint(_dispelDB2IDs.Disease, PickMixin("Disease", DEBUFF_TYPE_DISEASE_COLOR))
+    curve:AddPoint(_dispelDB2IDs.Poison,  PickMixin("Poison",  DEBUFF_TYPE_POISON_COLOR))
+    curve:AddPoint(_dispelDB2IDs.Bleed,   PickMixin("Bleed",   DEBUFF_TYPE_BLEED_COLOR))
     -- Enrage(9) → Bleed 色(与原版/Grid2/DF 同款)
-    local r, g, b = GetCellDispelRGB("Bleed")
-    curve:AddPoint(_dispelDB2IDs.Enrage, CreateColor(r, g, b, 1))
+    curve:AddPoint(_dispelDB2IDs.Enrage,  PickMixin("Bleed",   DEBUFF_TYPE_BLEED_COLOR))
+
     _dispelColorCurveCache = curve
     return curve
 end
@@ -514,16 +543,44 @@ local function CreateDispelOverlay(button)
             tex:SetTexture("Interface\\AddOns\\CellD\\Media\\Gradients\\DF_Gradient_V")
             tex:SetBlendMode("BLEND")
             dim:SetAlpha(DISPEL_DYE_ALPHA)
-            auraButton:AddDispelTypeTexture(tex, {
+
+            -- ★★ P0-A: 曲线与 map **严格二选一**(VuhDo VuhDoAuraContainer.lua:857/885/994/
+            --    1050/1259 五处实证, 从不两者同传)。
+            --    原因: 引擎无条件让 curve 覆盖 map 且不检查结果 —— 同时传时, 一条无效
+            --    曲线会连正确的 map 一起顶掉(全白/无色)。
+            --    优先级: 曲线(战斗 secret 安全, C 侧按 auraInstanceID 解析)
+            --            > map(按 secret dispelName 查表, 战斗中永远 no-op, 仅脱战可用)
+            local curve = BuildDispelColorCurve()
+            -- ⚠ 必须用显式 if: Lua 的 `a and nil or b` 恒等于 b(and/or 陷阱) ——
+            --   写成一行会静默变成"两条同时传", 正好是本修正要消除的状态。
+            local colorMap
+            if not curve then
+                colorMap = BuildDispelColorMap()
+            end
+            local opts = {
                 style = Enum.CustomAuraButtonDispelTypeTextureStyle.PreserveAsset,
                 showWhenHarmful = true,
                 showWhenHelpful = false,
                 showWithoutDispelType = false, -- 不可驱散不上色, 保持 grid 外观
-                -- ★ secret 安全: 曲线优先(战斗中 secret dispelName 查不到 map);
-                -- map 仅作脱战/非 secret 回退
-                customDispelColorCurve = BuildDispelColorCurve(),
-                customDispelColorMap = BuildDispelColorMap(),
-            })
+                customDispelColorCurve = curve,      -- 二选一: 有曲线则只给曲线
+                customDispelColorMap = colorMap,     -- 无曲线才给色表兜底
+            }
+
+            -- ★ P1: 绑定结果戳在 button 上(DandersFrames Features/Dispel.lua:1801-1812 教训:
+            --   只记全局会被逐帧覆盖; 且 pcall 包裹, 失败必须显式记录 —— 否则
+            --   "没绑定" 与 "没调用" 无法区分, 表现为沉默而非报错)
+            local ok, err = pcall(function()
+                if auraButton.AddDispelTypeTexture then
+                    if auraButton.ClearDispelTypeTextures then auraButton:ClearDispelTypeTextures() end
+                    auraButton:AddDispelTypeTexture(tex, opts)
+                else
+                    auraButton:SetAuraBorder(tex, opts)
+                end
+            end)
+            auraButton._cellDBindRes = ok and ("ok curve=" .. (curve and "yes" or "no"))
+                or ("FAIL: " .. tostring(err))
+            auraButton._cellDColorMode = curve and "curve" or "map"
+
             -- 鼠标必须保持可用: AuraButton 不接收任何鼠标事件
             auraButton:EnableMouse(false)
             auraButton:SetMouseClickEnabled(false)
@@ -652,7 +709,9 @@ local function SyncButton(button)
                 if container.SetOnUpdateMode then
                     container:SetOnUpdateMode(Enum.OnUpdateMode.RunWhenVisible)
                 end
-                container:UpdateAllAuras()
+                if container.UpdateAllAuras then
+                    container:UpdateAllAuras()
+                end
             else
                 container:SetShown(false)
             end
@@ -714,10 +773,15 @@ end
 -------------------------------------------------
 -- 打印辅助: secret 值安全转字符串(secret 的 tostring 返回 secret 字符串,
 -- 直接 table.concat/拼接会报 "invalid value (secret)")
+-- ⚠ 顺序要紧: 先 nil 再 secret —— IsSecretValue(nil) 行为未定义, 不可先调
 local function Str(v)
     if v == nil then return "nil" end
     if F.IsSecretValue and F.IsSecretValue(v) then return "SECRET" end
-    return tostring(v)
+    -- 数值/字符串正常转换; 其他类型(表/帧)用 tostring 兜底
+    local ok, s = pcall(tostring, v)
+    if not ok then return "?" end
+    if F.IsSecretValue and F.IsSecretValue(s) then return "SECRET" end
+    return s
 end
 
 function U.DebugAuraOverlay(unit)
@@ -725,6 +789,9 @@ function U.DebugAuraOverlay(unit)
     local found = false
     F.IterateAllUnitButtons(function(button)
         local bunit = button.states and (button.states.displayedUnit or button.states.unit) or button:GetAttribute("unit")
+        -- ★ secret 安全: bunit 可能是 secret 值, 直接 `~= unit` 比较会 Lua error
+        --   (CLAUDE.md 教训: IsSecretValue 检查必须在 == 比较之前)
+        if F.IsSecretValue and F.IsSecretValue(bunit) then return end
         if bunit ~= unit then return end
         found = true
         local name = button:GetName() or tostring(button)
@@ -746,16 +813,27 @@ function U.DebugAuraOverlay(unit)
                         local canAccess = slotButton:CanBeAccessedInContext()
                         -- 战斗锁定期对受保护 AuraButton 调用 IsShown 会抛 forbidden:
                         -- 必须 canAccess 且 pcall 包裹
+                        -- ★★ secret 安全: IsShown 战斗中返回 secret boolean,
+                        --   绝不可对其做 and/or/if 布尔测试(否则报
+                        --   "attempt to perform boolean test on ... secret boolean")
                         local isShown
-                        if canAccess and not (F.IsSecretValue and F.IsSecretValue(canAccess)) then
-                            local ok, shown = pcall(slotButton.IsShown, slotButton)
-                            isShown = ok and shown or nil
+                        if not (F.IsSecretValue and F.IsSecretValue(canAccess)) and canAccess then
+                            local ok, shownVal = pcall(slotButton.IsShown, slotButton)
+                            if ok and not (F.IsSecretValue and F.IsSecretValue(shownVal)) then
+                                isShown = shownVal
+                            elseif ok then
+                                isShown = "SECRET"
+                            end
                         end
                         state = "acc=" .. Str(canAccess) .. " shown=" .. Str(isShown)
                     end
-                    F.Print(string.format("CellD AuraOverlay: %s [dispels] shown=%s unit=%s enabled=%s size=%sx%s slot(%s)",
+                    -- ★ P1: 绑定结果(不依赖 CanBeAccessedInContext —— 它在受限环境恒 false,
+                    --   无法区分"没绑定"与"绑定成功但引擎不报")
+                    local bindRes = slotButton and slotButton._cellDBindRes or "n/a"
+                    local colorMode = (slotButton and slotButton._cellDColorMode) or "?"
+                    F.Print(string.format("CellD AuraOverlay: %s [dispels] shown=%s unit=%s enabled=%s size=%sx%s slot(%s) bind=%s mode=%s",
                         name, Str(container:IsShown()), Str(container:GetUnit()), Str(container:IsEnabled()),
-                        tostring(w), tostring(h), state))
+                        Str(w), Str(h), state, Str(bindRes), Str(colorMode)))
                 else
                     local groupKey = key == "buffs" and "secret" or tostring(key)
                     local frameCount = 0
@@ -767,24 +845,34 @@ function U.DebugAuraOverlay(unit)
                             local f = container:GetAuraGroupFrame(groupKey, i)
                             if f and f.CanBeAccessedInContext then
                                 local canAccess = f:CanBeAccessedInContext()
+                                local canAccessSafe = not (F.IsSecretValue and F.IsSecretValue(canAccess))
                                 -- 战斗锁定期对受保护对象调用 IsShown 抛 forbidden: 守卫 + pcall
+                                -- ★★ secret 安全(2026-08-27 实测崩溃修复):
+                                --   IsShown 在战斗中返回 **secret boolean**。
+                                --   `ok and shown or nil` 会对 secret 值做布尔测试 →
+                                --   "attempt to perform boolean test on local 'shown'"。
+                                --   必须先用 IsSecretValue 判定, 且**绝不对其做 and/or/if 测试**。
                                 local isShown
-                                if canAccess and not (F.IsSecretValue and F.IsSecretValue(canAccess)) then
-                                    local ok, shown = pcall(f.IsShown, f)
-                                    isShown = ok and shown or nil
+                                if canAccessSafe and canAccess then
+                                    local ok, shownVal = pcall(f.IsShown, f)
+                                    if ok and not (F.IsSecretValue and F.IsSecretValue(shownVal)) then
+                                        isShown = shownVal
+                                    elseif ok then
+                                        isShown = "SECRET"  -- 已展示但不参与计数
+                                    end
                                 end
                                 frameStates[#frameStates + 1] = "f" .. i .. "(acc=" .. Str(canAccess) .. " shown=" .. Str(isShown) .. ")"
-                                if not (F.IsSecretValue and F.IsSecretValue(canAccess)) and canAccess then
-                                    if not (F.IsSecretValue and F.IsSecretValue(isShown)) and isShown then
-                                        activeFrames = activeFrames + 1
-                                    end
+                                -- 计数只在**非 secret 的 true** 时累加(secret 一律不计数,
+                                -- 避免用错误信息误导判断)
+                                if canAccessSafe and canAccess and isShown == true then
+                                    activeFrames = activeFrames + 1
                                 end
                             end
                         end
                     end
                     F.Print(string.format("CellD AuraOverlay: %s [%s] shown=%s unit=%s enabled=%s size=%sx%s frames=%s active=%s %s",
-                        name, tostring(key), Str(container:IsShown()), Str(container:GetUnit()), Str(container:IsEnabled()),
-                        tostring(w), tostring(h), tostring(frameCount), tostring(activeFrames), table.concat(frameStates, " ")))
+                        name, Str(key), Str(container:IsShown()), Str(container:GetUnit()), Str(container:IsEnabled()),
+                        Str(w), Str(h), Str(frameCount), Str(activeFrames), table.concat(frameStates, " ")))
                 end
             else
                 F.Print("CellD AuraOverlay: " .. name .. " [" .. tostring(key) .. "] = nil")
@@ -821,10 +909,24 @@ local function HookLegacyDispels(button)
     end)
 end
 
+-- ★★ 降级保护(2026-08-27): 只有当 overlay 槽**确实绑定成功**时才永久隐藏 legacy。
+--    原因: legacy dispels 被 Hide + hooksecurefunc 压住后, 若 overlay 绑定失败
+--    (引擎拒绝 / 曲线无效 / 槽 inaccessible), 用户将**完全看不到驱散提示** ——
+--    治疗场景下这是危险的单点故障, 且没有任何 fallback。
+--    判据用 _cellDBindRes(实测绑定结果), 不用 CanBeAccessedInContext(受限环境恒 false)。
+local function OverlayDispelUsable(button)
+    local overlays = containers[button]
+    local slotButton = overlays and overlays.dispelsButton
+    if not slotButton then return false end
+    local res = slotButton._cellDBindRes
+    return type(res) == "string" and res:sub(1, 2) == "ok"
+end
+
 local function HideLegacyDispels()
     F.IterateAllUnitButtons(function(button)
         HookLegacyDispels(button)
-        if button.indicators and button.indicators.dispels then
+        -- 绑定失败则**保留** legacy 驱散显示, 宁可双层也不要全无
+        if OverlayDispelUsable(button) and button.indicators and button.indicators.dispels then
             button.indicators.dispels:Hide()
         end
     end, true)
@@ -847,9 +949,14 @@ local function SyncDispelsOutOfCombat()
             end
             if unit then
                 container:SetUnit(unit)
-                container:SetEnabled(true)
+                -- 引擎 12.1 可能自行恢复显隐, enable+show 一起开(Grid2 同款)
+                if container.SetEnabled then
+                    container:SetEnabled(true)
+                end
                 container:SetShown(true)
-                container:UpdateAllAuras()
+                if container.UpdateAllAuras then
+                    container:UpdateAllAuras()
+                end
             end
         end
     end, true)
@@ -924,7 +1031,11 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
     end
 end)
 
--- 模块加载: 隐藏 legacy dispels, 由常驻 overlay 接管
+-- 模块加载: 安装 hook(防止 legacy 后续恢复)。
+-- ⚠ 此处**不会**隐藏 legacy —— 此刻容器尚未创建(按钮可能还没建),
+--   OverlayDispelUsable 必为 false, 属预期行为(降级保护生效: 宁可显示 legacy)。
+--   真正的隐藏发生在 PLAYER_ENTERING_WORLD / GROUP_ROSTER_UPDATE:
+--   那时 CreateAll() 已跑完, 绑定结果可判定。
 HideLegacyDispels()
 
 -- 血条方向切换(水平 ↔ vertical_health)后重锚染色纹理

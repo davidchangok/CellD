@@ -55,3 +55,37 @@ git -C . ls-files --cached | Where-Object { $_ -ne '.gitignore' }
 # 复制到 TEMP 目录结构 CellD\ 后 Compress-Archive
 # 版本号更新: CellD.toc + CHANGELOG.md + release_body.md
 ```
+
+## 📤 推送流程（GitHub: davidchangok/CellD, main）
+
+**日常（本机终端，推荐）：**
+```powershell
+git -C 'E:\Game\World of Warcraft\_retail_\Interface\AddOns\CellD' push origin main
+# 本机凭据管理器(Windows 凭据/GCM)正常弹窗验证即可
+```
+
+**AI 沙箱会话内推送（本会话实测跑通，2026-08-20）：**
+- 沙箱会拦截 git-for-windows 的 `sh.exe` 子进程（Win32 error 5: 信号管道被拒）——
+  **任何触发凭据助手/askpass/ssh 传输的 push 都会失败**（`git push`/`credential fill`/SSH 均实测失败）
+- ✅ **可行路径 = 令牌嵌入远端 URL + 空 helper**（git 的 libcurl 直传，零子进程）：
+  ```powershell
+  $git='D:\Program Files\Git\cmd\git.exe'
+  # 1. 用户提供 GitHub PAT(classic, 勾 repo) —— 浏览器: 头像→Settings→Developer settings
+  #    →Personal access tokens→Tokens (classic)→Generate new token(勾 repo)→复制 ghp_...
+  $git -C <repo> remote set-url origin "https://davidchangok:<PAT>@github.com/davidchangok/CellD.git"   # 需沙箱升级(danger-full-access, .git/config 写入被拒时)
+  $env:GIT_TERMINAL_PROMPT=0
+  $git -C <repo> -c 'credential.helper=' push origin main
+  # 2. 推送后立即清 URL + 同步本地追踪 ref(均为 .git 写入, 同样需升级):
+  $git -C <repo> update-ref refs/remotes/origin/main main
+  $git -C <repo> remote set-url origin 'https://github.com/davidchangok/CellD.git'
+  # 3. 提醒用户到 GitHub 撤销该 PAT
+  ```
+- 注意：`.git/config`/`~/.git-credentials` 写入受沙箱 workspace-write 限制，需 `sandbox_permissions` 升级；
+  推送成功但追踪 ref 更新失败=远端已好，本地补 `update-ref` 即可
+- 验证：`git ls-remote https://github.com/davidchangok/CellD.git HEAD`（无 helper 时可直接执行，零子进程）
+
+**重装系统后从零推送：**
+1. 装 Git for Windows（本机在 `D:\Program Files\Git`）→ 配置身份：
+   `git config --global user.name "davidchangok"` / `user.email`(GitHub 账户邮箱)
+2. 克隆/进入仓库，`git pull`（HTTPS 会提示登录——浏览器登录 GitHub 后凭据管理器自动保存）
+3. 之后 `git push origin main` 即可；AI 沙箱推送则走上面的 PAT 路径
