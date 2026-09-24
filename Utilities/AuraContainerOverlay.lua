@@ -669,6 +669,24 @@ local function EnsureOverlays(button)
     CreateDebuffOverlay(button)
     CreateDispelOverlay(button)
     CreateDefensiveOverlay(button)
+
+    -- ★★ 脱战快照(2026-08-27 新增): 战斗中容器被引擎托管后
+    --   GetSize() 返回 secret(SECRETxSECRET), 插件侧完全读不到几何信息,
+    --   调试输出失去参照。在此(脱战、值仍可读)记录一份基线, 供战斗中对照:
+    --   若战斗中 size 由具体值变为 SECRET, 即证明"引擎已接管该容器"。
+    local overlays = containers[button]
+    if overlays then
+        for _, key in ipairs(overlayKeys) do
+            local container = overlays[key]
+            if container and not container._cellDSizeSnapshot then
+                local w, h = container:GetSize()
+                if not (F.IsSecretValue and F.IsSecretValue(w))
+                    and not (F.IsSecretValue and F.IsSecretValue(h)) then
+                    container._cellDSizeSnapshot = tostring(w) .. "x" .. tostring(h)
+                end
+            end
+        end
+    end
 end
 
 -------------------------------------------------
@@ -805,25 +823,30 @@ function U.DebugAuraOverlay(unit)
             if container then
                 local w, h = container:GetSize()
 
-                -- 驱散染色: 单槽 + 引擎按类型着色; acc 在受限环境恒为 false, 仅供参考
+                -- 驱散染色: 单槽 + 引擎按类型着色
                 if key == "dispels" then
                     local slotButton = overlays.dispelsButton
                     local state = "no-slot"
-                    if slotButton and slotButton.CanBeAccessedInContext then
-                        local canAccess = slotButton:CanBeAccessedInContext()
-                        -- 战斗锁定期对受保护 AuraButton 调用 IsShown 会抛 forbidden:
-                        -- 必须 canAccess 且 pcall 包裹
-                        -- ★★ secret 安全: IsShown 战斗中返回 secret boolean,
-                        --   绝不可对其做 and/or/if 布尔测试(否则报
-                        --   "attempt to perform boolean test on ... secret boolean")
+                    if slotButton then
+                        -- ★★ 修正(2026-08-27 实测): 原代码用
+                        --   `if slotButton.CanBeAccessedInContext then` 作为读取门控,
+                        --   但本文件 L368 已记录"CanBeAccessedInContext 在受限环境恒 false"
+                        --   —— 代码与自身注释矛盾, 导致 IsShown 永远读不到(shown=nil)。
+                        --   正确做法: canAccess **只作为信息展示**, 不作门控;
+                        --   IsShown 用 pcall + IsSecretValue 直接探(取不到自然拿不到)。
+                        local canAccess
+                        if slotButton.CanBeAccessedInContext then
+                            local okAcc, acc = pcall(slotButton.CanBeAccessedInContext, slotButton)
+                            canAccess = okAcc and acc or nil
+                        end
                         local isShown
-                        if not (F.IsSecretValue and F.IsSecretValue(canAccess)) and canAccess then
-                            local ok, shownVal = pcall(slotButton.IsShown, slotButton)
-                            if ok and not (F.IsSecretValue and F.IsSecretValue(shownVal)) then
-                                isShown = shownVal
-                            elseif ok then
-                                isShown = "SECRET"
-                            end
+                        local ok, shownVal = pcall(slotButton.IsShown, slotButton)
+                        if ok and not (F.IsSecretValue and F.IsSecretValue(shownVal)) then
+                            isShown = shownVal
+                        elseif ok then
+                            isShown = "SECRET"
+                        else
+                            isShown = "FORBIDDEN"
                         end
                         state = "acc=" .. Str(canAccess) .. " shown=" .. Str(isShown)
                     end
@@ -831,9 +854,15 @@ function U.DebugAuraOverlay(unit)
                     --   无法区分"没绑定"与"绑定成功但引擎不报")
                     local bindRes = slotButton and slotButton._cellDBindRes or "n/a"
                     local colorMode = (slotButton and slotButton._cellDColorMode) or "?"
-                    F.Print(string.format("CellD AuraOverlay: %s [dispels] shown=%s unit=%s enabled=%s size=%sx%s slot(%s) bind=%s mode=%s",
+                    -- 快照对照(同 frame 分支)
+                    local snap = container._cellDSizeSnapshot or "?"
+                    local sizeStr = Str(w) .. "x" .. Str(h)
+                    if sizeStr ~= snap then
+                        sizeStr = sizeStr .. "(脱战基线 " .. snap .. ")"
+                    end
+                    F.Print(string.format("CellD AuraOverlay: %s [dispels] shown=%s unit=%s enabled=%s size=%s slot(%s) bind=%s mode=%s",
                         name, Str(container:IsShown()), Str(container:GetUnit()), Str(container:IsEnabled()),
-                        Str(w), Str(h), state, Str(bindRes), Str(colorMode)))
+                        sizeStr, state, Str(bindRes), Str(colorMode)))
                 else
                     local groupKey = key == "buffs" and "secret" or tostring(key)
                     local frameCount = 0
@@ -843,36 +872,47 @@ function U.DebugAuraOverlay(unit)
                         frameCount = container:GetAuraGroupFrameCount(groupKey) or 0
                         for i = 1, math.min(frameCount, 5) do
                             local f = container:GetAuraGroupFrame(groupKey, i)
-                            if f and f.CanBeAccessedInContext then
-                                local canAccess = f:CanBeAccessedInContext()
-                                local canAccessSafe = not (F.IsSecretValue and F.IsSecretValue(canAccess))
-                                -- 战斗锁定期对受保护对象调用 IsShown 抛 forbidden: 守卫 + pcall
-                                -- ★★ secret 安全(2026-08-27 实测崩溃修复):
-                                --   IsShown 在战斗中返回 **secret boolean**。
-                                --   `ok and shown or nil` 会对 secret 值做布尔测试 →
-                                --   "attempt to perform boolean test on local 'shown'"。
-                                --   必须先用 IsSecretValue 判定, 且**绝不对其做 and/or/if 测试**。
+                            if f then
+                                -- ★★ 修正(2026-08-27 实测): 同 dispels 分支 ——
+                                --   CanBeAccessedInContext 在受限环境恒 false, **不可作门控**
+                                --   (本文件 L368 已有此结论, 原代码却用它拦住了 IsShown 读取,
+                                --    导致所有帧恒为 shown=nil)。改为只作信息, 直接探 IsShown。
+                                local canAccess
+                                if f.CanBeAccessedInContext then
+                                    local okAcc, acc = pcall(f.CanBeAccessedInContext, f)
+                                    canAccess = okAcc and acc or nil
+                                end
+                                -- ★ secret 安全: IsShown 战斗中返回 secret boolean,
+                                --   `ok and shown or nil` 会对 secret 做布尔测试 →
+                                --   "attempt to perform boolean test on ... secret boolean"。
+                                --   必须先用 IsSecretValue 判定, 且**绝不做 and/or/if 测试**。
                                 local isShown
-                                if canAccessSafe and canAccess then
-                                    local ok, shownVal = pcall(f.IsShown, f)
-                                    if ok and not (F.IsSecretValue and F.IsSecretValue(shownVal)) then
-                                        isShown = shownVal
-                                    elseif ok then
-                                        isShown = "SECRET"  -- 已展示但不参与计数
-                                    end
+                                local ok, shownVal = pcall(f.IsShown, f)
+                                if ok and not (F.IsSecretValue and F.IsSecretValue(shownVal)) then
+                                    isShown = shownVal
+                                elseif ok then
+                                    isShown = "SECRET"  -- 已展示但不参与计数
+                                else
+                                    isShown = "FORBIDDEN"
                                 end
                                 frameStates[#frameStates + 1] = "f" .. i .. "(acc=" .. Str(canAccess) .. " shown=" .. Str(isShown) .. ")"
-                                -- 计数只在**非 secret 的 true** 时累加(secret 一律不计数,
-                                -- 避免用错误信息误导判断)
-                                if canAccessSafe and canAccess and isShown == true then
+                                -- 计数只在**非 secret 的 true** 时累加
+                                if isShown == true then
                                     activeFrames = activeFrames + 1
                                 end
                             end
                         end
                     end
-                    F.Print(string.format("CellD AuraOverlay: %s [%s] shown=%s unit=%s enabled=%s size=%sx%s frames=%s active=%s %s",
+                    -- 快照对照: 战斗中容器被引擎托管 -> size 变 SECRET,
+                    -- 与脱战基线对比可判断"引擎是否已接管"(而非容器不存在)
+                    local snap = container._cellDSizeSnapshot or "?"
+                    local sizeStr = Str(w) .. "x" .. Str(h)
+                    if sizeStr ~= snap then
+                        sizeStr = sizeStr .. "(脱战基线 " .. snap .. ")"
+                    end
+                    F.Print(string.format("CellD AuraOverlay: %s [%s] shown=%s unit=%s enabled=%s size=%s frames=%s active=%s %s",
                         name, Str(key), Str(container:IsShown()), Str(container:GetUnit()), Str(container:IsEnabled()),
-                        Str(w), Str(h), Str(frameCount), Str(activeFrames), table.concat(frameStates, " ")))
+                        sizeStr, Str(frameCount), Str(activeFrames), table.concat(frameStates, " ")))
                 end
             else
                 F.Print("CellD AuraOverlay: " .. name .. " [" .. tostring(key) .. "] = nil")
