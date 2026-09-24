@@ -148,7 +148,13 @@ function U.TestAuraContainer(cmd)
     testFrame:Show()
 
     -- 同时打印 CellD 框架上的 overlay 状态, 便于排查 debuff 不显示
-    if U.DebugAuraOverlay then
+    -- ★ 优先走 DebugInfoSync: 它先 SyncButton(刷新单位绑定/显隐) 再打印,
+    --   拿到的是**当前真实状态**; 战斗中 CreateAll 会被跳过(战斗锁), 但
+    --   SyncButton 仍执行, 正是战斗内测试所需。
+    --   仅当 DebugInfoSync 不存在时退回 DebugAuraOverlay(只读, 可能是陈旧状态)。
+    if U.DebugInfoSync then
+        U.DebugInfoSync(unit)
+    elseif U.DebugAuraOverlay then
         U.DebugAuraOverlay(unit)
     end
 
