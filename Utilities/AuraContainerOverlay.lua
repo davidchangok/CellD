@@ -60,6 +60,48 @@ local function AnchorDispelTex(tex, button)
 end
 
 -------------------------------------------------
+-- 职业判定(修复跨职业串扰的关键)
+-------------------------------------------------
+-- ★★ 本文件**不能**用裸 `IsSpellKnown` —— 它是 Utils.lua 里的 `local` 函数
+--    (Utils.lua:2226), 作用域仅限该文件, 既未导出到 Cell.funcs 也未提升为全局。
+--    而 12.1 的原生全局 `IsSpellKnown` 已移除(Utils.lua:2219 也是当作可能为 nil
+--    的可选值引用), 故裸调用恒为 nil → `if IsSpellKnown then` 恒假(跳过过滤)。
+--    ⚠ 这正是"非奶骑角色显示圣骑道标 200025"的根因。
+--
+--    正确 API: C_SpellBook.IsSpellKnown
+--      - VuhDo VuhDoToolbox.lua:59 直接绑定该命名空间函数
+--      - DandersFrames Features/Auras.lua:227-230 明确指出:
+--        "C_SpellBook.IsSpellKnown answers 'does the player KNOW this', which is the
+--         only correct question for a talent; IsSpellInSpellBook ... returns TRUE FOR
+--         UNKNOWN TALENT ENTRIES"
+--      道标属天赋技能, 故必须用 IsSpellKnown 而非 IsSpellInSpellBook。
+--    fallback 链参照 VuhDo VuhDoToolbox.lua:1102-1106(IsSpellKnownOrOverridesKnown
+--      → IsSpellKnown → IsPlayerSpell)。
+local IsSpellKnownFn
+do
+    local bookKnown = C_SpellBook and C_SpellBook.IsSpellKnown
+    local overridesKnown = IsSpellKnownOrOverridesKnown
+    local playerSpell = IsPlayerSpell
+    IsSpellKnownFn = function(spellId)
+        if not spellId then return false end
+        local ok, known
+        if bookKnown then
+            ok, known = pcall(bookKnown, spellId)
+            if ok and known then return true end
+        end
+        if overridesKnown then
+            ok, known = pcall(overridesKnown, spellId)
+            if ok and known then return true end
+        end
+        if playerSpell then
+            ok, known = pcall(playerSpell, spellId)
+            if ok and known then return true end
+        end
+        return false
+    end
+end
+
+-------------------------------------------------
 -- 追踪法术列表(与 SecretAuraTracker.officialSecretSpells 一致)
 -------------------------------------------------
 local officialSecretSpells = {
@@ -84,17 +126,23 @@ local officialSecretSpells = {
 local function BuildTrackedIDs()
     local ids = {}
 
-    if IsSpellKnown then
-        for _, id in ipairs(officialSecretSpells) do
-            if IsSpellKnown(id) then
-                ids[id] = true
-            end
+    -- 1. 官方 secret 名单 —— 按职业过滤(只追踪当前角色已学会的)
+    --    ★ 原代码写 `if IsSpellKnown then`(裸全局), 12.1 下恒为 nil →
+    --      整段被跳过 → 官方名单完全失效。现改用 IsSpellKnownFn。
+    for _, id in ipairs(officialSecretSpells) do
+        if IsSpellKnownFn(id) then
+            ids[id] = true
         end
-        -- ★ 注意: 不做"全量兜底"(IsSpellKnown 不可用时)"——
-        --   全量会导致奶德追踪到圣骑道标 200025 等跨职业技能(用户实测异常)
     end
 
-    -- 当前布局中自定义 buff 指示器(Healers 等)的法术列表
+    -- 2. 当前布局中自定义 buff 指示器(Healers 等)的法术列表
+    -- ★★ 职业过滤(2026-08-27 修复跨职业串扰):
+    --   布局的 auras 来自 `F.FirstRun()` 写入的**全职业合并大表**
+    --   (Indicator_DefaultSpells.lua L762 `spells`, 含圣骑道标 200025 等)——
+    --   不过滤会让非奶骑角色也追踪并显示道标图标(用户实测异常)。
+    --   注意: candidateFilters 引擎侧**不支持 castBy/来源过滤**
+    --   (仅 includeSpellIDs/excludeSpellIDs/includeDispelTypes/excludeDispelTypes/maxDuration),
+    --   故无法用 "只显示我施放的" 来屏蔽, 只能在此按职业剔除。
     local layoutTable = Cell.vars and Cell.vars.currentLayoutTable
     if layoutTable and layoutTable.indicators then
         for _, ind in ipairs(layoutTable.indicators) do
@@ -102,23 +150,30 @@ local function BuildTrackedIDs()
             if auras and ind["auraType"] == "buff" then
                 for k, v in pairs(auras) do
                     if type(k) == "number" and type(v) == "number" then
-                        ids[v] = true
+                        if IsSpellKnownFn(v) then
+                            ids[v] = true
+                        end
                     end
                 end
             end
         end
     end
 
-    -- 内置 externals
+    -- 3. 内置 externals(施加于他人的增益) —— 同样按职业过滤
+    --    externals 表是全职业合并的, 不过滤同样会造成跨职业图标
     if I and I.GetExternals then
         local externals = I.GetExternals()
         if externals then
             for _, spells in pairs(externals) do
                 for id, v in pairs(spells) do
-                    if type(id) == "number" then ids[id] = true end
+                    if type(id) == "number" and IsSpellKnownFn(id) then
+                        ids[id] = true
+                    end
                     if type(v) == "table" then
                         for subId in pairs(v) do
-                            ids[subId] = true
+                            if IsSpellKnownFn(subId) then
+                                ids[subId] = true
+                            end
                         end
                     end
                 end
