@@ -139,7 +139,16 @@ for i = 1, 9 do
                         markButtons[i]:SetBackdropBorderColor(markColors[i][1], markColors[i][2], markColors[i][3], 1)
                         markButtons[i].locked = unit
                         markButtons[i].ticker = C_Timer.NewTicker(1.5, function()
-                            if UnitName(unit) == name then
+                            -- ★ secret 安全(2026-08-27 修复): 12.1 战斗中
+                            --   `UnitName(unit)` 返回 **secret string**, 直接与 name
+                            --   比较会 Lua error("... secret ..."). 战斗中无法验证
+                            --   单位是否仍是同一人 → 保持锁定不动(不执行取消分支),
+                            --   脱战后 ticker 恢复正常校验。
+                            local currentName = UnitName(unit)
+                            if issecretvalue and issecretvalue(currentName) then
+                                return -- 战斗中: 跳过校验, 保留锁定状态
+                            end
+                            if currentName == name then
                                 if GetRaidTargetIndex(unit) ~= i then
                                     SetRaidTarget(unit, i)
                                 end

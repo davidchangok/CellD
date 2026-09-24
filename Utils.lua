@@ -1455,33 +1455,56 @@ function F.GetGroupType()
     end
 end
 
+-- ★ secret 安全辅助(2026-08-27): UnitIsUnit 带 SecretWhenUnitComparisonRestricted
+--   (Blizzard UnitDocumentation.lua:2267) —— 受限单位比较时返回 secret boolean。
+--   统一封装: 返回 true / false, secret 时返回 **nil** 表示"不可读"。
+--   ⚠ 调用方必须区分 nil 与 false —— 把"不知道"当作"不是"会造成误判。
+--   ⚠ 定义位置必须在所有调用者之前(Lua local 作用域)。
+local function SafeUnitIsUnit(a, b)
+    local r = UnitIsUnit(a, b)
+    if issecretvalue and issecretvalue(r) then return nil end
+    return r and true or false
+end
+F.SafeUnitIsUnit = SafeUnitIsUnit
+
 function F.UnitInGroup(unit, ignorePets)
+    -- ★ secret 安全(2026-08-27): UnitIsUnit 带 SecretWhenUnitComparisonRestricted,
+    --   战斗中受限比较返回 secret boolean —— 它在 `or` 链中被布尔测试会 Lua error。
+    --   用 SafeUnitIsUnit 归一: 不可读时按 false 处理(此处语义恰当 —— 判定"是否在队",
+    --   即便自己/宠物比较不可读, 其余 API 仍能给出正确结论)。
+    --   UnitInParty/UnitInRaid/UnitPlayerOrPetInParty/UnitPlayerOrPetInRaid/UnitInPartyIsAI
+    --   均返回普通 boolean, 不受 secret 影响。
     if ignorePets then
-        return UnitIsUnit(unit, "player") or UnitInParty(unit) or UnitInRaid(unit) or UnitInPartyIsAI(unit)
+        return SafeUnitIsUnit(unit, "player") == true
+            or UnitInParty(unit) or UnitInRaid(unit) or UnitInPartyIsAI(unit)
     else
-        return UnitIsUnit(unit, "player") or UnitIsUnit(unit, "pet") or UnitPlayerOrPetInParty(unit) or UnitPlayerOrPetInRaid(unit) or UnitInPartyIsAI(unit)
+        return SafeUnitIsUnit(unit, "player") == true
+            or SafeUnitIsUnit(unit, "pet") == true
+            or UnitPlayerOrPetInParty(unit) or UnitPlayerOrPetInRaid(unit) or UnitInPartyIsAI(unit)
     end
 end
 
 -- UnitTokenFromGUID
 function F.GetTargetUnitID(target)
-    if UnitIsUnit(target, "player") then
-        return "player"
-    elseif UnitIsUnit(target, "pet") then
-        return "pet"
-    end
+    local isSelf = SafeUnitIsUnit(target, "player")
+    if isSelf == nil then return end -- 身份比较受限: 无法反推, 返回 nil
+    if isSelf then return "player" end
+
+    local isPet = SafeUnitIsUnit(target, "pet")
+    if isPet == nil then return end
+    if isPet then return "pet" end
 
     if not F.UnitInGroup(target) then return end
 
     if UnitIsPlayer(target) or UnitInPartyIsAI(target) then
         for unit in F.IterateGroupMembers() do
-            if UnitIsUnit(target, unit) then
+            if SafeUnitIsUnit(target, unit) == true then
                 return unit
             end
         end
     else
         for unit in F.IterateGroupPets() do
-            if UnitIsUnit(target, unit) then
+            if SafeUnitIsUnit(target, unit) == true then
                 return unit
             end
         end
@@ -1489,15 +1512,15 @@ function F.GetTargetUnitID(target)
 end
 
 function F.GetTargetPetID(target)
-    if UnitIsUnit(target, "player") then
-        return "pet"
-    end
+    local isSelf = SafeUnitIsUnit(target, "player")
+    if isSelf == nil then return end
+    if isSelf then return "pet" end
 
     if not F.UnitInGroup(target) then return end
 
     if UnitIsPlayer(target) or UnitInPartyIsAI(target) then
         for unit in F.IterateGroupMembers() do
-            if UnitIsUnit(target, unit) then
+            if SafeUnitIsUnit(target, unit) == true then
                 return F.GetPetUnit(unit)
             end
         end
@@ -1547,29 +1570,52 @@ function F.IsVehicle(guid)
 end
 
 function F.GetTargetUnitInfo()
-    if UnitIsUnit("target", "player") then
+    -- ★★ secret 安全(2026-08-27 修复): 12.1 战斗中受限单位比较时 `UnitIsUnit` 返回
+    --    **secret boolean**(Blizzard UnitDocumentation.lua:2267
+    --    `SecretWhenUnitComparisonRestricted`)、`UnitName` 返回 **secret string**。
+    --    原实现首行即 `if UnitIsUnit("target", "player") then` —— 对 secret 值做布尔
+    --    测试会直接 Lua error; 且返回的 name 被 Marks.lua 用于 `== name` 比较。
+    --    本函数属"遍历反推目标身份"模式(正是该限制要防的), 受限时**返回 nil**,
+    --    由调用方跳过(Marks.lua:126 `if unit and name then` 已能正确处理)。
+    --    这是唯一正确选择, 不是功能降级 —— 受限环境下单位身份客观不可读。
+    local isSelf = SafeUnitIsUnit("target", "player")
+    if isSelf == nil then return end
+    if isSelf then
         return "player", UnitName("player"), UnitClassBase("player")
-    elseif UnitIsUnit("target", "pet") then
+    end
+
+    local isPet = SafeUnitIsUnit("target", "pet")
+    if isPet == nil then return end
+    if isPet then
         return "pet", UnitName("pet")
     end
+
     if not F.UnitInGroup("target") then return end
 
     if IsInRaid() then
         for i = 1, GetNumGroupMembers() do
-            if UnitIsUnit("target", "raid"..i) then
-                return "raid"..i, UnitName("raid"..i), UnitClassBase("raid"..i)
+            if SafeUnitIsUnit("target", "raid"..i) == true then
+                local name = UnitName("raid"..i)
+                if issecretvalue and issecretvalue(name) then return end
+                return "raid"..i, name, UnitClassBase("raid"..i)
             end
-            if UnitIsUnit("target", "raidpet"..i) then
-                return "raidpet"..i, UnitName("raidpet"..i)
+            if SafeUnitIsUnit("target", "raidpet"..i) == true then
+                local name = UnitName("raidpet"..i)
+                if issecretvalue and issecretvalue(name) then return end
+                return "raidpet"..i, name
             end
         end
     elseif IsInGroup() then
         for i = 1, GetNumGroupMembers()-1 do
-            if UnitIsUnit("target", "party"..i) then
-                return "party"..i, UnitName("party"..i), UnitClassBase("party"..i)
+            if SafeUnitIsUnit("target", "party"..i) == true then
+                local name = UnitName("party"..i)
+                if issecretvalue and issecretvalue(name) then return end
+                return "party"..i, name, UnitClassBase("party"..i)
             end
-            if UnitIsUnit("target", "partypet"..i) then
-                return "partypet"..i, UnitName("partypet"..i)
+            if SafeUnitIsUnit("target", "partypet"..i) == true then
+                local name = UnitName("partypet"..i)
+                if issecretvalue and issecretvalue(name) then return end
+                return "partypet"..i, name
             end
         end
     end
@@ -2403,7 +2449,11 @@ function F.IsInRange(unit, check)
         return false
     end
 
-    if UnitIsUnit("player", unit) then
+    -- ★ secret 安全(2026-08-27): 与下方 L2438 的 UnitInRange 防护保持一致 ——
+    --   UnitIsUnit 带 SecretWhenUnitComparisonRestricted, 受限比较返回 secret
+    --   boolean, 裸用于 if 会 Lua error。取不到时走后续分支(不提前 return true)。
+    local isSelf = UnitIsUnit("player", unit)
+    if not (issecretvalue and issecretvalue(isSelf)) and isSelf then
         return true
 
     elseif not check and F.UnitInGroup(unit) then
@@ -2441,7 +2491,10 @@ function F.IsInRange(unit, check)
                 return inRange
             end
 
-            if UnitIsUnit(unit, "pet") and spell_pet then
+            -- ★ secret 安全(2026-08-27): 同函数内多处 UnitIsUnit 均需防护
+            --   (SecretWhenUnitComparisonRestricted)。取不到则跳过该分支。
+            local isPet = UnitIsUnit(unit, "pet")
+            if not (issecretvalue and issecretvalue(isPet)) and isPet and spell_pet then
                 -- no spell_friend, use spell_pet
                 return UnitInSpellRange(spell_pet, unit)
             end

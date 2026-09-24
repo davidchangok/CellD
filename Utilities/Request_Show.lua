@@ -138,6 +138,40 @@ local IsSpellReady = F.IsSpellReady
 
 local GetSpellLink = C_Spell.GetSpellLink or GetSpellLink
 
+-- ★★ 职业判定(2026-08-27 修复): 原代码在此处裸调 `IsSpellKnown`, 而该全局在
+--    12.1 默认**不存在** —— Utils.lua:2226 的同名函数是 `local`(作用域仅限该文件,
+--    未导出到 Cell.funcs); 全局版只由已废弃的 Blizzard_DeprecatedSpellBook 定义,
+--    且该文件首行即 `if not GetCVarBool("loadDeprecationFallbacks") then return end`
+--    (CVar 默认 false) → 裸调用**恒为 nil**。
+--    后果: 用户勾选 "只响应我已学会的法术"(CellDB.spellRequest.knownSpellsOnly) 后,
+--    `if IsSpellKnown(spellId)` 恒假 → 直接走 else 返回 false → **整个 spell request
+--    响应功能静默失效**(无报错)。
+--    正确写法同 AuraContainerOverlay/SecretAuraTracker: 优先 C_SpellBook.IsSpellKnown,
+--    fallback 链参照 VuhDo VuhDoToolbox.lua:1102-1106。此处法术是玩家自己的, 查 Player 书。
+local IsSpellKnownFn
+do
+    local bookKnown = C_SpellBook and C_SpellBook.IsSpellKnown
+    local overridesKnown = IsSpellKnownOrOverridesKnown
+    local playerSpell = IsPlayerSpell
+    IsSpellKnownFn = function(spellId)
+        if not spellId then return false end
+        local ok, known
+        if bookKnown then
+            ok, known = pcall(bookKnown, spellId)
+            if ok and known then return true end
+        end
+        if overridesKnown then
+            ok, known = pcall(overridesKnown, spellId)
+            if ok and known then return true end
+        end
+        if playerSpell then
+            ok, known = pcall(playerSpell, spellId)
+            if ok and known then return true end
+        end
+        return false
+    end
+end
+
 local function CheckSRConditions(spellId, unit, sender)
     F.Debug("|cffcdb4dbCheckSRConditions:|r", spellId, unit, sender)
 
@@ -150,7 +184,7 @@ local function CheckSRConditions(spellId, unit, sender)
     if srExists and F.FindAuraById(unit, "BUFF", srSpells[spellId][2]) then return end
 
     if srKnown then
-        if IsSpellKnown(spellId) then
+        if IsSpellKnownFn(spellId) then
             -- if srDeadMsg and UnitIsDeadOrGhost("player") then
             --     SendChatMessage(srDeadMsg, "WHISPER", nil, sender)
             -- end

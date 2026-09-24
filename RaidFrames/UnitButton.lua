@@ -2105,7 +2105,13 @@ local function UnitButton_UpdateTarget(self)
     local unit = self.states.displayedUnit
     if not unit then return end
 
-    if UnitIsUnit(unit, "target") then
+    -- ★ secret 安全(2026-08-27): UnitIsUnit 带 SecretWhenUnitComparisonRestricted
+    --   (Blizzard UnitDocumentation.lua:2267) —— 受限单位比较时返回 secret boolean,
+    --   直接用作 if 条件会 Lua error。取不到就不改高亮(保守, 避免报错刷屏)。
+    local isTarget = UnitIsUnit(unit, "target")
+    if F.IsSecretValue and F.IsSecretValue(isTarget) then return end
+
+    if isTarget then
         if highlightEnabled then self.widgets.targetHighlight:Show() end
     else
         self.widgets.targetHighlight:Hide()

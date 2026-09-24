@@ -46,7 +46,49 @@ CellD 是从 [enderneko/Cell](https://github.com/enderneko/Cell) 分叉的魔兽
 
 ## ⚠️ 教训（避免重复踩坑）
 
+### 🔴 裸调 `IsSpellKnown` = 恒 nil（2026-08-27，一次排查揪出 3 个 bug）
+
+**`IsSpellKnown` 在 12.1 默认不存在。** 它有两层陷阱，**每一层都能独立致命**：
+
+1. **作用域陷阱**：`Utils.lua:2226` 有一个 `local function IsSpellKnown`，作用域**仅限该文件** ——
+   既没导出到 `Cell.funcs`，也没提升为全局。其他文件里的裸 `IsSpellKnown` 引用的是**全局**，不是它。
+2. **废弃层陷阱**：全局版只由 `Blizzard_DeprecatedSpellBook/Deprecated_SpellBook.lua` 定义，
+   而该文件**第一行就是** `if not GetCVarBool("loadDeprecationFallbacks") then return end`。
+   `loadDeprecationFallbacks` **默认 false** → 全局根本不定义 → 裸调用**恒为 `nil`**。
+
+**它有两种相反方向的破坏，都极隐蔽：**
+
+| 写法 | 求值 | 后果 |
+|---|---|---|
+| `if IsSpellKnown then ... end` | `if nil` → 恒假 | **过滤被整段跳过 / 功能永久失效**（无报错、无日志） |
+| `if not IsSpellKnown or X then ... end` | `not nil` → 恒真 | **全量注入 → 跨职业串扰**（非奶骑显示圣骑道标 200025） |
+
+**已因此产生的 3 个真实 bug（均已修复）：**
+- 非奶骑角色显示圣骑道标 → `AuraContainerOverlay.lua` / `SecretAuraTracker.lua` 的官方名单整段被跳过，且硬编码兜底全量注入
+- 布局 `auras` 与 `externals` 两条来源**完全没有职业过滤**（它们来自 `F.FirstRun()` 写入的全职业合并大表 `Indicator_DefaultSpells.lua` L762）
+- 术士小鬼驱散**永不生效** → `Indicator_DefaultSpells.lua` 裸调 + 查错法术书（宠物技能须查 `SpellBookSpellBank.Pet`）
+
+**✅ 正确做法**（fallback 链参照 VuhDo `VuhDoToolbox.lua:1102-1106`）：
+```lua
+local bookKnown = C_SpellBook and C_SpellBook.IsSpellKnown
+-- 依次尝试并 pcall 包裹:
+--   C_SpellBook.IsSpellKnown → IsSpellKnownOrOverridesKnown → IsPlayerSpell
+```
+- **天赋技能必须用 `C_SpellBook.IsSpellKnown`，不能用 `IsSpellInSpellBook`**
+  （DandersFrames `Features/Auras.lua:227-230`：后者 "returns TRUE FOR UNKNOWN TALENT ENTRIES"）
+- **宠物技能查 `SpellBookSpellBank.Pet`**（VuhDo `VuhDoToolbox.lua:1085-1088`）
+
+> **通读代码时，凡见到裸 `IsSpellKnown` / `IsPlayerSpell` / `IsSpellKnownOrOverridesKnown`
+> 都要按此核查。** 这类 bug 静默失败，不会在游戏里报错。
+
+### 其他教训
+
 - 12.1 战斗中不要在事件回调里比较 `UnitName`/`UnitIsUnit` 的返回值（secret 值比较直接 Lua error，且 `IsSecretValue` 检查必须放在 `==` 比较**之前**）
+- **secret boolean 绝不能出现在 `and` / `or` / `if 条件` 中** —— `ok and shown or nil` 会报
+  "attempt to perform boolean test on ... secret boolean"。必须先 `IsSecretValue` 判定并过滤，
+  secret 值降级为字符串（详见上方第 5 条 API 矩阵）
+- **调试门控不要用 `CanBeAccessedInContext`** —— 它在受限环境**恒 false**，用作读取门控会让
+  状态读取永远失败，把"读不到"误判为"没显示"（曾掩盖驱散染色真因，浪费多轮排查）
 - 追踪列表不要用一次性构建 + 缓存标记（布局初始化时序会导致列表永久缺失）；每次施放重建 + 保留时长缓存
 - 战斗中层数（stack）不可知——不要显示层数，避免误导
 - **AuraContainer 不要集成到 SecureUnitButton 本身**（2026-08-18 三次尝试全部回滚）：引擎托管对象与 SecureUnitButtonTemplate 架构级冲突，鼠标/悬停/点击施法失效、显隐不受 Lua 控制；但 VuhDo 3.214 证明：**作为普通子 Frame（如 `$parentOlHost`）或独立容器挂载、并禁用鼠标事件，是可以与 secure 按钮共存的**。详细分析见 `STATUS.md` 第九节

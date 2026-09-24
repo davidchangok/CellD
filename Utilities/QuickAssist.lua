@@ -423,7 +423,13 @@ end
 local function QuickAssist_UpdateTarget(self)
     if not self.unit then return end
 
-    if UnitIsUnit(self.unit, "target") then
+    -- ★ secret 安全(2026-08-27): 同 UnitButton_UpdateTarget —— UnitIsUnit 带
+    --   SecretWhenUnitComparisonRestricted, 战斗受限比较返回 secret boolean,
+    --   直接 if 会 Lua error。取不到就不改高亮。
+    local isTarget = UnitIsUnit(self.unit, "target")
+    if F.IsSecretValue and F.IsSecretValue(isTarget) then return end
+
+    if isTarget then
         if styleTable["highlightSize"] ~= 0 then self.targetHighlight:Show() end
     else
         self.targetHighlight:Hide()
