@@ -459,3 +459,71 @@ AuraContainerOverlay.lua:845: attempt to perform boolean test on local 'shown'
 崩溃发生在 `active=0` 计数逻辑上，而 `active` 恰恰是判断"图标是否真的显示"的唯一指标。
 即：**越是想看信息，越会因为要看而崩溃**。修复后 `active` 才真正可用 ——
 这也是之前所有调试输出 `active=0` 却"图标其实显示了"的原因之一。
+
+---
+
+## 十二、🔴 12.1 战斗 API 可见性矩阵（游戏内实证，2026-08-27）
+
+> **本节是全项目最重要的认知基础。** 任何后续排查都必须以此为前提。
+
+### 实测矩阵
+
+| API | 脱战 | 战斗中 |
+|---|---|---|
+| `container:IsShown()` | 正常 boolean | **正常 boolean** ✅ |
+| `container:IsEnabled()` | 正常 | **正常** ✅ |
+| `container:GetUnit()` | 正常 | **正常** ✅ |
+| `container:GetSize()` | 正常数值 | **secret 值**（可调用，值受限） |
+| `container:GetAuraGroupFrameCount()` | 正常 | 正常 ✅ |
+| `container:GetAuraGroupFrame()` | 正常 | 正常 ✅ |
+| `slotButton:IsShown()` | 正常 | **FORBIDDEN** ❌ |
+| `slotButton:CanBeAccessedInContext()` | 正常 | **FORBIDDEN** ❌ |
+| `frame:IsShown()` | 正常 | **FORBIDDEN** ❌ |
+| `frame:CanBeAccessedInContext()` | 正常 | **FORBIDDEN** ❌ |
+
+### 四条结论
+
+1. **限制针对 AuraButton，而非 AuraContainer。**
+   容器自身状态可读，子按钮状态被封死。此前把两者混为一谈是误判来源。
+
+2. **"图标是否真的显示"在战斗中对插件不可知。**
+   必须靠肉眼确认。任何从插件侧推断渲染结果的尝试都是徒劳 ——
+   `active` 计数在战斗中**永远不可信**（帧 `shown` 全部 FORBIDDEN）。
+
+3. **`GetSize()` 返回 secret 本身就是"引擎已接管该容器"的有效信号**，
+   不是调用失败。与脱战基线快照（`_cellDSizeSnapshot`）对照即可判定。
+
+4. **脱战快照是唯一可靠的创建期验证手段。**
+   实测基线（2026-08-27）：
+   ```
+   buffs:      64.999961853027 x 13.000031471252   (5×13)
+   debuffs:    149.99992370605 x 28.000011444092   (150×28 ← L320 显式设置)
+   dispels:    134.99995422363 x 39.999969482422   (135×40)
+   defensives: 24.000047683716 x 20.000017166138   (24×20)
+   ```
+   → 证明四个容器**创建尺寸全部正确**。
+
+### 实测输出样本（战斗中）
+
+```
+[buffs]   shown=true unit=player enabled=true size=SECRETxSECRET(脱战基线 64.99...x13.00...) frames=10 active=0 f1(acc=nil shown=FORBIDDEN) ...
+[dispels] shown=true unit=player enabled=true size=SECRETxSECRET(脱战基线 134.99...x39.99...) slot(acc=nil shown=FORBIDDEN) bind=ok curve=yes mode=curve
+```
+
+**解读**：容器在战斗中**全部正确打开**（`shown=true enabled=true`），
+`bind=ok curve=yes mode=curve` 表示绑定被接受。剩下唯一未知的是**渲染结果**。
+
+### 实测输出样本（脱战）
+
+```
+[buffs]   shown=false enabled=false   ← 正确：脱战交还 legacy 指示器
+[dispels] shown=true  enabled=true    ← 正确：驱散常驻设计
+```
+
+→ 脱战路径同样按预期工作。
+
+### 🎯 当前唯一待确认的问题
+
+**染色在 Grid 上是否真的可见** —— 这是唯一无法从代码/日志判断的事项。
+若读数全部正常但肉眼无颜色，问题锁定在**引擎层不接受该绑定**，
+下一步应转 P0-B（纯色表对照）或改用 VuhDo 的 `HARMFUL|DISPELLABLE` 过滤组合。
