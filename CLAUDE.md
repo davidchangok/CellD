@@ -31,6 +31,10 @@ CellD 是从 [enderneko/Cell](https://github.com/enderneko/Cell) 分叉的魔兽
 3. **已知边界**（暴雪设计，无法绕过）：键盘施法（鼠标不悬停）无法识别目标；无法感知驱散/提前结束；队友施放的增益不可见
 4. **2026-08 新学习（用户已实测）**：VuhDo 3.214 已用 AuraContainer + `includeSpellIDs` 作为 12.1 光环主通道；用户实测 `/celld testaura` 的 AuraContainer 战斗时全部显示，证明“非 secure 子 Frame 挂载 + 禁用鼠标”可避免 CellD 之前的集成冲突。**硬性约束：不得改变 grid 外观，鼠标/悬停施法必须保持可用。** 已新增 `Utilities/AuraContainerOverlay.lua`，包含 buff/debuff/驱散染色/防御技能四类 overlay；**2026-08-20 功能线收尾（已提交推送）**：驱散染色 = DF 同款渐变载体（`Media/Gradients/DF_Gradient_V` + dim host 帧 opacity）+ **`customDispelColorCurve`（DB2 类型 ID，secret 安全；`customDispelColorMap` 按 secret dispelName 查表战斗中永远 no-op，是历史"颜色不对"根因）** + 填充纹理锚定（跟随真实血量）；血条 = 上游 r279 secret 直喂勿改；追踪列表职业化（奶德不显示 200025，移除全量兜底）；**参考实现首选 DandersFrames `Features/Dispel.lua`/`Frames/Border.lua:843`（用户实测"很好"）**，其次 BigWigs/Grid2/VuhDo/原版 Cell（源码均本地）。调试快照见 `STATUS.md` 第十/十一节。
 
+5. **2026-08-27 驱散染色修复完成（用户实测 Grid 已正常上色）**：根因链 = ①`customDispelColorCurve` 与 `customDispelColorMap` **同时传递** —— 引擎无条件让 curve 覆盖 map 且不检查结果，无效曲线会顶掉正确的 map，**必须严格二选一**（VuhDo `VuhDoAuraContainer.lua` 857/885/994/1050/1259 五处实证从不两者同传）；②曲线原用 `CreateColor` 构建，而本插件 `Indicator_Defaults.lua:277` 早已注明 "Blizzard native ColorMixin objects work correctly as dsCurve AddPoint arguments where Lua CreateColor() objects do not" → 改用 `DEBUFF_TYPE_*_COLOR`，六个全局缺任一则整条曲线放弃交 map 兜底（曲线"有洞"比没有更糟）；③调试侧 `CanBeAccessedInContext`（受限环境**恒 false**）被误用作 `IsShown` 读取门控，导致"读不到"被误判为"没显示"，掩盖真因。
+   **🔴 12.1 战斗 API 可见性矩阵（实测，排查必读）**：`container` 的 `IsShown`/`IsEnabled`/`GetUnit`/`GetAuraGroupFrame*` 战斗中**均可正常调用**；`container:GetSize()` 返回 **secret 值**（可调用，值受限）；而 **AuraButton/子 frame 的 `IsShown` 与 `CanBeAccessedInContext` 战斗中一律 FORBIDDEN**（调用本身被拒）。→ **限制针对 AuraButton 而非 AuraContainer**；**"图标是否真的显示"战斗中插件侧不可知，`active` 计数在战斗内永远不可信，只能靠肉眼确认**（历史上已因此浪费多轮）。`GetSize()` 返回 secret 本身即"引擎已接管"的有效信号。完整矩阵与因果链见 `HANDOFF.md` 第十一/十二节。
+   **secret 铁律**：`IsShown` 等 API 战斗中返回 **secret boolean**，`ok and shown or nil` 这类写法会报 "attempt to perform boolean test on ... secret boolean" —— 必须先 `IsSecretValue` 判定并过滤，secret 值降级为字符串仅作展示。
+
 ## 🛠 工作约定
 
 - 客户端仅 12.1+（`CellD.toc` = `Interface: 120100`），无需怀旧服兼容

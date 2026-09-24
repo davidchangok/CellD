@@ -522,8 +522,34 @@ AuraContainerOverlay.lua:845: attempt to perform boolean test on local 'shown'
 
 → 脱战路径同样按预期工作。
 
-### 🎯 当前唯一待确认的问题
+### ✅ 已确认：染色在 Grid 上正常显示（2026-08-27 用户实测）
 
-**染色在 Grid 上是否真的可见** —— 这是唯一无法从代码/日志判断的事项。
-若读数全部正常但肉眼无颜色，问题锁定在**引擎层不接受该绑定**，
-下一步应转 P0-B（纯色表对照）或改用 VuhDo 的 `HARMFUL|DISPELLABLE` 过滤组合。
+**结论：功能已跑通。** 战斗中可驱散 debuff 在 Grid 上正常显示类型颜色。
+
+至此完整验证链闭合：
+
+| 环节 | 状态 |
+|---|---|
+| 崩溃（`secret boolean` 布尔测试） | ✅ 修复 |
+| 曲线/色表同时传递（应二选一） | ✅ 修复 |
+| 曲线构建方式（`CreateColor` → Blizzard ColorMixin） | ✅ 修复 |
+| 门控矛盾（`CanBeAccessedInContext` 恒 false 拦住读取） | ✅ 修复 |
+| **Grid 上显示类型颜色** | ✅ **用户实测确认** |
+
+> ⚠ **对后续排查的提醒**：
+> 读者可能仍会想"能不能从插件侧自动判断染色是否生效"。
+> **答案是不能** —— 见上节矩阵，战斗中 AuraButton 的 `IsShown` 全部 FORBIDDEN。
+> 验证只能靠肉眼，不要在插件侧反复试探（本项目历史上已因此浪费多轮）。
+>
+> 本节曾写"唯一待确认问题"，现已由实测关闭。保留此说明以避免后人重复该弯路。
+
+### 🔧 本次修复的因果链（供回归时定位）
+
+```
+Grid 无颜色
+  ← 引擎无条件让 curve 覆盖 map，无效曲线顶掉正确 map
+  ← 曲线用 CreateColor 构建（本插件 Indicator_Defaults.lua:277 明确警告其无效）
+  ← 且 curve 与 map 被同时传递（应二选一）
+  ← 更进一步：调试时 IsShown 读取被 CanBeAccessedInContext(恒 false) 门控拦住，
+     导致"读不到状态"被误判为"没有显示"，掩盖了真正原因
+```
