@@ -661,6 +661,37 @@ local dispelNodeIDs = {
 local eventFrame = CreateFrame("Frame")
 --Whenever anything is committed to the configID, e.g. when saving talents, switching talent loadouts, spending profession points, etc
 
+-- ★★ 术士小鬼驱散(吞噬魔法 89808)的职业判定
+--    原代码用裸 `IsSpellKnown(89808, true)` —— 那是 Blizzard 废弃兼容层的全局函数,
+--    仅在 `Blizzard_DeprecatedSpellBook/Deprecated_SpellBook.lua` 中定义, 而该文件
+--    开头即 `if not GetCVarBool("loadDeprecationFallbacks") then return end`;
+--    该 CVar 默认 false → 全局不存在 → 裸调用恒为 nil → `dispellable["Magic"]=nil`
+--    → **术士的魔法驱散永远不显示**(与奶骑道标串扰同源的另一处裸调用)。
+--
+--    正确写法(参照 VuhDo VuhDoToolbox.lua:1085-1088): 宠物技能查 **Pet** 法术书。
+--    89808 是小鬼技能, 属 Pet bank; 只查 Player bank 会永远返回 false。
+--    注: 废弃版的 IsSpellKnown 内部用 IsSpellInSpellBook(..., includeOverrides=false),
+--    此处用 includeOverrides=true 与 VuhDo 一致 —— 覆盖法术(天赋替换)也应算已学会。
+local function IsWarlockPetSpellKnown(spellId)
+    if not spellId then return false end
+    local book = C_SpellBook
+    if not book then return false end
+    local petBank = SpellBookSpellBank and SpellBookSpellBank.Pet
+    if not petBank then return false end
+
+    -- 优先 IsSpellInSpellBook(Pet): 语义为"是否出现在宠物法术书中"
+    if book.IsSpellInSpellBook then
+        local ok, known = pcall(book.IsSpellInSpellBook, spellId, petBank, true)
+        if ok and known then return true end
+    end
+    -- 再试 IsSpellKnown(Pet)
+    if book.IsSpellKnown then
+        local ok, known = pcall(book.IsSpellKnown, spellId, petBank)
+        if ok and known then return true end
+    end
+    return false
+end
+
 if UnitClassBase("player") == "WARLOCK" then
     eventFrame:RegisterEvent("UNIT_PET")
 
@@ -672,8 +703,12 @@ if UnitClassBase("player") == "WARLOCK" then
             timer:Cancel()
         end
         timer = C_Timer.NewTimer(1, function()
-            -- update dispellable
-            dispellable["Magic"] = IsSpellKnown(89808, true)
+            -- update dispellable(小鬼吞噬魔法: 查 Pet 法术书)
+            -- ⚠ 必须显式赋值(含 false), 不能用 `if known then ... end` ——
+            --   非术士分支的 UpdateDispellable 会 wipe 后重建, 此处若只置 true,
+            --   解散小鬼 / 换非小鬼宠物后 dispellable["Magic"] 会**永久残留**,
+            --   导致魔法驱散显示错误。赋 false 保持两分支语义一致。
+            dispellable["Magic"] = IsWarlockPetSpellKnown(89808) or false
             -- texplore(dispellable)
         end)
 
